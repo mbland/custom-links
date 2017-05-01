@@ -1,0 +1,40 @@
+{
+  "name": "url-pointers",
+  "version": "1.0.0",
+  "description": "System for creating custom URLs",
+  "main": "index.js",
+  "scripts": {
+    "test": "./go test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mbland/url-pointers.git"
+  },
+  "keywords": [
+    "serverless"
+  ],
+  "author": {
+    "name": "Mike Bland",
+    "email": "mbland@acm.org",
+    "url": "https://mike-bland.com/"
+  },
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/mbland/url-pointers/issues"
+  },
+  "homepage": "https://github.com/mbland/url-pointers#readme",
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "chai-as-promised": "^6.0.0",
+    "coveralls": "^2.13.1",
+    "eslint": "^3.19.0",
+    "istanbul": "^0.4.5",
+    "live-server": "^1.2.0",
+    "mocha": "^3.3.0",
+    "sinon": "^2.1.0"
+  },
+  "dependencies": {
+    "express": "^4.15.2",
+    "redis": "^2.7.1"
+  }
+}

@@ -1,0 +1,31 @@
+#! /usr/bin/env bash
+#
+# Run ESLint on source files
+#
+# Usage:
+#   {{go}} {{cmd}} [<glob>...]
+#
+# Without <glob> arguments, lints all project files. With one or more <glob>
+# arguments, only lints files matching '<glob>.js'.
+
+declare -r __GO_LINT_GLOB_ARGS=('--ignore'
+  'coverage:node_modules:public/assets/js/vendor:tmp' '.' '.js')
+
+_lint_tab_completion() {
+  local word_index="$1"
+  shift
+  @go 'glob' '--complete' "$((word_index + ${#__GO_LINT_GLOB_ARGS[@]}))" \
+    "${__GO_LINT_GLOB_ARGS[@]}" "${args[@]}"
+}
+
+_lint() {
+  if [[ "$1" == '--complete' ]]; then
+    # Tab completions
+    _lint_tab_completion "${@:2}"
+    return
+  fi
+
+  eslint --color $(@go 'glob' "${__GO_LINT_GLOB_ARGS[@]}" "$@")
+}
+
+_lint "$@"

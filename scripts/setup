@@ -1,0 +1,23 @@
+#! /usr/bin/env bash
+#
+# Runs first-time setup commands for a freshly-cloned repository
+
+urlp.check_for_required_programs() {
+  if ! command -v node >/dev/null; then
+    printf 'Please install Node.js before continuing.\n' >&2
+    return 1
+  fi
+}
+
+urlp.setup() {
+  @go.critical_section_begin
+
+  export PATH="node_modules/.bin:$PATH"
+  urlp.check_for_required_programs
+  @go.log_command npm install
+  @go.log_command @go lint
+  @go.log_command @go test -c
+  @go.critical_section_end
+}
+
+urlp.setup "$@"

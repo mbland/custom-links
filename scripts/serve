@@ -1,0 +1,9 @@
+#! /usr/local/env bash
+#
+# Runs a local development server at http://localhost:8080
+
+urlp.serve() {
+  live-server public/
+}
+
+urlp.serve "$@"
