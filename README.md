@@ -3,6 +3,7 @@
 [![License](https://img.shields.io/github/license/mbland/url-pointers.svg)](https://github.com/mbland/url-pointers/blob/master/LICENSE.md)
 [![Continuous integration status](https://img.shields.io/travis/mbland/url-pointers/master.svg)](https://travis-ci.org/mbland/url-pointers)
 [![Coverage Status](https://img.shields.io/coveralls/mbland/url-pointers/master.svg)](https://coveralls.io/github/mbland/url-pointers?branch=master)
+[![Static analysis status](https://img.shields.io/codeclimate/github/mbland/url-pointers.svg)](https://codeclimate.com/github/mbland/url-pointers)
 
 Source: https://github.com/mbland/url-pointers
 
