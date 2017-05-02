@@ -164,11 +164,16 @@ describe('RedisClient', function() {
       return redisClient.removeUrlFromOwner('mbland', '/foo')
         .should.be.rejectedWith(Error, 'forced error for mbland 1 /foo')
     })
+
+    it('raises an error if the owner didn\'t own the URL', function() {
+      return redisClient.removeUrlFromOwner('mbland', '/foo')
+        .should.be.rejectedWith(Error, 'mbland didn\'t own /foo')
+    })
   })
 
-  describe('create', function() {
+  describe('createRedirect', function() {
     it('creates a new redirection', function() {
-      return redisClient.create('/foo', REDIRECT_TARGET, 'mbland')
+      return redisClient.createRedirect('/foo', REDIRECT_TARGET, 'mbland')
         .should.be.fulfilled.then(function() {
           return redisClient.getRedirect('/foo')
         })
@@ -186,9 +191,9 @@ describe('RedisClient', function() {
     })
 
     it('fails to create a new redirection when one already exists', function() {
-      return redisClient.create('/foo', REDIRECT_TARGET, 'mbland')
+      return redisClient.createRedirect('/foo', REDIRECT_TARGET, 'mbland')
         .should.be.fulfilled.then(function() {
-          return redisClient.create('/foo', REDIRECT_TARGET, 'mbland')
+          return redisClient.createRedirect('/foo', REDIRECT_TARGET, 'mbland')
         })
         .should.be.rejectedWith(Error, 'redirection already exists for /foo')
     })
@@ -197,7 +202,7 @@ describe('RedisClient', function() {
       stubClientImplMethod('hsetnx').callsFake(function(url, field, val, cb) {
         cb(new Error('forced error for ' + [url, field, val].join(' ')))
       })
-      return redisClient.create('/foo', REDIRECT_TARGET, 'mbland')
+      return redisClient.createRedirect('/foo', REDIRECT_TARGET, 'mbland')
         .should.be.rejectedWith(Error, 'forced error for /foo owner mbland')
         .then(function() {
           return redisClient.getRedirect('/foo').should.become(null)
@@ -210,7 +215,7 @@ describe('RedisClient', function() {
           cb(new Error('forced error for ' +
             [url, field1, val1, field2, val2].join(' ')))
         })
-      return redisClient.create('/foo', REDIRECT_TARGET, 'mbland')
+      return redisClient.createRedirect('/foo', REDIRECT_TARGET, 'mbland')
         .should.be.rejectedWith(Error, 'failed to set location and count: ' +
           'Error: forced error for /foo location ' + REDIRECT_TARGET +
           ' count 0')
@@ -224,7 +229,7 @@ describe('RedisClient', function() {
       stubClientImplMethod('lpush').callsFake(function(owner, url, cb) {
         cb(new Error('forced error for ' + owner + ' ' + url))
       })
-      return redisClient.create('/foo', REDIRECT_TARGET, 'mbland')
+      return redisClient.createRedirect('/foo', REDIRECT_TARGET, 'mbland')
         .should.be.rejectedWith(Error,
           'failed to add to list for user mbland: ' +
           'Error: forced error for mbland /foo')
@@ -266,7 +271,7 @@ describe('RedisClient', function() {
 
   describe('updateProperty', function() {
     it('successfully updates a property', function() {
-      return redisClient.create('/foo', REDIRECT_TARGET, 'msb')
+      return redisClient.createRedirect('/foo', REDIRECT_TARGET, 'msb')
         .then(function() {
           return redisClient.updateProperty('/foo', 'owner', 'mbland')
         })
@@ -293,7 +298,7 @@ describe('RedisClient', function() {
       stubClientImplMethod('hset').callsFake(function(url, field, val, cb) {
         cb(new Error('forced error for ' + [url, field, val].join(' ')))
       })
-      return redisClient.create('/foo', REDIRECT_TARGET, 'msb')
+      return redisClient.createRedirect('/foo', REDIRECT_TARGET, 'msb')
         .then(function() {
           return redisClient.changeOwner('/foo', 'mbland')
         })
@@ -303,7 +308,7 @@ describe('RedisClient', function() {
 
   describe('changeOwner', function() {
     it('sucessfully changes the owner of a redirection', function() {
-      return redisClient.create('/foo', REDIRECT_TARGET, 'msb')
+      return redisClient.createRedirect('/foo', REDIRECT_TARGET, 'msb')
         .then(function() {
           return redisClient.changeOwner('/foo', 'mbland')
         })
@@ -322,7 +327,7 @@ describe('RedisClient', function() {
     })
 
     it('raises an error if adding to the new owner\'s list fails', function() {
-      return redisClient.create('/foo', REDIRECT_TARGET, 'msb')
+      return redisClient.createRedirect('/foo', REDIRECT_TARGET, 'msb')
         .then(function() {
           stubClientImplMethod('lpush').callsFake(function(owner, url, cb) {
             cb(new Error('forced error for ' + owner + ' ' + url))
@@ -335,7 +340,7 @@ describe('RedisClient', function() {
     })
 
     it('raises an error if removing from old owner\'s list fails', function() {
-      return redisClient.create('/foo', REDIRECT_TARGET, 'msb')
+      return redisClient.createRedirect('/foo', REDIRECT_TARGET, 'msb')
         .then(function() {
           stubClientImplMethod('lrem').callsFake(function(owner, cnt, url, cb) {
             cb(new Error('forced error for ' + [owner, cnt, url].join(' ')))
@@ -352,7 +357,8 @@ describe('RedisClient', function() {
   // as changeOwner.
   describe('updateLocation', function() {
     it('successfully updates the location', function() {
-      return redisClient.create('/foo', 'https://example.com/', 'mbland')
+      return redisClient.createRedirect(
+        '/foo', 'https://example.com/', 'mbland')
         .then(function() {
           return redisClient.updateLocation('/foo', REDIRECT_TARGET)
         })
@@ -365,54 +371,30 @@ describe('RedisClient', function() {
 
   describe('deleteRedirection', function() {
     it('successfully deletes the redirection', function() {
-      return redisClient.create('/foo', REDIRECT_TARGET, 'mbland')
+      return redisClient.createRedirect('/foo', REDIRECT_TARGET, 'mbland')
         .then(function() {
-          return redisClient.create('/bar', REDIRECT_TARGET, 'mbland')
-        })
-        .then(function() {
-          return redisClient.create('/baz', REDIRECT_TARGET, 'mbland')
-        })
-        .then(function() {
-          return redisClient.deleteRedirection('/bar')
+          return redisClient.deleteRedirection('/foo')
         })
         .should.be.fulfilled.then(function() {
-          return redisClient.getRedirect('/bar')
+          return redisClient.getRedirect('/foo')
         })
         .should.become(null)
-        .then(function() {
-          return redisClient.getOwnedRedirects('mbland')
-        })
-        .should.become(['/baz', '/foo'])
     })
 
     it('raises an error if the redirection doesn\'t exist', function() {
       return redisClient.deleteRedirection('/foo')
-        .should.be.rejectedWith(Error, 'failed to delete nonexistent ' +
-          'redirection for /foo')
+        .should.be.rejectedWith(Error, 'no redirection exists for /foo')
     })
 
     it('raises an error if client.del fails', function() {
       stubClientImplMethod('del').callsFake(function(key, cb) {
         cb(new Error('forced error for ' + key))
       })
-      return redisClient.create('/foo', REDIRECT_TARGET, 'mbland')
+      return redisClient.createRedirect('/foo', REDIRECT_TARGET, 'mbland')
         .then(function() {
           return redisClient.deleteRedirection('/foo')
         })
-        .should.be.rejectedWith(Error, 'failed to delete redirection for ' +
-          '/foo: Error: forced error for /foo')
-    })
-
-    it('raises an error if client.lrem fails', function() {
-      stubClientImplMethod('lrem').callsFake(function(key, count, val, cb) {
-        cb(new Error('forced error for ' + [key, count, val].join(' ')))
-      })
-      return redisClient.create('/foo', REDIRECT_TARGET, 'mbland')
-        .then(function() {
-          return redisClient.deleteRedirection('/foo')
-        })
-        .should.be.rejectedWith(Error, 'failed to remove /foo from ' +
-          'redirections owned by mbland: Error: forced error for mbland 1 /foo')
+        .should.be.rejectedWith(Error, 'forced error for /foo')
     })
   })
 })
