@@ -153,6 +153,53 @@ describe('RedirectDb', function() {
     })
   })
 
+  describe('checkOwnership', function() {
+    it('successfully validates ownership', function() {
+      stubClientMethod('getRedirect').withArgs('/foo')
+        .returns(Promise.resolve({ owner: 'mbland' }))
+      return redirectDb.checkOwnership('/foo', 'mbland').should.be.fulfilled
+    })
+
+    it('fails if the redirection doesn\'t exist', function() {
+      stubClientMethod('getRedirect').withArgs('/foo')
+        .returns(Promise.resolve(null))
+      return redirectDb.checkOwnership('/foo', 'mbland')
+        .should.be.rejectedWith(Error, 'no redirection exists for /foo')
+    })
+
+    it('fails unless invoked by the owner', function() {
+      stubClientMethod('getRedirect').withArgs('/foo')
+        .returns(Promise.resolve({ owner: 'msb' }))
+      return redirectDb.checkOwnership('/foo', 'mbland')
+        .should.be.rejectedWith(Error, 'redirection for /foo is owned by msb')
+    })
+  })
+
+  describe('updateProperty', function() {
+    it('successfully changes the location', function() {
+      stubClientMethod('getRedirect').withArgs('/foo')
+        .returns(Promise.resolve({ owner: 'mbland' }))
+      stubClientMethod('updateProperty').withArgs('/foo', 'location', '/baz')
+        .returns(Promise.resolve('/bar'))
+
+      return redirectDb.updateProperty('/foo', 'mbland', 'location', '/baz')
+        .should.become('/bar')
+    })
+
+    it('raises an error if client.updateProperty fails', function() {
+      stubClientMethod('getRedirect').withArgs('/foo')
+        .returns(Promise.resolve({ owner: 'mbland' }))
+      stubClientMethod('updateProperty').withArgs('/foo', 'location', '/baz')
+        .callsFake(function(url, name, value) {
+          return Promise.reject(new Error('forced error for ' +
+            [url, name, value].join(' ')))
+        })
+      return redirectDb.updateProperty('/foo', 'mbland', 'location', '/baz')
+        .should.be.rejectedWith(Error, 'failed to update location of /foo ' +
+          'to /baz: Error: forced error for /foo location /baz')
+    })
+  })
+
   describe('changeOwner', function() {
     it('successfully changes the owner', function() {
       stubClientMethod('getRedirect').withArgs('/foo')
@@ -172,26 +219,6 @@ describe('RedirectDb', function() {
         .returns(Promise.resolve({ owner: 'msb' }))
       return redirectDb.changeOwner('/foo', 'mbland', 'mbland')
         .should.be.rejectedWith(Error, 'redirection for /foo is owned by msb')
-    })
-
-    it('fails if the redirection doesn\'t exist', function() {
-      stubClientMethod('getRedirect').withArgs('/foo')
-        .returns(Promise.resolve(null))
-      return redirectDb.changeOwner('/foo', 'mbland', 'mbland')
-        .should.be.rejectedWith(Error, 'no redirection exists for /foo')
-    })
-
-    it('fails if updating the owner property fails', function() {
-      stubClientMethod('getRedirect').withArgs('/foo')
-        .returns(Promise.resolve({ owner: 'msb' }))
-      stubClientMethod('updateProperty').withArgs('/foo', 'owner', 'mbland')
-        .callsFake(function(url, name, value) {
-          return Promise.reject(new Error('forced error for ' +
-            [url, name, value].join(' ')))
-        })
-      return redirectDb.changeOwner('/foo', 'msb', 'mbland')
-        .should.be.rejectedWith(Error, 'failed to update owner of /foo ' +
-          'to mbland: Error: forced error for /foo owner mbland')
     })
 
     it('fails if adding to the new owner\'s URL list fails', function() {
@@ -243,6 +270,13 @@ describe('RedirectDb', function() {
       return redirectDb.updateLocation('/foo', 'mbland', '/baz')
         .should.become('/bar')
     })
+
+    it('fails unless invoked by the owner', function() {
+      stubClientMethod('getRedirect').withArgs('/foo')
+        .returns(Promise.resolve({ owner: 'msb' }))
+      return redirectDb.updateLocation('/foo', 'mbland', '/baz')
+        .should.be.rejectedWith(Error, 'redirection for /foo is owned by msb')
+    })
   })
 
   describe('deleteRedirection', function() {
@@ -255,6 +289,13 @@ describe('RedirectDb', function() {
         .returns(Promise.resolve())
 
       return redirectDb.deleteRedirection('/foo', 'mbland').should.be.fulfilled
+    })
+
+    it('fails unless invoked by the owner', function() {
+      stubClientMethod('getRedirect').withArgs('/foo')
+        .returns(Promise.resolve({ owner: 'msb' }))
+      return redirectDb.deleteRedirection('/foo', 'mbland')
+        .should.be.rejectedWith(Error, 'redirection for /foo is owned by msb')
     })
 
     it('fails if deleting redirection data throws an error', function() {
