@@ -243,33 +243,6 @@ describe('RedirectDb', function() {
       return redirectDb.updateLocation('/foo', 'mbland', '/baz')
         .should.become('/bar')
     })
-
-    it('fails unless invoked by the original owner', function() {
-      stubClientMethod('getRedirect').withArgs('/foo')
-        .returns(Promise.resolve({ owner: 'msb' }))
-      return redirectDb.updateLocation('/foo', 'mbland', '/baz')
-        .should.be.rejectedWith(Error, 'redirection for /foo is owned by msb')
-    })
-
-    it('fails if the redirection doesn\'t exist', function() {
-      stubClientMethod('getRedirect').withArgs('/foo')
-        .returns(Promise.resolve(null))
-      return redirectDb.updateLocation('/foo', 'mbland', '/baz')
-        .should.be.rejectedWith(Error, 'no redirection exists for /foo')
-    })
-
-    it('fails if updating the location property fails', function() {
-      stubClientMethod('getRedirect').withArgs('/foo')
-        .returns(Promise.resolve({ owner: 'mbland' }))
-      stubClientMethod('updateProperty').withArgs('/foo', 'location', '/baz')
-        .callsFake(function(url, name, value) {
-          return Promise.reject(new Error('forced error for ' +
-            [url, name, value].join(' ')))
-        })
-      return redirectDb.updateLocation('/foo', 'mbland', '/baz')
-        .should.be.rejectedWith(Error, 'failed to update location of /foo ' +
-          'to /baz: Error: forced error for /foo location /baz')
-    })
   })
 
   describe('deleteRedirection', function() {
@@ -282,20 +255,6 @@ describe('RedirectDb', function() {
         .returns(Promise.resolve())
 
       return redirectDb.deleteRedirection('/foo', 'mbland').should.be.fulfilled
-    })
-
-    it('fails unless invoked by the original owner', function() {
-      stubClientMethod('getRedirect').withArgs('/foo')
-        .returns(Promise.resolve({ owner: 'msb' }))
-      return redirectDb.deleteRedirection('/foo', 'mbland')
-        .should.be.rejectedWith(Error, 'redirection for /foo is owned by msb')
-    })
-
-    it('fails if the redirection doesn\'t exist', function() {
-      stubClientMethod('getRedirect').withArgs('/foo')
-        .returns(Promise.resolve(null))
-      return redirectDb.deleteRedirection('/foo', 'mbland')
-        .should.be.rejectedWith(Error, 'no redirection exists for /foo')
     })
 
     it('fails if deleting redirection data throws an error', function() {
