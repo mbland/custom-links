@@ -13,7 +13,7 @@ chai.should()
 chai.use(chaiAsPromised)
 
 describe('RedisClient', function() {
-  var redisClient, clientImpl, serverPort, redisServer, setData,
+  var redisClient, clientImpl, serverPort, redisServer, setData, readOwnerList,
       stubClientImplMethod, stubs
 
   before(function() {
@@ -55,6 +55,14 @@ describe('RedisClient', function() {
         function(err) {
           err ? reject(err) : resolve()
         })
+    })
+  }
+
+  readOwnerList = function(owner) {
+    return new Promise(function(resolve, reject) {
+      clientImpl.lrange(owner, 0, -1, function(err, data) {
+        err ? reject(err) : resolve(data)
+      })
     })
   }
 
@@ -106,6 +114,55 @@ describe('RedisClient', function() {
       })
       return redisClient.recordAccess('/foo')
         .should.be.rejectedWith(Error, 'forced error for /foo count 1')
+    })
+  })
+
+  describe('addUrlToOwner', function() {
+    it('adds URLs to an owner\'s list in LIFO order', function() {
+      return redisClient.addUrlToOwner('mbland', '/foo')
+        .then(function() {
+          return redisClient.addUrlToOwner('mbland', '/bar')
+        })
+        .then(function() {
+          return redisClient.addUrlToOwner('mbland', '/baz')
+        })
+        .then(function() {
+          return readOwnerList('mbland').should.become(['/baz', '/bar', '/foo'])
+        })
+    })
+
+    it('raises an error if client.lpush fails', function() {
+      stubClientImplMethod('lpush').callsFake(function(owner, url, cb) {
+        cb(new Error('forced error for ' + owner + ' ' + url))
+      })
+      return redisClient.addUrlToOwner('mbland', '/foo')
+        .should.be.rejectedWith(Error, 'forced error for mbland /foo')
+    })
+  })
+
+  describe('removeUrlFromOwner', function() {
+    it('removes a URL from an owner\'s list', function() {
+      return redisClient.addUrlToOwner('mbland', '/foo')
+        .then(function() {
+          return redisClient.addUrlToOwner('mbland', '/bar')
+        })
+        .then(function() {
+          return redisClient.addUrlToOwner('mbland', '/baz')
+        })
+        .then(function() {
+          return redisClient.removeUrlFromOwner('mbland', '/bar')
+        })
+        .then(function() {
+          return readOwnerList('mbland').should.become(['/baz', '/foo'])
+        })
+    })
+
+    it('raises an error if client.lrem fails', function() {
+      stubClientImplMethod('lrem').callsFake(function(owner, cnt, url, cb) {
+        cb(new Error('forced error for ' + [owner, cnt, url].join(' ')))
+      })
+      return redisClient.removeUrlFromOwner('mbland', '/foo')
+        .should.be.rejectedWith(Error, 'forced error for mbland 1 /foo')
     })
   })
 
