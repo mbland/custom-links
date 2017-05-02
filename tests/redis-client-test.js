@@ -241,12 +241,12 @@ describe('RedisClient', function() {
     })
 
     it('returns the user\'s redirects in reverse order', function() {
-      return redisClient.create('/foo', REDIRECT_TARGET, 'mbland')
+      return redisClient.addUrlToOwner('mbland', '/foo')
         .then(function() {
-          return redisClient.create('/bar', REDIRECT_TARGET, 'mbland')
+          return redisClient.addUrlToOwner('mbland', '/bar')
         })
         .then(function() {
-          return redisClient.create('/baz', REDIRECT_TARGET, 'mbland')
+          return redisClient.addUrlToOwner('mbland', '/baz')
         })
         .then(function() {
           return redisClient.getOwnedRedirects('mbland')
@@ -258,10 +258,45 @@ describe('RedisClient', function() {
       stubClientImplMethod('lrange').callsFake(function(key, start, end, cb) {
         cb(new Error('forced error for ' + [key, start, end].join(' ')))
       })
-
       return redisClient.getOwnedRedirects('mbland')
-        .should.be.rejectedWith(Error, 'failed to get redirects ' +
-          'owned by mbland: Error: forced error for mbland 0 -1')
+        .should.be.rejectedWith(Error, 'forced error for mbland 0 -1')
+    })
+  })
+
+  describe('updateProperty', function() {
+    it('successfully updates a property', function() {
+      return redisClient.create('/foo', REDIRECT_TARGET, 'msb')
+        .then(function() {
+          return redisClient.updateProperty('/foo', 'owner', 'mbland')
+        })
+        .should.become('msb').then(function() {
+          return redisClient.get('/foo')
+        })
+        .should.become({ owner: 'mbland', location: REDIRECT_TARGET, count: 0 })
+    })
+
+    it('raises an error if getting redirect info fails', function() {
+      stubClientImplMethod('hgetall').callsFake(function(url, cb) {
+        cb(new Error('forced error for ' + url))
+      })
+      return redisClient.changeOwner('/foo', 'mbland')
+        .should.be.rejectedWith(Error, 'forced error for /foo')
+    })
+
+    it('raises an error if the redirection doesn\'t exist', function() {
+      return redisClient.updateProperty('/foo', 'owner', 'mbland')
+        .should.be.rejectedWith(Error, 'no redirection for /foo exists')
+    })
+
+    it('raises an error if changing property fails', function() {
+      stubClientImplMethod('hset').callsFake(function(url, field, val, cb) {
+        cb(new Error('forced error for ' + [url, field, val].join(' ')))
+      })
+      return redisClient.create('/foo', REDIRECT_TARGET, 'msb')
+        .then(function() {
+          return redisClient.changeOwner('/foo', 'mbland')
+        })
+        .should.be.rejectedWith(Error, 'forced error for /foo owner')
     })
   })
 
@@ -283,33 +318,6 @@ describe('RedisClient', function() {
           return redisClient.getOwnedRedirects('mbland')
         })
         .should.become(['/foo'])
-    })
-
-    it('raises an error if the redirection doesn\'t exist', function() {
-      return redisClient.changeOwner('/foo', 'mbland')
-        .should.be.rejectedWith(Error, 'no redirection for /foo exists')
-    })
-
-    it('raises an error if getting redirect info fails', function() {
-      stubClientImplMethod('hgetall').callsFake(function(url, cb) {
-        cb(new Error('forced error for ' + url))
-      })
-      return redisClient.changeOwner('/foo', 'mbland')
-        .should.be.rejectedWith(Error, 'failed to determine existence of ' +
-          '/foo before changing owner to mbland: ' +
-          'Error: forced error for /foo')
-    })
-
-    it('raises an error if adding changing ownership fails', function() {
-      stubClientImplMethod('hset').callsFake(function(url, field, val, cb) {
-        cb(new Error('forced error for ' + [url, field, val].join(' ')))
-      })
-      return redisClient.create('/foo', REDIRECT_TARGET, 'msb')
-        .then(function() {
-          return redisClient.changeOwner('/foo', 'mbland')
-        })
-        .should.be.rejectedWith(Error, 'failed to change owner for /foo ' +
-          'to mbland: Error: forced error for /foo owner')
     })
 
     it('raises an error if adding to the new owner\'s list fails', function() {
