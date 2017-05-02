@@ -69,6 +69,8 @@ describe('RedirectDb', function() {
       stubClientMethod('createRedirect')
         .withArgs('/foo', REDIRECT_TARGET, 'mbland')
         .returns(Promise.resolve())
+      stubClientMethod('addUrlToOwner')
+        .returns(Promise.resolve())
       return redirectDb.createRedirect('/foo', REDIRECT_TARGET, 'mbland')
         .should.be.fulfilled
     })
@@ -85,6 +87,22 @@ describe('RedirectDb', function() {
         .should.be.rejectedWith(Error,
           'error creating redirection for /foo to be owned by mbland: ' +
            'forced error for /foo ' + REDIRECT_TARGET + ' mbland')
+    })
+
+    it('fails to add the URL to the owner\'s list', function() {
+      stubClientMethod('createRedirect')
+        .withArgs('/foo', REDIRECT_TARGET, 'mbland')
+        .returns(Promise.resolve())
+      stubClientMethod('addUrlToOwner')
+        .callsFake(function(user, url) {
+          return Promise.reject(
+            new Error('forced error for ' + user + ' ' + url))
+        })
+
+      return redirectDb.createRedirect('/foo', REDIRECT_TARGET, 'mbland')
+        .should.be.rejectedWith(Error, 'redirection created for /foo, ' +
+          'but failed to add to list for user mbland: ' +
+          'Error: forced error for mbland /foo')
     })
   })
 
