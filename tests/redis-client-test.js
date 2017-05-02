@@ -72,15 +72,15 @@ describe('RedisClient', function() {
     return stub
   }
 
-  describe('get', function() {
+  describe('getRedirect', function() {
     it('returns null if a redirect doesn\'t exist', function() {
-      return redisClient.get('/foo').should.become(null)
+      return redisClient.getRedirect('/foo').should.become(null)
     })
 
     it('returns data if redirect exists, converts count to int', function() {
       return setData('/foo', REDIRECT_TARGET, 'mbland', 0).should.be.fulfilled
         .then(function() {
-          return redisClient.get('/foo').should.become({
+          return redisClient.getRedirect('/foo').should.become({
             location: REDIRECT_TARGET, owner: 'mbland', count: 0
           })
         })
@@ -90,7 +90,7 @@ describe('RedisClient', function() {
       stubClientImplMethod('hgetall').callsFake(function(url, cb) {
         cb(new Error('forced error for ' + url))
       })
-      return redisClient.get('/foo')
+      return redisClient.getRedirect('/foo')
         .should.be.rejectedWith(Error, 'forced error for /foo')
     })
   })
@@ -102,7 +102,7 @@ describe('RedisClient', function() {
           return redisClient.recordAccess('/foo').should.be.fulfilled
         })
         .then(function() {
-          return redisClient.get('/foo').should.become({
+          return redisClient.getRedirect('/foo').should.become({
             location: REDIRECT_TARGET, owner: 'mbland', count: 1
           })
         })
@@ -170,7 +170,7 @@ describe('RedisClient', function() {
     it('creates a new redirection', function() {
       return redisClient.create('/foo', REDIRECT_TARGET, 'mbland')
         .should.be.fulfilled.then(function() {
-          return redisClient.get('/foo')
+          return redisClient.getRedirect('/foo')
         })
         .should.become({
           location: REDIRECT_TARGET, owner: 'mbland', count: 0
@@ -200,7 +200,7 @@ describe('RedisClient', function() {
       return redisClient.create('/foo', REDIRECT_TARGET, 'mbland')
         .should.be.rejectedWith(Error, 'forced error for /foo owner mbland')
         .then(function() {
-          return redisClient.get('/foo').should.become(null)
+          return redisClient.getRedirect('/foo').should.become(null)
         })
     })
 
@@ -215,7 +215,8 @@ describe('RedisClient', function() {
           'Error: forced error for /foo location ' + REDIRECT_TARGET +
           ' count 0')
         .then(function() {
-          return redisClient.get('/foo').should.become({ owner: 'mbland' })
+          return redisClient.getRedirect('/foo')
+            .should.become({ owner: 'mbland' })
         })
     })
 
@@ -228,7 +229,7 @@ describe('RedisClient', function() {
           'failed to add to list for user mbland: ' +
           'Error: forced error for mbland /foo')
         .then(function() {
-          return redisClient.get('/foo').should.become({
+          return redisClient.getRedirect('/foo').should.become({
             owner: 'mbland', location: REDIRECT_TARGET, count: 0
           })
         })
@@ -270,7 +271,7 @@ describe('RedisClient', function() {
           return redisClient.updateProperty('/foo', 'owner', 'mbland')
         })
         .should.become('msb').then(function() {
-          return redisClient.get('/foo')
+          return redisClient.getRedirect('/foo')
         })
         .should.become({ owner: 'mbland', location: REDIRECT_TARGET, count: 0 })
     })
@@ -307,7 +308,7 @@ describe('RedisClient', function() {
           return redisClient.changeOwner('/foo', 'mbland')
         })
         .should.be.fulfilled.then(function() {
-          return redisClient.get('/foo')
+          return redisClient.getRedirect('/foo')
         })
         .should.become({ owner: 'mbland', location: REDIRECT_TARGET, count: 0 })
         .then(function() {
@@ -356,7 +357,7 @@ describe('RedisClient', function() {
           return redisClient.updateLocation('/foo', REDIRECT_TARGET)
         })
         .should.be.fulfilled.then(function() {
-          return redisClient.get('/foo')
+          return redisClient.getRedirect('/foo')
         })
         .should.become({ owner: 'mbland', location: REDIRECT_TARGET, count: 0 })
     })
@@ -375,7 +376,7 @@ describe('RedisClient', function() {
           return redisClient.deleteRedirection('/bar')
         })
         .should.be.fulfilled.then(function() {
-          return redisClient.get('/bar')
+          return redisClient.getRedirect('/bar')
         })
         .should.become(null)
         .then(function() {

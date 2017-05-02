@@ -1,6 +1,7 @@
 'use strict'
 
 var RedirectDb = require('../lib/redirect-db')
+var RedisClient = require('../lib/redis-client')
 var FakeClient = require('./helpers/fake-client')
 
 var sinon = require('sinon')
@@ -14,24 +15,24 @@ chai.should()
 chai.use(chaiAsPromised)
 
 describe('RedirectDb', function() {
-  var fetcher, client, logger, errorSpy
+  var redirectDb, client, logger, errorSpy
 
   beforeEach(function() {
     client = new FakeClient
     logger = { error: function() { } }
     errorSpy = sinon.spy(logger, 'error')
-    fetcher = new RedirectDb(client, logger)
+    redirectDb = new RedirectDb(client, logger)
   })
 
-  describe('fetchRedirect', function() {
+  describe('getRedirect', function() {
     it('returns the root url for an unknown redirect', function() {
-      return fetcher.fetchRedirect('/foo').should.become('/')
+      return redirectDb.getRedirect('/foo').should.become('/')
     })
 
     it('returns the redirect target for a known URL', function() {
       client.create('/foo', REDIRECT_TARGET, 'mbland')
 
-      return fetcher.fetchRedirect('/foo').should.become(REDIRECT_TARGET)
+      return redirectDb.getRedirect('/foo').should.become(REDIRECT_TARGET)
         .then(function() {
           client.db['/foo'].count.should.equal(1)
         })
@@ -45,7 +46,7 @@ describe('RedirectDb', function() {
         return Promise.reject('forced error')
       })
 
-      return fetcher.fetchRedirect('/foo').should.become(REDIRECT_TARGET)
+      return redirectDb.getRedirect('/foo').should.become(REDIRECT_TARGET)
         .then(function() {
           errorSpy.calledWith('failed to record access for /foo: forced error')
           client.db['/foo'].count.should.equal(0)
@@ -55,7 +56,7 @@ describe('RedirectDb', function() {
 
   describe('create', function() {
     it('successfully creates a new redirection', function() {
-      return fetcher.create('/foo', REDIRECT_TARGET, 'mbland')
+      return redirectDb.create('/foo', REDIRECT_TARGET, 'mbland')
         .should.be.fulfilled.then(function() {
           client.db['/foo'].should.eql({
             location: REDIRECT_TARGET, owner: 'mbland', count: 0
@@ -72,7 +73,7 @@ describe('RedirectDb', function() {
         return Promise.reject('forced error')
       })
 
-      return fetcher.create('/foo', REDIRECT_TARGET, 'mbland')
+      return redirectDb.create('/foo', REDIRECT_TARGET, 'mbland')
         .should.be.rejectedWith(Error, expectedMsg).then(function() {
           expect(client.db['/foo']).to.be.undefined
         })
@@ -81,19 +82,19 @@ describe('RedirectDb', function() {
 
   describe('getOwnedRedirects', function() {
     it('successfully fetches zero redirects', function() {
-      return fetcher.getOwnedRedirects('mbland').should.become([])
+      return redirectDb.getOwnedRedirects('mbland').should.become([])
     })
 
     it('successfully fetches owned redirects', function() {
-      return fetcher.create('/foo', REDIRECT_TARGET, 'mbland')
+      return redirectDb.create('/foo', REDIRECT_TARGET, 'mbland')
         .then(function() {
-          fetcher.create('/bar', REDIRECT_TARGET, 'mbland')
+          redirectDb.create('/bar', REDIRECT_TARGET, 'mbland')
         })
         .then(function() {
-          fetcher.create('/baz', REDIRECT_TARGET, 'mbland')
+          redirectDb.create('/baz', REDIRECT_TARGET, 'mbland')
         })
         .then(function() {
-          return fetcher.getOwnedRedirects('mbland')
+          return redirectDb.getOwnedRedirects('mbland')
         })
         .should.become([
           { url: '/baz', location: REDIRECT_TARGET, owner: 'mbland', count: 0 },
@@ -108,27 +109,27 @@ describe('RedirectDb', function() {
         return Promise.reject(new Error('forced failure for ' + owner))
       })
 
-      return fetcher.getOwnedRedirects('mbland')
+      return redirectDb.getOwnedRedirects('mbland')
         .should.be.rejectedWith(Error, 'forced failure for mbland')
     })
 
     it('fails to fetch full info for one of the redirects', function() {
-      var get = sinon.stub(client, 'get')
+      var getRedirect = sinon.stub(client, 'getRedirect')
 
-      get.withArgs('/bar').callsFake(function(url) {
+      getRedirect.withArgs('/bar').callsFake(function(url) {
         return Promise.reject(new Error('forced failure for ' + url))
       })
-      get.callThrough()
+      getRedirect.callThrough()
 
-      return fetcher.create('/foo', REDIRECT_TARGET, 'mbland')
+      return redirectDb.create('/foo', REDIRECT_TARGET, 'mbland')
         .then(function() {
-          fetcher.create('/bar', REDIRECT_TARGET, 'mbland')
+          redirectDb.create('/bar', REDIRECT_TARGET, 'mbland')
         })
         .then(function() {
-          fetcher.create('/baz', REDIRECT_TARGET, 'mbland')
+          redirectDb.create('/baz', REDIRECT_TARGET, 'mbland')
         })
         .then(function() {
-          return fetcher.getOwnedRedirects('mbland')
+          return redirectDb.getOwnedRedirects('mbland')
         })
         .should.be.rejectedWith(Error, 'forced failure for /bar')
     })
@@ -136,9 +137,9 @@ describe('RedirectDb', function() {
 
   describe('changeOwner', function() {
     it('successfully changes the owner', function() {
-      return fetcher.create('/foo', REDIRECT_TARGET, 'msb')
+      return redirectDb.create('/foo', REDIRECT_TARGET, 'msb')
         .then(function() {
-          return fetcher.changeOwner('/foo', 'msb', 'mbland')
+          return redirectDb.changeOwner('/foo', 'msb', 'mbland')
         })
         .should.be.fulfilled.then(function() {
           client.db['/foo'].owner.should.equal('mbland')
@@ -148,9 +149,9 @@ describe('RedirectDb', function() {
     })
 
     it('only the original owner can change the owner', function() {
-      return fetcher.create('/foo', REDIRECT_TARGET, 'msb')
+      return redirectDb.create('/foo', REDIRECT_TARGET, 'msb')
         .then(function() {
-          return fetcher.changeOwner('/foo', 'mbland', 'mbland')
+          return redirectDb.changeOwner('/foo', 'mbland', 'mbland')
         })
         .should.be.rejectedWith(Error, 'redirection for /foo is owned by msb')
         .then(function() {
@@ -161,7 +162,7 @@ describe('RedirectDb', function() {
     })
 
     it('fails if the redirection doesn\'t exist', function() {
-      return fetcher.changeOwner('/foo', 'msb', 'mbland')
+      return redirectDb.changeOwner('/foo', 'msb', 'mbland')
         .should.be.rejectedWith(Error, 'no redirection exists for /foo')
         .then(function() {
           expect(client.db['/foo']).to.be.undefined
@@ -175,9 +176,9 @@ describe('RedirectDb', function() {
           'forced error for ' + url + ' ' + owner))
       })
 
-      return fetcher.create('/foo', REDIRECT_TARGET, 'msb')
+      return redirectDb.create('/foo', REDIRECT_TARGET, 'msb')
         .then(function() {
-          return fetcher.changeOwner('/foo', 'msb', 'mbland')
+          return redirectDb.changeOwner('/foo', 'msb', 'mbland')
         })
         .should.be.rejectedWith(Error, 'failed to transfer ownership of ' +
           '/foo to mbland: Error: forced error for /foo mbland')
@@ -187,7 +188,7 @@ describe('RedirectDb', function() {
   describe('updateLocation', function() {
     it('successfully changes the location', function() {
       client.db['/foo'] = { owner: 'msb', location: '/bar' }
-      return fetcher.updateLocation('/foo', 'msb', REDIRECT_TARGET)
+      return redirectDb.updateLocation('/foo', 'msb', REDIRECT_TARGET)
         .should.be.fulfilled.then(function() {
           client.db['/foo'].location.should.equal(REDIRECT_TARGET)
         })
@@ -195,7 +196,7 @@ describe('RedirectDb', function() {
 
     it('only the original owner can change the location', function() {
       client.db['/foo'] = { owner: 'msb', location: '/bar' }
-      return fetcher.updateLocation('/foo', 'mbland', REDIRECT_TARGET)
+      return redirectDb.updateLocation('/foo', 'mbland', REDIRECT_TARGET)
         .should.be.rejectedWith(Error, 'redirection for /foo is owned by msb')
         .then(function() {
           client.db['/foo'].location.should.equal('/bar')
@@ -209,7 +210,7 @@ describe('RedirectDb', function() {
       })
       client.db['/foo'] = { owner: 'mbland', location: REDIRECT_TARGET }
 
-      return fetcher.updateLocation('/foo', 'mbland', '/bar')
+      return redirectDb.updateLocation('/foo', 'mbland', '/bar')
         .should.be.rejectedWith(Error, 'failed to update location of ' +
           '/foo to /bar: Error: forced error for /foo /bar')
     })
@@ -217,15 +218,15 @@ describe('RedirectDb', function() {
 
   describe('deleteRedirection', function() {
     it('successfully deletes the redirection', function() {
-      return fetcher.create('/foo', REDIRECT_TARGET, 'mbland')
+      return redirectDb.create('/foo', REDIRECT_TARGET, 'mbland')
         .then(function() {
-          return fetcher.create('/bar', REDIRECT_TARGET, 'mbland')
+          return redirectDb.create('/bar', REDIRECT_TARGET, 'mbland')
         })
         .then(function() {
-          return fetcher.create('/baz', REDIRECT_TARGET, 'mbland')
+          return redirectDb.create('/baz', REDIRECT_TARGET, 'mbland')
         })
         .then(function() {
-          return fetcher.deleteRedirection('/bar', 'mbland')
+          return redirectDb.deleteRedirection('/bar', 'mbland')
         })
         .should.be.fulfilled.then(function() {
           expect(client.db['/bar']).to.be.undefined
@@ -234,9 +235,9 @@ describe('RedirectDb', function() {
     })
 
     it('only the original owner can delete the redirection', function() {
-      return fetcher.create('/foo', REDIRECT_TARGET, 'msb')
+      return redirectDb.create('/foo', REDIRECT_TARGET, 'msb')
         .then(function() {
-          return fetcher.deleteRedirection('/foo', 'mbland')
+          return redirectDb.deleteRedirection('/foo', 'mbland')
         })
         .should.be.rejectedWith(Error, 'redirection for /foo is owned by msb')
         .then(function() {
@@ -251,9 +252,9 @@ describe('RedirectDb', function() {
         return Promise.reject(new Error('forced error for ' + url))
       })
 
-      return fetcher.create('/foo', REDIRECT_TARGET, 'mbland')
+      return redirectDb.create('/foo', REDIRECT_TARGET, 'mbland')
         .then(function() {
-          return fetcher.deleteRedirection('/foo', 'mbland')
+          return redirectDb.deleteRedirection('/foo', 'mbland')
         })
         .should.be.rejectedWith(Error, 'failed to delete redirection from ' +
           '/foo: Error: forced error for /foo')

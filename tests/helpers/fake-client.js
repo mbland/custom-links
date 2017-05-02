@@ -7,7 +7,7 @@ function FakeClient() {
   this.owners = {}
 }
 
-FakeClient.prototype.get = function(url) {
+FakeClient.prototype.getRedirect = function(url) {
   return Promise.resolve(this.db[url] || null)
 }
 
