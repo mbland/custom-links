@@ -190,7 +190,8 @@ describe('RedirectDb', function() {
             [url, name, value].join(' ')))
         })
       return redirectDb.changeOwner('/foo', 'msb', 'mbland')
-        .should.be.rejectedWith(Error, 'forced error for /foo owner mbland')
+        .should.be.rejectedWith(Error, 'failed to update owner of /foo ' +
+          'to mbland: Error: forced error for /foo owner mbland')
     })
 
     it('fails if adding to the new owner\'s URL list fails', function() {
@@ -266,7 +267,8 @@ describe('RedirectDb', function() {
             [url, name, value].join(' ')))
         })
       return redirectDb.updateLocation('/foo', 'mbland', '/baz')
-        .should.be.rejectedWith(Error, 'forced error for /foo location /baz')
+        .should.be.rejectedWith(Error, 'failed to update location of /foo ' +
+          'to /baz: Error: forced error for /foo location /baz')
     })
   })
 
@@ -320,7 +322,9 @@ describe('RedirectDb', function() {
         })
 
       return redirectDb.deleteRedirection('/foo', 'mbland')
-        .should.be.rejectedWith(Error, 'forced error for mbland /foo')
+        .should.be.rejectedWith(Error, 'deleted redirection from /foo, ' +
+          'but failed to remove URL from the owner\'s list for mbland: ' +
+          'Error: forced error for mbland /foo')
     })
   })
 })
