@@ -12,22 +12,22 @@ chai.should()
 chai.use(chaiAsPromised)
 
 describe('assembleApp', function() {
-  var fetcher, fetchRedirect, expressApp, server, port, sendRequest
+  var redirectDb, getRedirect, expressApp, server, port, sendRequest
 
   before(function() {
-    fetcher = new RedirectDb
+    redirectDb = new RedirectDb
     expressApp = express()
-    assembleApp(fetcher, expressApp)
+    assembleApp(redirectDb, expressApp)
     server = http.createServer(expressApp).listen(0)
     port = server.address().port
   })
 
   beforeEach(function() {
-    fetchRedirect = sinon.stub(fetcher, 'fetchRedirect')
+    getRedirect = sinon.stub(redirectDb, 'getRedirect')
   })
 
   afterEach(function() {
-    fetchRedirect.restore()
+    getRedirect.restore()
   })
 
   sendRequest = function(method, url) {
@@ -73,12 +73,12 @@ describe('assembleApp', function() {
 
   it('redirects to the url returned by the RedirectDb', function() {
     var redirectLocation = 'https://mike-bland.com/'
-    fetchRedirect.withArgs('/foo').returns(Promise.resolve(redirectLocation))
+    getRedirect.withArgs('/foo').returns(Promise.resolve(redirectLocation))
     return sendRequest('GET', '/foo').should.become(redirectLocation)
   })
 
   it('reports an error', function() {
-    fetchRedirect.withArgs('/foo').callsFake(function() {
+    getRedirect.withArgs('/foo').callsFake(function() {
       return Promise.reject('forced error')
     })
     return sendRequest('GET', '/foo').should.be.rejectedWith(Error, 
