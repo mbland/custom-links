@@ -1,9 +1,7 @@
 'use strict'
 
 var RedisClient = require('../lib/redis-client')
-var net = require('net')
-var spawn = require('child_process').spawn
-
+var helpers = require('./helpers')
 var redis = require('redis')
 var sinon = require('sinon')
 var chai = require('chai')
@@ -14,50 +12,19 @@ var REDIRECT_TARGET = 'https://mike-bland.com/'
 chai.should()
 chai.use(chaiAsPromised)
 
-function pickUnusedPort() {
-  return new Promise(function(resolve) {
-    var server = net.createServer()
-
-    server.listen(0, function() {
-      var port = server.address().port
-      server.on('close', function() {
-        resolve(port)
-      })
-      server.close()
-    })
-  })
-}
-
-function launchRedis(port) {
-  return new Promise(function(resolve, reject) {
-    var redisServer = spawn('redis-server',
-          ['--port', port, '--save', '', '--appendonly', 'no']),
-        stdout = ''
-
-    redisServer.stdout.on('data', function(data) {
-      stdout += data
-      if (stdout.match('The server is now ready to accept connections')) {
-        resolve({ port: port, server: redisServer })
-      }
-    })
-    redisServer.on('error', function(err) {
-      reject(new Error('failed to start redis-server on port ' + port +
-        ': ' + err))
-    })
-  })
-}
-
 describe('RedisClient', function() {
   var redisClient, clientImpl, serverPort, redisServer, setData,
       stubClientImplMethod, stubs
 
   before(function() {
-    return pickUnusedPort().then(launchRedis).then(function(redisData) {
-      serverPort = redisData.port
-      redisServer = redisData.server
-      clientImpl = redis.createClient({ port: serverPort })
-      redisClient = new RedisClient(clientImpl)
-    })
+    return helpers.pickUnusedPort()
+      .then(helpers.launchRedis)
+      .then(function(redisData) {
+        serverPort = redisData.port
+        redisServer = redisData.server
+        clientImpl = redis.createClient({ port: serverPort })
+        redisClient = new RedisClient(clientImpl)
+      })
   })
 
   beforeEach(function() {
