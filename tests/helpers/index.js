@@ -20,9 +20,12 @@ module.exports = {
 
   launchRedis: function(port) {
     return new Promise(function(resolve, reject) {
-      var redisServer = spawn('redis-server',
-            ['--port', port, '--save', '', '--appendonly', 'no']),
+      var redisServer,
           stdout = ''
+
+      redisServer = spawn('redis-server',
+        ['--port', port, '--save', '', '--appendonly', 'no',
+          '--dbfilename', 'some-nonexistent-file.db'])
 
       redisServer.stdout.on('data', function(data) {
         stdout += data
