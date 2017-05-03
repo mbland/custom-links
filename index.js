@@ -9,9 +9,11 @@ var redis = require('redis')
 var RedirectDb = require('./lib/redirect-db')
 var RedisClient = require('./lib/redis-client')
 var urlPointers = require('./lib')
+var logger = console
 
 urlPointers.assembleApp(
-  new RedirectDb(new RedisClient(redis.createClient()), console),
-  app)
+  app,
+  new RedirectDb(new RedisClient(redis.createClient(), logger)),
+  logger)
 app.listen(PORT)
-console.log(packageInfo.name + ' listening on port ' + PORT)
+logger.log(packageInfo.name + ' listening on port ' + PORT)

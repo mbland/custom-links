@@ -13,12 +13,11 @@ chai.should()
 chai.use(chaiAsPromised)
 
 describe('RedirectDb', function() {
-  var redirectDb, client, logger, errorSpy, stubClientMethod, stubs
+  var redirectDb, logger, client, stubClientMethod, stubs
 
   beforeEach(function() {
     client = new RedisClient
     logger = { error: function() { } }
-    errorSpy = sinon.spy(logger, 'error')
     redirectDb = new RedirectDb(client, logger)
     stubs = []
   })
@@ -36,27 +35,32 @@ describe('RedirectDb', function() {
   }
 
   describe('getRedirect', function() {
-    it('returns the root url for an unknown redirect', function() {
+    it('returns null for an unknown redirect', function() {
       stubClientMethod('getRedirect').withArgs('/foo')
         .returns(Promise.resolve(null))
-      return redirectDb.getRedirect('/foo').should.become('/')
+      return redirectDb.getRedirect('/foo').should.become(null)
     })
 
-    it('returns the redirect target for a known URL', function() {
+    it('returns the data for a known URL', function() {
+      var urlData = { location: REDIRECT_TARGET, owner: 'mbland', count: 27 }
+
       stubClientMethod('getRedirect').withArgs('/foo')
-        .returns(Promise.resolve({ location: REDIRECT_TARGET }))
-      return redirectDb.getRedirect('/foo').should.become(REDIRECT_TARGET)
+        .returns(Promise.resolve(urlData))
+      return redirectDb.getRedirect('/foo').should.become(urlData)
     })
 
     it('logs an error if the URL is known but recordAccess fails', function() {
+      var urlData = { location: REDIRECT_TARGET, owner: 'mbland', count: 27 },
+          errorSpy = sinon.spy(logger, 'error')
+
       stubClientMethod('getRedirect').withArgs('/foo')
-        .returns(Promise.resolve({ location: REDIRECT_TARGET }))
+        .returns(Promise.resolve(urlData))
       stubClientMethod('recordAccess').withArgs('/foo')
         .callsFake(function(url) {
           return Promise.reject('forced error for ' + url)
         })
 
-      return redirectDb.getRedirect('/foo').should.become(REDIRECT_TARGET)
+      return redirectDb.getRedirect('/foo').should.become(urlData)
         .then(function() {
           errorSpy.calledWith('failed to record access for /foo: ' +
             'forced error for /foo')
