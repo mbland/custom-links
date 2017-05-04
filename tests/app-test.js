@@ -41,22 +41,25 @@ describe('assembleApp', function() {
 
     it('redirects to the url returned by the RedirectDb', function() {
       var redirectLocation = 'https://mike-bland.com/'
-      getRedirect.withArgs('/foo').returns(Promise.resolve(
-        { location: redirectLocation, owner: 'mbland', count: 27 }))
+      getRedirect.withArgs('/foo', { recordAccess: true })
+        .returns(Promise.resolve(
+          { location: redirectLocation, owner: 'mbland', count: 27 }))
       return app.sendRequest('GET', '/foo').should.become(redirectLocation)
     })
 
     it('redirects to the homepage with nonexistent url parameter', function() {
-      getRedirect.withArgs('/foo').returns(Promise.resolve(null))
+      getRedirect.withArgs('/foo', { recordAccess: true })
+        .returns(Promise.resolve(null))
       return app.sendRequest('GET', '/foo').should.become('/?url=/foo')
     })
 
     it('reports an error', function() {
       var logError = sinon.spy(logger, 'error')
 
-      getRedirect.withArgs('/foo').callsFake(function() {
-        return Promise.reject(new Error('forced error'))
-      })
+      getRedirect.withArgs('/foo', { recordAccess: true })
+        .callsFake(function() {
+          return Promise.reject(new Error('forced error'))
+        })
       return app.sendRequest('GET', '/foo')
         .should.be.rejectedWith(Error,
           '500: Error while processing /foo: Error: forced error')
