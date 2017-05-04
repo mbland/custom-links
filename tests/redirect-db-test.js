@@ -79,10 +79,11 @@ describe('RedirectDb', function() {
           return Promise.reject('forced error for ' + url)
         })
 
-      return redirectDb.getRedirect('/foo').should.become(urlData)
+      return redirectDb.getRedirect('/foo', { recordAccess: true })
+        .should.become(urlData)
         .then(function() {
           errorSpy.calledWith('failed to record access for /foo: ' +
-            'forced error for /foo')
+            'forced error for /foo').should.be.true
         })
     })
   })
