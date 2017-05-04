@@ -46,7 +46,26 @@ describe('RedirectDb', function() {
 
       stubClientMethod('getRedirect').withArgs('/foo')
         .returns(Promise.resolve(urlData))
+      stubClientMethod('recordAccess').withArgs('/foo')
+        .returns(Promise.resolve())
       return redirectDb.getRedirect('/foo').should.become(urlData)
+        .then(function() {
+          client.recordAccess.calledOnce.should.be.false
+        })
+    })
+
+    it('records access of a known URL', function() {
+      var urlData = { location: REDIRECT_TARGET, owner: 'mbland', count: 27 }
+
+      stubClientMethod('getRedirect').withArgs('/foo')
+        .returns(Promise.resolve(urlData))
+      stubClientMethod('recordAccess').withArgs('/foo')
+        .returns(Promise.resolve())
+      return redirectDb.getRedirect('/foo', { recordAccess: true })
+        .should.become(urlData)
+        .then(function() {
+          client.recordAccess.calledOnce.should.be.true
+        })
     })
 
     it('logs an error if the URL is known but recordAccess fails', function() {
