@@ -152,9 +152,14 @@ describe('RedisClient', function() {
         .then(function() {
           return redisClient.removeUrlFromOwner('mbland', '/bar')
         })
-        .then(function() {
+        .should.become(true).then(function() {
           return readOwnerList('mbland').should.become(['/baz', '/foo'])
         })
+    })
+
+    it('returns false if the owner didn\'t own the URL', function() {
+      return redisClient.removeUrlFromOwner('mbland', '/foo')
+        .should.become(false)
     })
 
     it('raises an error if client.lrem fails', function() {
@@ -164,17 +169,12 @@ describe('RedisClient', function() {
       return redisClient.removeUrlFromOwner('mbland', '/foo')
         .should.be.rejectedWith(Error, 'forced error for mbland 1 /foo')
     })
-
-    it('raises an error if the owner didn\'t own the URL', function() {
-      return redisClient.removeUrlFromOwner('mbland', '/foo')
-        .should.be.rejectedWith(Error, 'mbland didn\'t own /foo')
-    })
   })
 
   describe('createRedirect', function() {
     it('creates a new redirection', function() {
       return redisClient.createRedirect('/foo', REDIRECT_TARGET, 'mbland')
-        .should.be.fulfilled.then(function() {
+        .should.become(true).then(function() {
           return redisClient.getRedirect('/foo')
         })
         .should.become({
@@ -184,10 +184,10 @@ describe('RedisClient', function() {
 
     it('fails to create a new redirection when one already exists', function() {
       return redisClient.createRedirect('/foo', REDIRECT_TARGET, 'mbland')
-        .should.be.fulfilled.then(function() {
+        .should.become(true).then(function() {
           return redisClient.createRedirect('/foo', REDIRECT_TARGET, 'mbland')
         })
-        .should.be.rejectedWith(Error, 'redirection already exists for /foo')
+        .should.become(false)
     })
 
     it('raises an error when hsetnx fails', function() {
@@ -249,10 +249,10 @@ describe('RedisClient', function() {
   describe('updateProperty', function() {
     it('successfully updates a property', function() {
       return redisClient.createRedirect('/foo', REDIRECT_TARGET, 'msb')
-        .then(function() {
+        .should.become(true).then(function() {
           return redisClient.updateProperty('/foo', 'owner', 'mbland')
         })
-        .should.become('msb').then(function() {
+        .should.become(true).then(function() {
           return redisClient.getRedirect('/foo')
         })
         .should.become({ owner: 'mbland', location: REDIRECT_TARGET, count: 0 })
@@ -266,9 +266,9 @@ describe('RedisClient', function() {
         .should.be.rejectedWith(Error, 'forced error for /foo')
     })
 
-    it('raises an error if the redirection doesn\'t exist', function() {
+    it('fails if the redirection doesn\'t exist', function() {
       return redisClient.updateProperty('/foo', 'owner', 'mbland')
-        .should.be.rejectedWith(Error, 'no redirection for /foo exists')
+        .should.become(false)
     })
 
     it('raises an error if changing property fails', function() {
@@ -276,7 +276,7 @@ describe('RedisClient', function() {
         cb(new Error('forced error for ' + [url, field, val].join(' ')))
       })
       return redisClient.createRedirect('/foo', REDIRECT_TARGET, 'msb')
-        .then(function() {
+        .should.become(true).then(function() {
           return redisClient.updateProperty('/foo', 'owner', 'mbland')
         })
         .should.be.rejectedWith(Error, 'forced error for /foo owner')
@@ -286,18 +286,17 @@ describe('RedisClient', function() {
   describe('deleteRedirection', function() {
     it('successfully deletes the redirection', function() {
       return redisClient.createRedirect('/foo', REDIRECT_TARGET, 'mbland')
-        .then(function() {
+        .should.become(true).then(function() {
           return redisClient.deleteRedirection('/foo')
         })
-        .should.be.fulfilled.then(function() {
+        .should.become(true).then(function() {
           return redisClient.getRedirect('/foo')
         })
         .should.become(null)
     })
 
-    it('raises an error if the redirection doesn\'t exist', function() {
-      return redisClient.deleteRedirection('/foo')
-        .should.be.rejectedWith(Error, 'no redirection exists for /foo')
+    it('returns false if the redirection doesn\'t exist', function() {
+      return redisClient.deleteRedirection('/foo').should.become(false)
     })
 
     it('raises an error if client.del fails', function() {
@@ -305,7 +304,7 @@ describe('RedisClient', function() {
         cb(new Error('forced error for ' + key))
       })
       return redisClient.createRedirect('/foo', REDIRECT_TARGET, 'mbland')
-        .then(function() {
+        .should.become(true).then(function() {
           return redisClient.deleteRedirection('/foo')
         })
         .should.be.rejectedWith(Error, 'forced error for /foo')
