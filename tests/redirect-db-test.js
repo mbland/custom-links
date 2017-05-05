@@ -247,7 +247,8 @@ describe('RedirectDb', function() {
       stubClientMethod('updateProperty').withArgs('/foo', 'location', '/baz')
         .returns(Promise.resolve(false))
       return redirectDb.updateProperty('/foo', 'mbland', 'location', '/baz')
-        .should.be.rejectedWith('property location of /foo doesn\'t exist')
+        .should.be.rejectedWith(Error,
+          'property location of /foo doesn\'t exist')
     })
   })
 
