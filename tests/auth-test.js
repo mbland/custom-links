@@ -79,7 +79,7 @@ describe('auth', function() {
 
     it('successfully verifies the user', function() {
       stubDbMethod('findOrCreateUser').withArgs('mbland@acm.org')
-        .returns(Promise.resolve(true))
+        .returns(Promise.resolve({ id: 'mbland@acm.org' }))
 
       return doVerify(userInfo, { users: [ 'mbland@acm.org' ]})
         .should.become({ id: 'mbland@acm.org' })
