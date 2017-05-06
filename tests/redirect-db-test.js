@@ -34,6 +34,14 @@ describe('RedirectDb', function() {
     return stub
   }
 
+  describe('findOrCreateUser', function() {
+    it('finds or creates a user', function() {
+      stubClientMethod('findOrCreateUser').withArgs('mbland')
+        .returns(Promise.resolve(true))
+      return redirectDb.findOrCreateUser('mbland').should.become(true)
+    })
+  })
+
   describe('getRedirect', function() {
     it('returns null for an unknown redirect', function() {
       stubClientMethod('getRedirect').withArgs('/foo')
