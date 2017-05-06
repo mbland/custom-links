@@ -72,6 +72,33 @@ describe('RedisClient', function() {
     return stub
   }
 
+  describe('userExists', function() {
+    it('returns false if a user doesn\'t exist', function() {
+      return redisClient.userExists('mbland').should.become(false)
+    })
+
+    it('returns true if a user exists', function() {
+      return new Promise(
+        function(resolve, reject) {
+          clientImpl.lpush('mbland', '', function(err) {
+            err ? reject(err) : resolve()
+          })
+        })
+        .should.be.fulfilled
+        .then(function() {
+          return redisClient.userExists('mbland').should.become(true)
+        })
+    })
+
+    it('raises an error when exists fails', function() {
+      stubClientImplMethod('exists').callsFake(function(userId, cb) {
+        cb(new Error('forced error for ' + userId))
+      })
+      return redisClient.userExists('mbland')
+        .should.be.rejectedWith(Error, 'forced error for mbland')
+    })
+  })
+
   describe('findOrCreateUser', function() {
     it('creates a new user', function() {
       return redisClient.findOrCreateUser('mbland').should.become(true)
@@ -82,14 +109,6 @@ describe('RedisClient', function() {
         .then(function() {
           return redisClient.findOrCreateUser('mbland').should.become(false)
         })
-    })
-
-    it('raises an error when exists fails', function() {
-      stubClientImplMethod('exists').callsFake(function(userId, cb) {
-        cb(new Error('forced error for ' + userId))
-      })
-      return redisClient.findOrCreateUser('mbland')
-        .should.be.rejectedWith(Error, 'forced error for mbland')
     })
 
     it('raises an error when lpush fails', function() {
