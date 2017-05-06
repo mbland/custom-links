@@ -96,6 +96,27 @@ describe('RedirectDb', function() {
     })
   })
 
+  describe('userExists', function() {
+    it('resolves if a user exists', function() {
+      stubClientMethod('userExists').returns(Promise.resolve(true))
+      return redirectDb.userExists('mbland').should.be.fulfilled
+    })
+
+    it('rejects if a user doesn\'t exist', function() {
+      stubClientMethod('userExists').returns(Promise.resolve(false))
+      return redirectDb.userExists('mbland')
+        .should.be.rejectedWith('user mbland doesn\'t exist')
+    })
+
+    it('raises an error if the client fails', function() {
+      stubClientMethod('userExists').callsFake(function(user) {
+        return Promise.reject(new Error('forced error for ' + user))
+      })
+      return redirectDb.userExists('mbland')
+        .should.be.rejectedWith(Error, 'forced error for mbland')
+    })
+  })
+
   describe('createRedirect', function() {
     it('successfully creates a new redirection', function() {
       stubClientMethod('userExists').returns(Promise.resolve(true))
