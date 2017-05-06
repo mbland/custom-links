@@ -1,9 +1,10 @@
 {
   "PORT": 3000,
-  "redirectUrl": "http://localhost:3000/auth/callback",
+  "AUTH_PROVIDERS": [ "google", "test" ],
+  "SESSION_SECRET": "<session secret>",
   "GOOGLE_CLIENT_ID": "<google client ID>",
   "GOOGLE_CLIENT_SECRET": "<google client secret>",
-  "SESSION_SECRET": "<session secret>",
+  "GOOGLE_REDIRECT_URL": "http://localhost:3000/auth/callback",
   "users": [
     "mbland@acm.org"
   ],

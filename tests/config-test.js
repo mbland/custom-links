@@ -50,9 +50,7 @@ describe('config', function() {
   it('raises errors for missing fields', function() {
     var errors = [
       'missing PORT',
-      'missing redirectUrl',
-      'missing GOOGLE_CLIENT_ID',
-      'missing GOOGLE_CLIENT_SECRET',
+      'missing AUTH_PROVIDERS',
       'missing SESSION_SECRET',
       'at least one of "users" or "domains" must be specified'
     ]
@@ -60,7 +58,22 @@ describe('config', function() {
       'Invalid configuration:\n  ' + errors.join('\n  '))
   })
 
-  it('raises errors for unknown propertis', function() {
+  it('raises errors for missing provider fields', function() {
+    var configData = helpers.baseConfig(),
+        errors = [
+          'missing GOOGLE_CLIENT_ID',
+          'missing GOOGLE_CLIENT_SECRET',
+          'missing GOOGLE_REDIRECT_URL'
+        ]
+
+    delete configData.GOOGLE_CLIENT_ID
+    delete configData.GOOGLE_CLIENT_SECRET
+    delete configData.GOOGLE_REDIRECT_URL
+    expect(function() { return new Config(configData) }).to.throw(Error,
+      'Invalid configuration:\n  ' + errors.join('\n  '))
+  })
+
+  it('raises errors for unknown properties', function() {
     var configData = helpers.baseConfig(),
         errors = [
           'unknown property foo',
@@ -76,28 +89,44 @@ describe('config', function() {
       'Invalid configuration:\n  ' + errors.join('\n  '))
   })
 
+  it('raises an error for unknown AUTH_PROVIDERS', function() {
+    var configData = helpers.baseConfig()
+
+    configData.AUTH_PROVIDERS.push('frobozz-magic-auth')
+    expect(function() { return new Config(configData) }).to.throw(Error,
+      'Invalid configuration:\n  unknown auth provider frobozz-magic-auth')
+  })
+
   it('loads missing required fields from the environment', function() {
     var inputConfig = helpers.baseConfig(),
         compareConfig = helpers.baseConfig(),
         properties = [
           'PORT',
+          'AUTH_PROVIDERS',
+          'SESSION_SECRET',
           'GOOGLE_CLIENT_ID',
           'GOOGLE_CLIENT_SECRET',
-          'SESSION_SECRET'
+          'GOOGLE_REDIRECT_URL'
         ],
         config
 
     properties.forEach(function(name) {
-      setEnvVar(name, inputConfig[name])
+      var value = inputConfig[name]
+      setEnvVar(name, value instanceof Array ? value.join(',') : value)
       delete inputConfig[name]
     })
+
     config = new Config(inputConfig)
+    expect(config.PORT).to.equal(compareConfig.PORT)
+    expect(config.AUTH_PROVIDERS).to.eql(compareConfig.AUTH_PROVIDERS)
+    expect(config.SESSION_SECRET)
+      .to.equal(compareConfig.SESSION_SECRET)
     expect(config.GOOGLE_CLIENT_ID)
       .to.equal(compareConfig.GOOGLE_CLIENT_ID)
     expect(config.GOOGLE_CLIENT_SECRET)
       .to.equal(compareConfig.GOOGLE_CLIENT_SECRET)
-    expect(config.SESSION_SECRET)
-      .to.equal(compareConfig.SESSION_SECRET)
+    expect(config.GOOGLE_REDIRECT_URL)
+      .to.equal(compareConfig.GOOGLE_REDIRECT_URL)
   })
 
   it('loads a valid config from a direct file path', function() {
