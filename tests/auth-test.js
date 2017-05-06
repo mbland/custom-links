@@ -31,27 +31,60 @@ describe('auth', function() {
     return stub
   }
 
-  describe('findVerifiedEmail', function() {
+  describe('findVerifiedId', function() {
     it('fails on all empty data', function() {
-      expect(auth.findVerifiedEmail([], {})).to.be.undefined
+      expect(auth.findVerifiedId([], {})).to.be.undefined
     })
 
-    it('fails on empty email list', function() {
-      expect(auth.findVerifiedEmail([],
+    it('fails on empty user ID list', function() {
+      expect(auth.findVerifiedId([],
         { users: [ 'mbland@acm.org' ], domains: [ 'acm.org' ]})
         ).to.be.undefined
     })
 
     it('succeeds on username match', function() {
-      auth.findVerifiedEmail(['mbland@example.com', 'mbland@acm.org'],
+      auth.findVerifiedId(['mbland@example.com', 'mbland@acm.org'],
         { users: [ 'mbland@foo.com', 'mbland@acm.org' ]})
         .should.equal('mbland@acm.org')
     })
 
     it('succeeds on domain match', function() {
-      auth.findVerifiedEmail(['mbland@example.com', 'mbland@acm.org'],
+      auth.findVerifiedId(['mbland@example.com', 'mbland@acm.org'],
         { domains: [ 'foo.com', 'acm.org' ]})
         .should.equal('mbland@acm.org')
+    })
+  })
+
+  describe('verify', function() {
+    var doVerify
+
+    doVerify = function(config, userIds) {
+      return new Promise(function(resolve, reject) {
+        auth.verify(redirectDb, config, userIds, function(err, user) {
+          err ? reject(err) : resolve(user)
+        })
+      })
+    }
+
+    it('verifies a user ID', function() {
+      stubDbMethod('findOrCreateUser').withArgs('mbland@acm.org')
+        .returns(Promise.resolve({ id: 'mbland@acm.org' }))
+      doVerify({ users: [ 'mbland@acm.org' ]}, [ 'mbland@acm.org' ])
+        .should.become({ id: 'mbland@acm.org' })
+    })
+
+    it('fails to verify a user ID', function() {
+      doVerify({}, [ 'mbland@acm.org' ]).should.become(false)
+    })
+
+    it('returns an error if a RedirectDb operation fails', function() {
+      stubDbMethod('findOrCreateUser').withArgs('mbland@acm.org')
+        .callsFake(function(user) {
+          return Promise.reject(new Error('forced error for ' + user))
+        })
+
+      doVerify({ users: [ 'mbland@acm.org' ]}, [ 'mbland@acm.org' ])
+        .should.be.rejectedWith(Error, 'forced error for mbland@acm.org')
     })
   })
 
