@@ -301,6 +301,8 @@ describe('RedirectDb', function() {
     it('successfully changes the owner', function() {
       stubClientMethod('getRedirect').withArgs('/foo')
         .returns(Promise.resolve({ owner: 'msb' }))
+      stubClientMethod('userExists').withArgs('mbland')
+        .returns(Promise.resolve(true))
       stubClientMethod('updateProperty').withArgs('/foo', 'owner', 'mbland')
         .returns(Promise.resolve(true))
       stubClientMethod('addUrlToOwner').withArgs('mbland', '/foo')
@@ -314,13 +316,26 @@ describe('RedirectDb', function() {
     it('fails unless invoked by the original owner', function() {
       stubClientMethod('getRedirect').withArgs('/foo')
         .returns(Promise.resolve({ owner: 'msb' }))
+      stubClientMethod('userExists').withArgs('mbland')
+        .returns(Promise.resolve(true))
       return redirectDb.changeOwner('/foo', 'mbland', 'mbland')
         .should.be.rejectedWith('redirection for /foo is owned by msb')
+    })
+
+    it('fails if the new owner doesn\'t exist', function() {
+      stubClientMethod('getRedirect').withArgs('/foo')
+        .returns(Promise.resolve({ owner: 'msb' }))
+      stubClientMethod('userExists').withArgs('mbland')
+        .returns(Promise.resolve(false))
+      return redirectDb.changeOwner('/foo', 'msb', 'mbland')
+        .should.be.rejectedWith('user mbland doesn\'t exist')
     })
 
     it('fails if adding to the new owner\'s list raises error', function() {
       stubClientMethod('getRedirect').withArgs('/foo')
         .returns(Promise.resolve({ owner: 'msb' }))
+      stubClientMethod('userExists').withArgs('mbland')
+        .returns(Promise.resolve(true))
       stubClientMethod('updateProperty').withArgs('/foo', 'owner', 'mbland')
         .returns(Promise.resolve(true))
       stubClientMethod('addUrlToOwner').withArgs('mbland', '/foo')
@@ -340,6 +355,8 @@ describe('RedirectDb', function() {
     it('fails if the URL\'s missing from the old owner\'s list', function() {
       stubClientMethod('getRedirect').withArgs('/foo')
         .returns(Promise.resolve({ owner: 'msb' }))
+      stubClientMethod('userExists').withArgs('mbland')
+        .returns(Promise.resolve(true))
       stubClientMethod('updateProperty').withArgs('/foo', 'owner', 'mbland')
         .returns(Promise.resolve(true))
       stubClientMethod('addUrlToOwner').withArgs('mbland', '/foo')
@@ -355,6 +372,8 @@ describe('RedirectDb', function() {
     it('fails if removing from the old owner\'s list raises error', function() {
       stubClientMethod('getRedirect').withArgs('/foo')
         .returns(Promise.resolve({ owner: 'msb' }))
+      stubClientMethod('userExists').withArgs('mbland')
+        .returns(Promise.resolve(true))
       stubClientMethod('updateProperty').withArgs('/foo', 'owner', 'mbland')
         .returns(Promise.resolve(true))
       stubClientMethod('addUrlToOwner').withArgs('mbland', '/foo')
