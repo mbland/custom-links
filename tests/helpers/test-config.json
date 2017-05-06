@@ -1,0 +1,13 @@
+{
+  "PORT": 3000,
+  "redirectUrl": "http://localhost:3000/auth/callback",
+  "GOOGLE_CLIENT_ID": "<google client ID>",
+  "GOOGLE_CLIENT_SECRET": "<google client secret>",
+  "SESSION_SECRET": "<session secret>",
+  "users": [
+    "mbland@acm.org"
+  ],
+  "domains": [
+    "acm.org"
+  ]
+}

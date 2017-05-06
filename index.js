@@ -1,6 +1,7 @@
 'use strict'
 
-var PORT = 3000
+var config = require('./lib/config').fromFile(
+      process.argv[2] || process.env.URL_POINTERS_CONFIG_PATH, console)
 
 var packageInfo = require('./package.json')
 var express = require('express')
@@ -15,5 +16,5 @@ urlPointers.assembleApp(
   app,
   new RedirectDb(new RedisClient(redis.createClient(), logger)),
   logger)
-app.listen(PORT)
-logger.log(packageInfo.name + ' listening on port ' + PORT)
+app.listen(config.PORT)
+logger.log(packageInfo.name + ' listening on port ' + config.PORT)
