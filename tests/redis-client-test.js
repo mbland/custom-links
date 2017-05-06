@@ -61,7 +61,7 @@ describe('RedisClient', function() {
   readOwnerList = function(owner) {
     return new Promise(function(resolve, reject) {
       clientImpl.lrange(owner, 0, -1, function(err, data) {
-        err ? reject(err) : resolve(data)
+        err ? reject(new Error(err)) : resolve(data)
       })
     })
   }
@@ -71,6 +71,35 @@ describe('RedisClient', function() {
     stubs.push(stub)
     return stub
   }
+
+  describe('findOrCreateUser', function() {
+    it('creates a new user', function() {
+      return redisClient.findOrCreateUser('mbland').should.become(true)
+    })
+
+    it('finds an existing user', function() {
+      return redisClient.findOrCreateUser('mbland').should.become(true)
+        .then(function() {
+          return redisClient.findOrCreateUser('mbland').should.become(false)
+        })
+    })
+
+    it('raises an error when exists fails', function() {
+      stubClientImplMethod('exists').callsFake(function(userId, cb) {
+        cb(new Error('forced error for ' + userId))
+      })
+      return redisClient.findOrCreateUser('mbland')
+        .should.be.rejectedWith(Error, 'forced error for mbland')
+    })
+
+    it('raises an error when lpush fails', function() {
+      stubClientImplMethod('lpush').callsFake(function(userId, value, cb) {
+        cb(new Error('forced error for ' + userId + ' "' + value + '"'))
+      })
+      return redisClient.findOrCreateUser('mbland')
+        .should.be.rejectedWith(Error, 'forced error for mbland ""')
+    })
+  })
 
   describe('getRedirect', function() {
     it('returns null if a redirect doesn\'t exist', function() {
