@@ -299,7 +299,7 @@ describe('RedisClient', function() {
         .should.become(true).then(function() {
           return redisClient.getOwnedRedirects('mbland')
         })
-        .should.become(['/baz', '/bar', '/foo', ''])
+        .should.become(['/baz', '/bar', '/foo'])
     })
 
     it('raises an error when lrange fails', function() {
