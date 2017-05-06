@@ -31,74 +31,59 @@ describe('auth', function() {
     return stub
   }
 
-  describe('findVerifiedEmail', function() {
+  describe('findVerifiedId', function() {
     it('fails on all empty data', function() {
-      expect(auth.findVerifiedEmail([], {})).to.be.undefined
+      expect(auth.findVerifiedId([], {})).to.be.undefined
     })
 
-    it('fails on empty email list', function() {
-      expect(auth.findVerifiedEmail([],
+    it('fails on empty user ID list', function() {
+      expect(auth.findVerifiedId([],
         { users: [ 'mbland@acm.org' ], domains: [ 'acm.org' ]})
         ).to.be.undefined
     })
 
     it('succeeds on username match', function() {
-      auth.findVerifiedEmail(['mbland@example.com', 'mbland@acm.org'],
+      auth.findVerifiedId(['mbland@example.com', 'mbland@acm.org'],
         { users: [ 'mbland@foo.com', 'mbland@acm.org' ]})
         .should.equal('mbland@acm.org')
     })
 
     it('succeeds on domain match', function() {
-      auth.findVerifiedEmail(['mbland@example.com', 'mbland@acm.org'],
+      auth.findVerifiedId(['mbland@example.com', 'mbland@acm.org'],
         { domains: [ 'foo.com', 'acm.org' ]})
         .should.equal('mbland@acm.org')
     })
   })
 
-  describe('verifyGoogle', function() {
-    var doVerify, userInfo
+  describe('verify', function() {
+    var doVerify
 
-    beforeEach(function() {
-      userInfo = {
-        emails: [
-          { value: 'mbland@example.com', type: 'account' },
-          { value: 'mbland@acm.org', type: 'account' }
-        ]
-      }
-    })
-
-    doVerify = function(userObj, config) {
-      var verifyGoogle = auth.verifyGoogle(redirectDb, config)
+    doVerify = function(config, userIds) {
       return new Promise(function(resolve, reject) {
-        verifyGoogle('access token', 'refresh token', userObj,
-          function(err, user) {
-            err ? reject(err) : resolve(user)
-          })
+        auth.verify(redirectDb, config, userIds, function(err, user) {
+          err ? reject(err) : resolve(user)
+        })
       })
     }
 
-    it('successfully verifies the user', function() {
+    it('verifies a user ID', function() {
       stubDbMethod('findOrCreateUser').withArgs('mbland@acm.org')
         .returns(Promise.resolve({ id: 'mbland@acm.org' }))
-
-      return doVerify(userInfo, { users: [ 'mbland@acm.org' ]})
+      doVerify({ users: [ 'mbland@acm.org' ]}, [ 'mbland@acm.org' ])
         .should.become({ id: 'mbland@acm.org' })
     })
 
-    it('fails to verify the user', function() {
-      stubDbMethod('findOrCreateUser').withArgs('mbland@acm.org')
-        .returns(Promise.resolve(true))
-
-      return doVerify(userInfo, {}).should.become(false)
+    it('fails to verify a user ID', function() {
+      doVerify({}, [ 'mbland@acm.org' ]).should.become(false)
     })
 
-    it('fails to validate the user due to a RedirectDb error', function() {
+    it('returns an error if a RedirectDb operation fails', function() {
       stubDbMethod('findOrCreateUser').withArgs('mbland@acm.org')
         .callsFake(function(user) {
           return Promise.reject(new Error('forced error for ' + user))
         })
 
-      return doVerify(userInfo, { users: [ 'mbland@acm.org' ]})
+      doVerify({ users: [ 'mbland@acm.org' ]}, [ 'mbland@acm.org' ])
         .should.be.rejectedWith(Error, 'forced error for mbland@acm.org')
     })
   })
@@ -142,6 +127,36 @@ describe('auth', function() {
 
       return doDeserialize('mbland@acm.org')
         .should.be.rejectedWith('user mbland@acm.org doesn\'t exist')
+    })
+  })
+
+  describe('google', function() {
+    var doVerify, userInfo
+
+    beforeEach(function() {
+      userInfo = {
+        emails: [
+          { value: 'mbland@example.com', type: 'account' },
+          { value: 'mbland@acm.org', type: 'account' }
+        ]
+      }
+    })
+
+    doVerify = function(userObj, config) {
+      var verify = require('../lib/auth/google').verify(redirectDb, config)
+      return new Promise(function(resolve, reject) {
+        verify('access token', 'refresh token', userObj, function(err, user) {
+          err ? reject(err) : resolve(user)
+        })
+      })
+    }
+
+    it('successfully verifies the user', function() {
+      stubDbMethod('findOrCreateUser').withArgs('mbland@acm.org')
+        .returns(Promise.resolve({ id: 'mbland@acm.org' }))
+
+      return doVerify(userInfo, { users: [ 'mbland@acm.org' ]})
+        .should.become({ id: 'mbland@acm.org' })
     })
   })
 })
