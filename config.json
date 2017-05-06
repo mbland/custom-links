@@ -1,0 +1,8 @@
+{
+  "PORT": 3000,
+  "redirectUrl": "http://localhost:3000/auth/callback",
+  "users": [
+  ],
+  "domains": [
+  ]
+}

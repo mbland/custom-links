@@ -2,8 +2,13 @@
 
 var net = require('net')
 var spawn = require('child_process').spawn
+var testConfig = require('./test-config.json')
 
 module.exports = {
+  baseConfig: function() {
+    return JSON.parse(JSON.stringify(testConfig))
+  },
+
   pickUnusedPort: function() {
     return new Promise(function(resolve) {
       var server = net.createServer()
