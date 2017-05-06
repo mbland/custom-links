@@ -180,12 +180,16 @@ describe('RedirectDb', function() {
 
   describe('getOwnedRedirects', function() {
     it('successfully fetches zero redirects', function() {
+      stubClientMethod('userExists').withArgs('mbland')
+        .returns(Promise.resolve(true))
       stubClientMethod('getOwnedRedirects').withArgs('mbland')
         .returns(Promise.resolve([]))
       return redirectDb.getOwnedRedirects('mbland').should.become([])
     })
 
     it('successfully fetches owned redirects', function() {
+      stubClientMethod('userExists').withArgs('mbland')
+        .returns(Promise.resolve(true))
       stubClientMethod('getOwnedRedirects').withArgs('mbland')
         .returns(Promise.resolve(['/baz', '/bar', '/foo']))
       stubClientMethod('getRedirect').callsFake(function(url) {
@@ -201,7 +205,16 @@ describe('RedirectDb', function() {
         ])
     })
 
-    it('fails to fetch any redirects', function() {
+    it('fails to fetch redirects for a nonexistent user', function() {
+      stubClientMethod('userExists').withArgs('mbland')
+        .returns(Promise.resolve(false))
+      return redirectDb.getOwnedRedirects('mbland')
+        .should.be.rejectedWith('user mbland doesn\'t exist')
+    })
+
+    it('fails to fetch any redirects for valid user', function() {
+      stubClientMethod('userExists').withArgs('mbland')
+        .returns(Promise.resolve(true))
       stubClientMethod('getOwnedRedirects').withArgs('mbland')
         .callsFake(function(owner) {
           return Promise.reject(new Error('forced failure for ' + owner))
@@ -211,6 +224,8 @@ describe('RedirectDb', function() {
     })
 
     it('fails to fetch full info for one of the redirects', function() {
+      stubClientMethod('userExists').withArgs('mbland')
+        .returns(Promise.resolve(true))
       stubClientMethod('getOwnedRedirects').withArgs('mbland')
         .returns(Promise.resolve(['/baz', '/bar', '/foo']))
       stubClientMethod('getRedirect').callsFake(function(url) {
