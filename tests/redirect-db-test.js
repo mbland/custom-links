@@ -34,6 +34,14 @@ describe('RedirectDb', function() {
     return stub
   }
 
+  describe('findOrCreateUser', function() {
+    it('finds or creates a user', function() {
+      stubClientMethod('findOrCreateUser').withArgs('mbland')
+        .returns(Promise.resolve(true))
+      return redirectDb.findOrCreateUser('mbland').should.become(true)
+    })
+  })
+
   describe('getRedirect', function() {
     it('returns null for an unknown redirect', function() {
       stubClientMethod('getRedirect').withArgs('/foo')
@@ -90,6 +98,7 @@ describe('RedirectDb', function() {
 
   describe('createRedirect', function() {
     it('successfully creates a new redirection', function() {
+      stubClientMethod('userExists').returns(Promise.resolve(true))
       stubClientMethod('createRedirect')
         .withArgs('/foo', REDIRECT_TARGET, 'mbland')
         .returns(Promise.resolve(true))
@@ -99,10 +108,17 @@ describe('RedirectDb', function() {
         .should.be.fulfilled
     })
 
+    it('fails to create a redirection if the user doesn\'t exist', function() {
+      stubClientMethod('userExists').returns(Promise.resolve(false))
+      return redirectDb.createRedirect('/foo', REDIRECT_TARGET, 'mbland')
+        .should.be.rejectedWith('user mbland doesn\'t exist')
+    })
+
     it('fails to create a new redirection when one already exists', function() {
       var createRedirect = stubClientMethod('createRedirect'),
           addUrlToOwner = stubClientMethod('addUrlToOwner')
 
+      stubClientMethod('userExists').returns(Promise.resolve(true))
       createRedirect.onFirstCall().returns(Promise.resolve(true))
       addUrlToOwner.onFirstCall().returns(Promise.resolve())
       createRedirect.onSecondCall().returns(Promise.resolve(false))
@@ -118,6 +134,7 @@ describe('RedirectDb', function() {
     })
 
     it('fails to create a new redirection due to a server error', function() {
+      stubClientMethod('userExists').returns(Promise.resolve(true))
       stubClientMethod('createRedirect')
         .withArgs('/foo', REDIRECT_TARGET, 'mbland')
         .callsFake(function(url, location, user) {
@@ -131,7 +148,20 @@ describe('RedirectDb', function() {
            'forced error for /foo ' + REDIRECT_TARGET + ' mbland')
     })
 
+    it('fails when the owner disappears after creating the URL', function() {
+      stubClientMethod('userExists').returns(Promise.resolve(true))
+      stubClientMethod('createRedirect')
+        .withArgs('/foo', REDIRECT_TARGET, 'mbland')
+        .returns(Promise.resolve(true))
+      stubClientMethod('addUrlToOwner').returns(Promise.resolve(false))
+      return redirectDb.createRedirect('/foo', REDIRECT_TARGET, 'mbland')
+        .should.be.rejectedWith(Error, 'redirection created ' +
+          'for /foo, but failed to add to list for user mbland: ' +
+          'user was deleted before URL could be assigned')
+    })
+
     it('fails to add the URL to the owner\'s list', function() {
+      stubClientMethod('userExists').returns(Promise.resolve(true))
       stubClientMethod('createRedirect')
         .withArgs('/foo', REDIRECT_TARGET, 'mbland')
         .returns(Promise.resolve(true))
@@ -150,12 +180,16 @@ describe('RedirectDb', function() {
 
   describe('getOwnedRedirects', function() {
     it('successfully fetches zero redirects', function() {
+      stubClientMethod('userExists').withArgs('mbland')
+        .returns(Promise.resolve(true))
       stubClientMethod('getOwnedRedirects').withArgs('mbland')
         .returns(Promise.resolve([]))
       return redirectDb.getOwnedRedirects('mbland').should.become([])
     })
 
     it('successfully fetches owned redirects', function() {
+      stubClientMethod('userExists').withArgs('mbland')
+        .returns(Promise.resolve(true))
       stubClientMethod('getOwnedRedirects').withArgs('mbland')
         .returns(Promise.resolve(['/baz', '/bar', '/foo']))
       stubClientMethod('getRedirect').callsFake(function(url) {
@@ -171,7 +205,16 @@ describe('RedirectDb', function() {
         ])
     })
 
-    it('fails to fetch any redirects', function() {
+    it('fails to fetch redirects for a nonexistent user', function() {
+      stubClientMethod('userExists').withArgs('mbland')
+        .returns(Promise.resolve(false))
+      return redirectDb.getOwnedRedirects('mbland')
+        .should.be.rejectedWith('user mbland doesn\'t exist')
+    })
+
+    it('fails to fetch any redirects for valid user', function() {
+      stubClientMethod('userExists').withArgs('mbland')
+        .returns(Promise.resolve(true))
       stubClientMethod('getOwnedRedirects').withArgs('mbland')
         .callsFake(function(owner) {
           return Promise.reject(new Error('forced failure for ' + owner))
@@ -181,6 +224,8 @@ describe('RedirectDb', function() {
     })
 
     it('fails to fetch full info for one of the redirects', function() {
+      stubClientMethod('userExists').withArgs('mbland')
+        .returns(Promise.resolve(true))
       stubClientMethod('getOwnedRedirects').withArgs('mbland')
         .returns(Promise.resolve(['/baz', '/bar', '/foo']))
       stubClientMethod('getRedirect').callsFake(function(url) {
@@ -256,6 +301,8 @@ describe('RedirectDb', function() {
     it('successfully changes the owner', function() {
       stubClientMethod('getRedirect').withArgs('/foo')
         .returns(Promise.resolve({ owner: 'msb' }))
+      stubClientMethod('userExists').withArgs('mbland')
+        .returns(Promise.resolve(true))
       stubClientMethod('updateProperty').withArgs('/foo', 'owner', 'mbland')
         .returns(Promise.resolve(true))
       stubClientMethod('addUrlToOwner').withArgs('mbland', '/foo')
@@ -269,13 +316,26 @@ describe('RedirectDb', function() {
     it('fails unless invoked by the original owner', function() {
       stubClientMethod('getRedirect').withArgs('/foo')
         .returns(Promise.resolve({ owner: 'msb' }))
+      stubClientMethod('userExists').withArgs('mbland')
+        .returns(Promise.resolve(true))
       return redirectDb.changeOwner('/foo', 'mbland', 'mbland')
         .should.be.rejectedWith('redirection for /foo is owned by msb')
+    })
+
+    it('fails if the new owner doesn\'t exist', function() {
+      stubClientMethod('getRedirect').withArgs('/foo')
+        .returns(Promise.resolve({ owner: 'msb' }))
+      stubClientMethod('userExists').withArgs('mbland')
+        .returns(Promise.resolve(false))
+      return redirectDb.changeOwner('/foo', 'msb', 'mbland')
+        .should.be.rejectedWith('user mbland doesn\'t exist')
     })
 
     it('fails if adding to the new owner\'s list raises error', function() {
       stubClientMethod('getRedirect').withArgs('/foo')
         .returns(Promise.resolve({ owner: 'msb' }))
+      stubClientMethod('userExists').withArgs('mbland')
+        .returns(Promise.resolve(true))
       stubClientMethod('updateProperty').withArgs('/foo', 'owner', 'mbland')
         .returns(Promise.resolve(true))
       stubClientMethod('addUrlToOwner').withArgs('mbland', '/foo')
@@ -295,6 +355,8 @@ describe('RedirectDb', function() {
     it('fails if the URL\'s missing from the old owner\'s list', function() {
       stubClientMethod('getRedirect').withArgs('/foo')
         .returns(Promise.resolve({ owner: 'msb' }))
+      stubClientMethod('userExists').withArgs('mbland')
+        .returns(Promise.resolve(true))
       stubClientMethod('updateProperty').withArgs('/foo', 'owner', 'mbland')
         .returns(Promise.resolve(true))
       stubClientMethod('addUrlToOwner').withArgs('mbland', '/foo')
@@ -310,6 +372,8 @@ describe('RedirectDb', function() {
     it('fails if removing from the old owner\'s list raises error', function() {
       stubClientMethod('getRedirect').withArgs('/foo')
         .returns(Promise.resolve({ owner: 'msb' }))
+      stubClientMethod('userExists').withArgs('mbland')
+        .returns(Promise.resolve(true))
       stubClientMethod('updateProperty').withArgs('/foo', 'owner', 'mbland')
         .returns(Promise.resolve(true))
       stubClientMethod('addUrlToOwner').withArgs('mbland', '/foo')

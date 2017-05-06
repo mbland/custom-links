@@ -61,7 +61,7 @@ describe('RedisClient', function() {
   readOwnerList = function(owner) {
     return new Promise(function(resolve, reject) {
       clientImpl.lrange(owner, 0, -1, function(err, data) {
-        err ? reject(err) : resolve(data)
+        err ? reject(new Error(err)) : resolve(data)
       })
     })
   }
@@ -71,6 +71,54 @@ describe('RedisClient', function() {
     stubs.push(stub)
     return stub
   }
+
+  describe('userExists', function() {
+    it('returns false if a user doesn\'t exist', function() {
+      return redisClient.userExists('mbland').should.become(false)
+    })
+
+    it('returns true if a user exists', function() {
+      return new Promise(
+        function(resolve, reject) {
+          clientImpl.lpush('mbland', '', function(err) {
+            err ? reject(err) : resolve()
+          })
+        })
+        .should.be.fulfilled
+        .then(function() {
+          return redisClient.userExists('mbland').should.become(true)
+        })
+    })
+
+    it('raises an error when exists fails', function() {
+      stubClientImplMethod('exists').callsFake(function(userId, cb) {
+        cb(new Error('forced error for ' + userId))
+      })
+      return redisClient.userExists('mbland')
+        .should.be.rejectedWith(Error, 'forced error for mbland')
+    })
+  })
+
+  describe('findOrCreateUser', function() {
+    it('creates a new user', function() {
+      return redisClient.findOrCreateUser('mbland').should.become(true)
+    })
+
+    it('finds an existing user', function() {
+      return redisClient.findOrCreateUser('mbland').should.become(true)
+        .then(function() {
+          return redisClient.findOrCreateUser('mbland').should.become(false)
+        })
+    })
+
+    it('raises an error when lpush fails', function() {
+      stubClientImplMethod('lpush').callsFake(function(userId, value, cb) {
+        cb(new Error('forced error for ' + userId + ' "' + value + '"'))
+      })
+      return redisClient.findOrCreateUser('mbland')
+        .should.be.rejectedWith(Error, 'forced error for mbland ""')
+    })
+  })
 
   describe('getRedirect', function() {
     it('returns null if a redirect doesn\'t exist', function() {
@@ -119,41 +167,55 @@ describe('RedisClient', function() {
 
   describe('addUrlToOwner', function() {
     it('adds URLs to an owner\'s list in LIFO order', function() {
-      return redisClient.addUrlToOwner('mbland', '/foo')
-        .then(function() {
+      return redisClient.findOrCreateUser('mbland')
+        .should.become(true).then(function() {
+          return redisClient.addUrlToOwner('mbland', '/foo')
+        })
+        .should.become(true).then(function() {
           return redisClient.addUrlToOwner('mbland', '/bar')
         })
-        .then(function() {
+        .should.become(true).then(function() {
           return redisClient.addUrlToOwner('mbland', '/baz')
         })
-        .then(function() {
-          return readOwnerList('mbland').should.become(['/baz', '/bar', '/foo'])
+        .should.become(true).then(function() {
+          return readOwnerList('mbland')
+            .should.become(['/baz', '/bar', '/foo', ''])
         })
     })
 
-    it('raises an error if client.lpush fails', function() {
-      stubClientImplMethod('lpush').callsFake(function(owner, url, cb) {
+    it('fails to add a URL to a nonexistent owner', function() {
+      return redisClient.addUrlToOwner('mbland', '/foo').should.become(false)
+    })
+
+    it('raises an error if client.lpushx fails', function() {
+      stubClientImplMethod('lpushx').callsFake(function(owner, url, cb) {
         cb(new Error('forced error for ' + owner + ' ' + url))
       })
-      return redisClient.addUrlToOwner('mbland', '/foo')
+      return redisClient.findOrCreateUser('mbland')
+        .should.become(true).then(function() {
+          return redisClient.addUrlToOwner('mbland', '/foo')
+        })
         .should.be.rejectedWith(Error, 'forced error for mbland /foo')
     })
   })
 
   describe('removeUrlFromOwner', function() {
     it('removes a URL from an owner\'s list', function() {
-      return redisClient.addUrlToOwner('mbland', '/foo')
-        .then(function() {
+      return redisClient.findOrCreateUser('mbland')
+        .should.become(true).then(function() {
+          return redisClient.addUrlToOwner('mbland', '/foo')
+        })
+        .should.become(true).then(function() {
           return redisClient.addUrlToOwner('mbland', '/bar')
         })
-        .then(function() {
+        .should.become(true).then(function() {
           return redisClient.addUrlToOwner('mbland', '/baz')
         })
-        .then(function() {
+        .should.become(true).then(function() {
           return redisClient.removeUrlFromOwner('mbland', '/bar')
         })
         .should.become(true).then(function() {
-          return readOwnerList('mbland').should.become(['/baz', '/foo'])
+          return readOwnerList('mbland').should.become(['/baz', '/foo', ''])
         })
     })
 
@@ -224,14 +286,17 @@ describe('RedisClient', function() {
     })
 
     it('returns the user\'s redirects in reverse order', function() {
-      return redisClient.addUrlToOwner('mbland', '/foo')
-        .then(function() {
+      return redisClient.findOrCreateUser('mbland')
+        .should.become(true).then(function() {
+          return redisClient.addUrlToOwner('mbland', '/foo')
+        })
+        .should.become(true).then(function() {
           return redisClient.addUrlToOwner('mbland', '/bar')
         })
-        .then(function() {
+        .should.become(true).then(function() {
           return redisClient.addUrlToOwner('mbland', '/baz')
         })
-        .then(function() {
+        .should.become(true).then(function() {
           return redisClient.getOwnedRedirects('mbland')
         })
         .should.become(['/baz', '/bar', '/foo'])
