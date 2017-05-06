@@ -1,6 +1,7 @@
 {
   "PORT": 3000,
-  "redirectUrl": "http://localhost:3000/auth/callback",
+  "AUTH_PROVIDERS": [ "google" ],
+  "GOOGLE_REDIRECT_URL": "http://localhost:3000/auth/callback",
   "users": [
   ],
   "domains": [
