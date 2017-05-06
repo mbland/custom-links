@@ -98,6 +98,7 @@ describe('RedirectDb', function() {
 
   describe('createRedirect', function() {
     it('successfully creates a new redirection', function() {
+      stubClientMethod('userExists').returns(Promise.resolve(true))
       stubClientMethod('createRedirect')
         .withArgs('/foo', REDIRECT_TARGET, 'mbland')
         .returns(Promise.resolve(true))
@@ -107,10 +108,17 @@ describe('RedirectDb', function() {
         .should.be.fulfilled
     })
 
+    it('fails to create a redirection if the user doesn\'t exist', function() {
+      stubClientMethod('userExists').returns(Promise.resolve(false))
+      return redirectDb.createRedirect('/foo', REDIRECT_TARGET, 'mbland')
+        .should.be.rejectedWith('user mbland doesn\'t exist')
+    })
+
     it('fails to create a new redirection when one already exists', function() {
       var createRedirect = stubClientMethod('createRedirect'),
           addUrlToOwner = stubClientMethod('addUrlToOwner')
 
+      stubClientMethod('userExists').returns(Promise.resolve(true))
       createRedirect.onFirstCall().returns(Promise.resolve(true))
       addUrlToOwner.onFirstCall().returns(Promise.resolve())
       createRedirect.onSecondCall().returns(Promise.resolve(false))
@@ -126,6 +134,7 @@ describe('RedirectDb', function() {
     })
 
     it('fails to create a new redirection due to a server error', function() {
+      stubClientMethod('userExists').returns(Promise.resolve(true))
       stubClientMethod('createRedirect')
         .withArgs('/foo', REDIRECT_TARGET, 'mbland')
         .callsFake(function(url, location, user) {
@@ -139,7 +148,20 @@ describe('RedirectDb', function() {
            'forced error for /foo ' + REDIRECT_TARGET + ' mbland')
     })
 
+    it('fails when the owner disappears after creating the URL', function() {
+      stubClientMethod('userExists').returns(Promise.resolve(true))
+      stubClientMethod('createRedirect')
+        .withArgs('/foo', REDIRECT_TARGET, 'mbland')
+        .returns(Promise.resolve(true))
+      stubClientMethod('addUrlToOwner').returns(Promise.resolve(false))
+      return redirectDb.createRedirect('/foo', REDIRECT_TARGET, 'mbland')
+        .should.be.rejectedWith(Error, 'redirection created ' +
+          'for /foo, but failed to add to list for user mbland: ' +
+          'user was deleted before URL could be assigned')
+    })
+
     it('fails to add the URL to the owner\'s list', function() {
+      stubClientMethod('userExists').returns(Promise.resolve(true))
       stubClientMethod('createRedirect')
         .withArgs('/foo', REDIRECT_TARGET, 'mbland')
         .returns(Promise.resolve(true))
