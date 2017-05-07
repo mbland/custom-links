@@ -118,7 +118,7 @@ _test_run_mocha() {
     $(@go 'glob' "${__GO_TEST_GLOB_ARGS[@]}" "${__test_glob_patterns[@]}"))
 
   if [[ "$__COVERAGE_RUN" == 'true' ]]; then
-    istanbul -- cover node_modules/.bin/_mocha "${argv[@]}"
+    nyc --reporter=lcov node_modules/.bin/_mocha "${argv[@]}"
   else
     mocha "${argv[@]}"
   fi
