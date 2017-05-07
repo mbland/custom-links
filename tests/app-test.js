@@ -414,6 +414,64 @@ describe('assembleApp', function() {
           })
       })
     })
+
+    describe('/location', function() {
+      var updateLocation, setArgs, makeRequest
+
+      beforeEach(function() {
+        updateLocation = sinon.stub(redirectDb, 'updateLocation')
+      })
+
+      afterEach(function() {
+        updateLocation.restore()
+      })
+
+      setArgs = function() {
+        return updateLocation.withArgs(
+          '/foo', 'mbland@acm.org', REDIRECT_LOCATION)
+      }
+
+      makeRequest = function() {
+        return request(app)
+          .post('/api/location/foo')
+          .send({ location: REDIRECT_LOCATION })
+          .set('cookie', sessionCookie)
+      }
+
+      it('successfully sets the location', function() {
+        setArgs().returns(Promise.resolve())
+        return makeRequest().expect(204)
+      })
+
+      it('raises a server error', function() {
+        setArgs().callsFake(function(url, user, location) {
+          return Promise.reject(new Error('forced error for ' +
+            [url, user, location].join(' ')))
+        })
+        return makeRequest()
+          .expect(500)
+          .then(function() {
+            logError.calledOnce.should.be.true
+            expect(logError.args[0][0].message)
+              .to.equal('forced error for /foo mbland@acm.org ' +
+                REDIRECT_LOCATION)
+          })
+      })
+
+      it('returns forbidden when the user doesn\'t own the URL', function() {
+        setArgs().callsFake(function(url, user) {
+          return Promise.reject(user + ' doesn\'t own ' + url)
+        })
+        return makeRequest()
+          .expect(403)
+          .then(function(res) {
+            res.body.err.should.equal('mbland@acm.org doesn\'t own /foo')
+            logError.calledOnce.should.be.true
+            expect(logError.args[0][0])
+              .to.equal('mbland@acm.org doesn\'t own /foo')
+          })
+      })
+    })
   })
 })
 
