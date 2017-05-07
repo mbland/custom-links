@@ -1,6 +1,8 @@
 'use strict'
 
-var assembleApp = require('../lib').assembleApp
+var appLib = require('../lib')
+var assembleApp = appLib.assembleApp
+var sessionParams = appLib.sessionParams
 var RedirectDb = require('../lib/redirect-db')
 var express = require('express')
 var request = require('supertest')
@@ -139,5 +141,51 @@ describe('assembleApp', function() {
           })
       })
     })
+  })
+})
+
+describe('sessionParams', function() {
+  it('uses default session store and max age', function() {
+    var params = sessionParams({SESSION_SECRET: 'secret'})
+    params.should.eql({
+      store: undefined,
+      secret: 'secret',
+      resave: true,
+      saveUnitialized: false,
+      maxAge: appLib.DEFAULT_SESSION_MAX_AGE * 1000
+    })
+  })
+
+  it('uses supplied session store and configured max age', function() {
+    var config = { SESSION_SECRET: 'secret', SESSION_MAX_AGE: 3600 },
+        store = {},
+        params = sessionParams(config, store)
+
+    params.should.eql({
+      store: store,
+      secret: 'secret',
+      resave: true,
+      saveUnitialized: false,
+      maxAge: 3600 * 1000
+    })
+  })
+
+  it('uses session store with touch method and null max age', function() {
+    var config = { SESSION_SECRET: 'secret', SESSION_MAX_AGE: null },
+        store = { touch: true },
+        params = sessionParams(config, store)
+
+    params.should.eql({
+      store: store,
+      secret: 'secret',
+      resave: false,
+      saveUnitialized: false,
+      maxAge: null
+    })
+  })
+
+  it('throws an error when max age is negative', function() {
+    expect(function() { sessionParams({ SESSION_MAX_AGE: -1 }) })
+      .to.throw(Error, 'SESSION_MAX_AGE cannot be negative: -1')
   })
 })

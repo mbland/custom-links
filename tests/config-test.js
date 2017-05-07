@@ -97,13 +97,14 @@ describe('config', function() {
       'Invalid configuration:\n  unknown auth provider frobozz-magic-auth')
   })
 
-  it('loads missing required fields from the environment', function() {
+  it('loads fields from the environment', function() {
     var inputConfig = helpers.baseConfig(),
         compareConfig = helpers.baseConfig(),
         properties = [
           'PORT',
           'AUTH_PROVIDERS',
           'SESSION_SECRET',
+          'SESSION_MAX_AGE',
           'GOOGLE_CLIENT_ID',
           'GOOGLE_CLIENT_SECRET',
           'GOOGLE_REDIRECT_URL'
@@ -121,6 +122,8 @@ describe('config', function() {
     expect(config.AUTH_PROVIDERS).to.eql(compareConfig.AUTH_PROVIDERS)
     expect(config.SESSION_SECRET)
       .to.equal(compareConfig.SESSION_SECRET)
+    expect(config.SESSION_MAX_AGE)
+      .to.equal(compareConfig.SESSION_MAX_AGE)
     expect(config.GOOGLE_CLIENT_ID)
       .to.equal(compareConfig.GOOGLE_CLIENT_ID)
     expect(config.GOOGLE_CLIENT_SECRET)

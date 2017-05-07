@@ -37,6 +37,7 @@
   },
   "dependencies": {
     "express": "^4.15.2",
+    "passport-google-oauth20": "^1.0.0",
     "redis": "^2.7.1"
   }
 }
