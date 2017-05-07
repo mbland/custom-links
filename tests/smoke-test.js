@@ -36,7 +36,7 @@ describe('Smoke test', function() {
       urlpServer.stdout.on('data', function(data) {
         stdout += data
         if (stdout.match(packageInfo.name + ' listening on port ')) {
-          setTimeout(resolve, 100)
+          setTimeout(resolve, 250)
         }
       })
       urlpServer.stderr.on('data', function(data) {
