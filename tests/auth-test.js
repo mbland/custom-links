@@ -130,33 +130,59 @@ describe('auth', function() {
     })
   })
 
-  describe('google', function() {
-    var doVerify, userInfo
+  describe('strategies', function() {
+    var passport = { use: function() { } }
 
     beforeEach(function() {
-      userInfo = {
-        emails: [
-          { value: 'mbland@example.com', type: 'account' },
-          { value: 'mbland@acm.org', type: 'account' }
-        ]
-      }
+      sinon.spy(passport, 'use')
     })
 
-    doVerify = function(userObj, config) {
-      var verify = require('../lib/auth/google').verify(redirectDb, config)
-      return new Promise(function(resolve, reject) {
-        verify('access token', 'refresh token', userObj, function(err, user) {
-          err ? reject(err) : resolve(user)
-        })
+    afterEach(function() {
+      passport.use.restore()
+    })
+
+    describe('test', function() {
+      var testAuth = require('../lib/auth/test')
+
+      it('registers the strategy with passport.use', function() {
+        testAuth.assemble(passport)
+        expect(passport.use.getCall(0).args[0]).to.equal(testAuth.strategy)
       })
-    }
 
-    it('successfully verifies the user', function() {
-      stubDbMethod('findOrCreateUser').withArgs('mbland@acm.org')
-        .returns(Promise.resolve({ id: 'mbland@acm.org' }))
+      it('strategy.authenticate() throws an error if not stubbed', function() {
+        expect(function() { testAuth.strategy.authenticate() })
+          .to.throw(Error, 'TestStrategy.authenticate() must be stubbed')
+      })
+    })
 
-      return doVerify(userInfo, { users: [ 'mbland@acm.org' ]})
-        .should.become({ id: 'mbland@acm.org' })
+    describe('google', function() {
+      var doVerify, userInfo, googleAuth = require('../lib/auth/google')
+
+      beforeEach(function() {
+        userInfo = {
+          emails: [
+            { value: 'mbland@example.com', type: 'account' },
+            { value: 'mbland@acm.org', type: 'account' }
+          ]
+        }
+      })
+
+      doVerify = function(userObj, config) {
+        var verify = googleAuth.verify(redirectDb, config)
+        return new Promise(function(resolve, reject) {
+          verify('access token', 'refresh token', userObj, function(err, user) {
+            err ? reject(err) : resolve(user)
+          })
+        })
+      }
+
+      it('successfully verifies the user', function() {
+        stubDbMethod('findOrCreateUser').withArgs('mbland@acm.org')
+          .returns(Promise.resolve({ id: 'mbland@acm.org' }))
+
+        return doVerify(userInfo, { users: [ 'mbland@acm.org' ]})
+          .should.become({ id: 'mbland@acm.org' })
+      })
     })
   })
 })
