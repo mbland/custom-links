@@ -262,7 +262,14 @@ describe('assembleApp', function() {
           return Promise.reject(new Error('forced error for ' +
             [url, location, userId].join(' ')))
         })
-        return makeRequest().expect(500)
+        return makeRequest()
+          .expect(500)
+          .then(function() {
+            logError.calledOnce.should.be.true
+            expect(logError.args[0][0].message)
+              .to.equal('forced error for /foo ' + REDIRECT_LOCATION +
+                ' mbland@acm.org')
+          })
       })
 
       it('returns forbidden when a failure isn\'t an Error', function() {
@@ -275,8 +282,78 @@ describe('assembleApp', function() {
           .expect(403)
           .expect('Content-Type', 'application/json; charset=utf-8')
           .then(function(res) {
-            expect(res.body.err).to.equal(
-              'forced error for /foo ' + REDIRECT_LOCATION + ' mbland@acm.org')
+            var expected = 'forced error for /foo ' + REDIRECT_LOCATION +
+              ' mbland@acm.org'
+
+            expect(res.body.err).to.equal(expected)
+            logError.calledOnce.should.be.true
+            expect(logError.args[0][0]).to.equal(expected)
+          })
+      })
+    })
+
+    describe('/user', function() {
+      var getOwnedRedirects
+
+      beforeEach(function() {
+        getOwnedRedirects = sinon.stub(redirectDb, 'getOwnedRedirects')
+      })
+
+      afterEach(function() {
+        getOwnedRedirects.restore()
+      })
+
+      it('returns the list of redirect info owned by the user', function() {
+        var urls = [
+          { url: '/foo', location: REDIRECT_LOCATION, count: 27 },
+          { url: '/bar', location: REDIRECT_LOCATION, count: 28 },
+          { url: '/baz', location: REDIRECT_LOCATION, count: 29 }
+        ]
+
+        getOwnedRedirects.withArgs('mbland@acm.org')
+          .returns(Promise.resolve(urls))
+
+        return request(app)
+          .get('/api/user/mbland@acm.org')
+          .set('cookie', sessionCookie)
+          .expect(200)
+          .expect('Content-Type', 'application/json; charset=utf-8')
+          .then(function(res) {
+            expect(res.body.urls).to.eql(urls)
+          })
+      })
+
+      it('raises a server error', function() {
+        getOwnedRedirects.withArgs('mbland@acm.org')
+          .callsFake(function(userId) {
+            return Promise.reject(new Error('forced error for ' + userId))
+          })
+
+        return request(app)
+          .get('/api/user/mbland@acm.org')
+          .set('cookie', sessionCookie)
+          .expect(500)
+          .then(function() {
+            logError.calledOnce.should.be.true
+            expect(logError.args[0][0].message)
+              .to.equal('forced error for mbland@acm.org')
+          })
+      })
+
+      it('returns not found if a user doesn\'t exist', function() {
+        getOwnedRedirects.withArgs('mbland@acm.org')
+          .callsFake(function(userId) {
+            return Promise.reject(userId + ' doesn\'t exist')
+          })
+
+        return request(app)
+          .get('/api/user/mbland@acm.org')
+          .set('cookie', sessionCookie)
+          .expect(404)
+          .then(function() {
+            logError.calledOnce.should.be.true
+            expect(logError.args[0][0])
+              .to.equal('mbland@acm.org doesn\'t exist')
           })
       })
     })
