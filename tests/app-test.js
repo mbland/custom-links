@@ -16,6 +16,8 @@ var sinon = require('sinon')
 chai.should()
 chai.use(chaiAsPromised)
 
+var REDIRECT_LOCATION = 'https://mike-bland.com/'
+
 describe('assembleApp', function() {
   var app, redirectDb, logger, logError, config, authenticate, sessionCookie
 
@@ -125,16 +127,15 @@ describe('assembleApp', function() {
     })
 
     it('redirects to the url returned by the RedirectDb', function() {
-      var redirectLocation = 'https://mike-bland.com/'
       getRedirect.withArgs('/foo', { recordAccess: true })
         .returns(Promise.resolve(
-          { location: redirectLocation, owner: 'mbland@acm.org', count: 27 }))
+          { location: REDIRECT_LOCATION, owner: 'mbland@acm.org', count: 27 }))
 
       return request(app)
         .get('/foo')
         .set('cookie', sessionCookie)
         .expect(302)
-        .expect('location', redirectLocation)
+        .expect('location', REDIRECT_LOCATION)
     })
 
     it('redirects to the homepage with nonexistent url parameter', function() {
@@ -196,8 +197,8 @@ describe('assembleApp', function() {
 
         return request(app)
           .get('/api/info/foo')
-          .expect(200)
           .set('cookie', sessionCookie)
+          .expect(200)
           .then(function(response) {
             response.body.should.eql(urlData)
           })
@@ -224,6 +225,58 @@ describe('assembleApp', function() {
           .expect(function() {
             logError.calledOnce.should.be.true
             expect(logError.args[0][0].message).to.equal('forced error')
+          })
+      })
+    })
+
+    describe('/create', function() {
+      var createRedirect, setArgs, makeRequest
+
+      beforeEach(function() {
+        createRedirect = sinon.stub(redirectDb, 'createRedirect')
+      })
+
+      afterEach(function() {
+        createRedirect.restore()
+      })
+
+      setArgs = function() {
+        return createRedirect
+          .withArgs('/foo', REDIRECT_LOCATION, 'mbland@acm.org')
+      }
+
+      makeRequest = function() {
+        return request(app)
+          .post('/api/create/foo')
+          .send({ location: REDIRECT_LOCATION })
+          .set('cookie', sessionCookie)
+      }
+
+      it('creates a new URL', function() {
+        setArgs().returns(Promise.resolve())
+        return makeRequest().expect(201)
+      })
+
+      it('raises a server error when createRedirect fails', function() {
+        setArgs().callsFake(function(url, location, userId) {
+          return Promise.reject(new Error('forced error for ' +
+            [url, location, userId].join(' ')))
+        })
+        return makeRequest().expect(500)
+      })
+
+      it('returns forbidden when a failure isn\'t an Error', function() {
+        setArgs().callsFake(function(url, location, userId) {
+          return Promise.reject('forced error for ' +
+            [url, location, userId].join(' '))
+        })
+
+        return makeRequest()
+          .expect(403)
+          .expect('Content-Type', 'application/json; charset=utf-8')
+          .then(function(res) {
+            expect(res.body.err).to.equal(
+              'forced error for /foo ' + REDIRECT_LOCATION + ' mbland@acm.org')
           })
       })
     })
