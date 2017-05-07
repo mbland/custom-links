@@ -151,7 +151,7 @@ describe('sessionParams', function() {
       store: null,
       secret: 'secret',
       resave: true,
-      saveUninitialized: false,
+      saveUninitialized: true,
       maxAge: appLib.DEFAULT_SESSION_MAX_AGE * 1000
     })
   })
@@ -165,7 +165,7 @@ describe('sessionParams', function() {
       store: store,
       secret: 'secret',
       resave: true,
-      saveUninitialized: false,
+      saveUninitialized: true,
       maxAge: 3600 * 1000
     })
   })
