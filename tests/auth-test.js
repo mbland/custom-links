@@ -1,6 +1,8 @@
 'use strict'
 
 var auth = require('../lib/auth')
+var testAuth = require('../lib/auth/test')
+var googleAuth = require('../lib/auth/google')
 var RedirectDb = require('../lib/redirect-db')
 
 var sinon = require('sinon')
@@ -142,8 +144,6 @@ describe('auth', function() {
     })
 
     describe('test', function() {
-      var testAuth = require('../lib/auth/test')
-
       it('registers the strategy with passport.use', function() {
         testAuth.assemble(passport)
         expect(passport.use.getCall(0).args[0]).to.equal(testAuth.strategy)
@@ -156,7 +156,7 @@ describe('auth', function() {
     })
 
     describe('google', function() {
-      var doVerify, userInfo, googleAuth = require('../lib/auth/google')
+      var doVerify, userInfo
 
       beforeEach(function() {
         userInfo = {
@@ -192,6 +192,59 @@ describe('auth', function() {
         return doVerify(userInfo, { users: [ 'mbland@acm.org' ]})
           .should.become({ id: 'mbland@acm.org' })
       })
+    })
+  })
+
+  describe('assemble', function() {
+    var passport = {
+      use: function() { },
+      serializeUser: function() { },
+      deserializeUser: function() { }
+    }
+
+    beforeEach(function() {
+      sinon.stub(passport, 'use')
+      sinon.stub(passport, 'serializeUser')
+      sinon.stub(passport, 'deserializeUser')
+    })
+
+    afterEach(function() {
+      passport.deserializeUser.restore()
+      passport.serializeUser.restore()
+      passport.use.restore()
+    })
+
+    it('uses no auth providers', function() {
+      auth.assemble(passport, redirectDb, { AUTH_PROVIDERS: [] })
+      passport.use.notCalled.should.be.true
+      expect(passport.serializeUser.getCall(0).args[0])
+        .to.equal(auth.serializeUser)
+      expect(passport.deserializeUser.getCall(0).args[0])
+        .to.equal(auth.deserializeUser)
+    })
+
+    it('uses the test auth provider', function() {
+      auth.assemble(passport, redirectDb, { AUTH_PROVIDERS: ['test'] })
+      expect(passport.use.getCall(0).args[0]).to.equal(testAuth.strategy)
+    })
+
+    it('uses multiple auth providers', function() {
+      auth.assemble(passport, redirectDb, {
+        AUTH_PROVIDERS: [ 'google', 'test' ],
+        GOOGLE_CLIENT_ID: '<client-id>',
+        GOOGLE_CLIENT_SECRET: '<client-secret>',
+        GOOGLE_REDIRECT_URL: '<redirect-url>'
+      })
+      expect(passport.use.getCall(0).args[0].name).to.equal('google')
+      expect(passport.use.getCall(1).args[0].name).to.equal('test')
+    })
+
+    it('raises an error for an unknown auth provider', function() {
+      var assemble = function() {
+        auth.assemble(passport, redirectDb, { AUTH_PROVIDERS: [ 'bogus' ] })
+      }
+      expect(assemble).to.throw(Error,
+        'Failed to load bogus provider: Cannot find module \'./auth/bogus\'')
     })
   })
 })
