@@ -148,10 +148,10 @@ describe('sessionParams', function() {
   it('uses default session store and max age', function() {
     var params = sessionParams({SESSION_SECRET: 'secret'})
     params.should.eql({
-      store: undefined,
+      store: null,
       secret: 'secret',
       resave: true,
-      saveUnitialized: false,
+      saveUninitialized: false,
       maxAge: appLib.DEFAULT_SESSION_MAX_AGE * 1000
     })
   })
@@ -165,7 +165,7 @@ describe('sessionParams', function() {
       store: store,
       secret: 'secret',
       resave: true,
-      saveUnitialized: false,
+      saveUninitialized: false,
       maxAge: 3600 * 1000
     })
   })
@@ -179,7 +179,7 @@ describe('sessionParams', function() {
       store: store,
       secret: 'secret',
       resave: false,
-      saveUnitialized: false,
+      saveUninitialized: false,
       maxAge: null
     })
   })

@@ -63,12 +63,12 @@ describe('config', function() {
         errors = [
           'missing GOOGLE_CLIENT_ID',
           'missing GOOGLE_CLIENT_SECRET',
-          'missing GOOGLE_REDIRECT_URL'
+          'missing GOOGLE_CALLBACK_URL'
         ]
 
     delete configData.GOOGLE_CLIENT_ID
     delete configData.GOOGLE_CLIENT_SECRET
-    delete configData.GOOGLE_REDIRECT_URL
+    delete configData.GOOGLE_CALLBACK_URL
     expect(function() { return new Config(configData) }).to.throw(Error,
       'Invalid configuration:\n  ' + errors.join('\n  '))
   })
@@ -107,7 +107,7 @@ describe('config', function() {
           'SESSION_MAX_AGE',
           'GOOGLE_CLIENT_ID',
           'GOOGLE_CLIENT_SECRET',
-          'GOOGLE_REDIRECT_URL'
+          'GOOGLE_CALLBACK_URL'
         ],
         config
 
@@ -128,8 +128,8 @@ describe('config', function() {
       .to.equal(compareConfig.GOOGLE_CLIENT_ID)
     expect(config.GOOGLE_CLIENT_SECRET)
       .to.equal(compareConfig.GOOGLE_CLIENT_SECRET)
-    expect(config.GOOGLE_REDIRECT_URL)
-      .to.equal(compareConfig.GOOGLE_REDIRECT_URL)
+    expect(config.GOOGLE_CALLBACK_URL)
+      .to.equal(compareConfig.GOOGLE_CALLBACK_URL)
   })
 
   it('loads a valid config from a direct file path', function() {

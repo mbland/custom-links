@@ -94,7 +94,7 @@ describe('auth', function() {
     it('serializes the user ID', function() {
       return new Promise(
         function(resolve, reject) {
-          var serializeUser = auth.serializeUser(redirectDb)
+          var serializeUser = auth.makeUserSerializer(redirectDb)
           serializeUser({ id: 'mbland@acm.org' }, function(err, user) {
             err ? reject(err) : resolve(user)
           })
@@ -107,7 +107,7 @@ describe('auth', function() {
     var doDeserialize
 
     doDeserialize = function(user) {
-      var deserializeUser = auth.deserializeUser(redirectDb)
+      var deserializeUser = auth.makeUserDeserializer(redirectDb)
       return new Promise(function(resolve, reject) {
         deserializeUser(user, function(err, user) {
           err ? reject(err) : resolve(user)
@@ -215,12 +215,29 @@ describe('auth', function() {
     })
 
     it('uses no auth providers', function() {
+      var serializeUser,
+          deserializeUser,
+          serializeSpy = sinon.spy()
+
       auth.assemble(passport, redirectDb, { AUTH_PROVIDERS: [] })
       passport.use.notCalled.should.be.true
-      expect(passport.serializeUser.getCall(0).args[0])
-        .to.equal(auth.serializeUser)
-      expect(passport.deserializeUser.getCall(0).args[0])
-        .to.equal(auth.deserializeUser)
+
+      serializeUser = passport.serializeUser.getCall(0).args[0]
+      deserializeUser = passport.deserializeUser.getCall(0).args[0]
+
+      serializeUser({ id: 'mbland' }, serializeSpy)
+      serializeSpy.getCall(0).args.should.eql([ null, 'mbland' ])
+
+      stubDbMethod('findUser').withArgs('mbland')
+        .returns(Promise.resolve({ id: 'mbland' }))
+
+      return new Promise(
+        function(resolve, reject) {
+          deserializeUser('mbland', function(err, user) {
+            err ? reject(err) : resolve(user)
+          })
+        })
+        .should.become({ id: 'mbland' })
     })
 
     it('uses the test auth provider', function() {
@@ -233,7 +250,7 @@ describe('auth', function() {
         AUTH_PROVIDERS: [ 'google', 'test' ],
         GOOGLE_CLIENT_ID: '<client-id>',
         GOOGLE_CLIENT_SECRET: '<client-secret>',
-        GOOGLE_REDIRECT_URL: '<redirect-url>'
+        GOOGLE_CALLBACK_URL: '<redirect-url>'
       })
       expect(passport.use.getCall(0).args[0].name).to.equal('google')
       expect(passport.use.getCall(1).args[0].name).to.equal('test')
