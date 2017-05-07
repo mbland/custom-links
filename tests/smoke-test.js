@@ -18,6 +18,8 @@ describe('Smoke test', function() {
   var urlpServer, redisServer, launchServer, stdout, stderr, exitCode = 0
 
   before(function() {
+    this.timeout(5000)
+
     return helpers.pickUnusedPort()
       .then(helpers.launchRedis)
       .then(function(redisData) {
@@ -63,6 +65,7 @@ describe('Smoke test', function() {
 
   describe('launches successfully', function() {
     beforeEach(function() {
+      this.timeout(5000)
       return launchServer()
     })
 
