@@ -43,5 +43,15 @@ module.exports = {
           ': ' + err))
       })
     })
+  },
+
+  killServer: function(server, signal) {
+    return new Promise(function(resolve) {
+      signal = signal || 'SIGTERM'
+      server.on('exit', function() {
+        resolve()
+      })
+      server.kill(signal)
+    })
   }
 }
