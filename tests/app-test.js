@@ -304,6 +304,7 @@ describe('assembleApp', function() {
       })
 
       it('returns the list of redirect info owned by the user', function() {
+        // Not including the owner, though it would be normally.
         var urls = [
           { url: '/foo', location: REDIRECT_LOCATION, count: 27 },
           { url: '/bar', location: REDIRECT_LOCATION, count: 28 },
@@ -354,6 +355,62 @@ describe('assembleApp', function() {
             logError.calledOnce.should.be.true
             expect(logError.args[0][0])
               .to.equal('mbland@acm.org doesn\'t exist')
+          })
+      })
+    })
+
+    describe('/owner', function() {
+      var changeOwner, setArgs, makeRequest
+
+      beforeEach(function() {
+        changeOwner = sinon.stub(redirectDb, 'changeOwner')
+      })
+
+      afterEach(function() {
+        changeOwner.restore()
+      })
+
+      setArgs = function() {
+        return changeOwner.withArgs('/foo', 'mbland@acm.org', 'msb@example.com')
+      }
+
+      makeRequest = function() {
+        return request(app)
+          .post('/api/owner/foo')
+          .send({ owner: 'msb@example.com' })
+          .set('cookie', sessionCookie)
+      }
+
+      it('sucessfully transforms ownership', function() {
+        setArgs().returns(Promise.resolve())
+        return makeRequest().expect(204)
+      })
+
+      it('raises a server error', function() {
+        setArgs().callsFake(function(url, user, owner) {
+          return Promise.reject(new Error('forced error for ' +
+            [url, user, owner].join(' ')))
+        })
+        return makeRequest()
+          .expect(500)
+          .then(function() {
+            logError.calledOnce.should.be.true
+            expect(logError.args[0][0].message)
+              .to.equal('forced error for /foo mbland@acm.org msb@example.com')
+          })
+      })
+
+      it('returns forbidden when the user doesn\'t own the URL', function() {
+        setArgs().callsFake(function(url, user) {
+          return Promise.reject(user + ' doesn\'t own ' + url)
+        })
+        return makeRequest()
+          .expect(403)
+          .then(function(res) {
+            res.body.err.should.equal('mbland@acm.org doesn\'t own /foo')
+            logError.calledOnce.should.be.true
+            expect(logError.args[0][0])
+              .to.equal('mbland@acm.org doesn\'t own /foo')
           })
       })
     })
