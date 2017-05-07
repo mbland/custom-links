@@ -20,14 +20,20 @@ if (config.REDIS_PORT !== undefined) {
   redisClientOptions.port = config.REDIS_PORT
 }
 
+var redisClient = redis.createClient(redisClientOptions)
+
 app.use(morgan('combined'))
 urlPointers.assembleApp(
   app,
-  new RedirectDb(
-    new RedisClient(redis.createClient(redisClientOptions), logger)),
+  new RedirectDb(new RedisClient(redisClient, logger)),
   logger,
   new RedisStore,
   config)
 
-app.listen(config.PORT)
+var server = app.listen(config.PORT)
+
+process.on('exit', function() {
+  server.close()
+  redisClient.quit()
+})
 logger.log(packageInfo.name + ' listening on port ' + config.PORT)
