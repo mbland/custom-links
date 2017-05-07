@@ -1,9 +1,9 @@
 #! /usr/local/env bash
 #
-# Runs a local development server at http://localhost:8080
+# Runs a local url-pointers server
 
 urlp.serve() {
-  live-server public/
+  node "$_GO_ROOTDIR/index.js" "$_GO_ROOTDIR/test-config.json"
 }
 
 urlp.serve "$@"
