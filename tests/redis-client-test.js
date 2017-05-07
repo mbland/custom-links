@@ -43,7 +43,8 @@ describe('RedisClient', function() {
   })
 
   after(function() {
-    redisServer.kill()
+    clientImpl.quit()
+    return helpers.killServer(redisServer)
   })
 
   setData = function(url, redirectTarget, owner, count) {

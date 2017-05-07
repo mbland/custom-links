@@ -145,13 +145,30 @@ describe('auth', function() {
 
     describe('test', function() {
       it('registers the strategy with passport.use', function() {
+        var strategy
         testAuth.assemble(passport)
-        expect(passport.use.getCall(0).args[0]).to.equal(testAuth.strategy)
+
+        strategy = passport.use.getCall(0).args[0]
+        strategy.name.should.equal('test')
       })
 
-      it('strategy.authenticate() throws an error if not stubbed', function() {
-        expect(function() { testAuth.strategy.authenticate() })
-          .to.throw(Error, 'TestStrategy.authenticate() must be stubbed')
+      it('throws an error if authenticate() isn\'t stubbed', function() {
+        expect(function() { testAuth.strategyImpl.authenticate() })
+          .to.throw(Error, 'strategyImpl.authenticate() must be stubbed')
+      })
+
+      it('passes the request, opts, and strategy to authenticate', function() {
+        var implAuth = sinon.stub(testAuth.strategyImpl, 'authenticate'),
+            strategy,
+            args
+
+        testAuth.assemble(passport)
+        strategy = passport.use.getCall(0).args[0]
+        strategy.authenticate({ req: true }, { opts: true })
+        args = implAuth.getCall(0).args
+        implAuth.restore()
+
+        args.should.eql([ { req: true }, { opts: true }, strategy ])
       })
     })
 
@@ -242,7 +259,7 @@ describe('auth', function() {
 
     it('uses the test auth provider', function() {
       auth.assemble(passport, redirectDb, { AUTH_PROVIDERS: ['test'] })
-      expect(passport.use.getCall(0).args[0]).to.equal(testAuth.strategy)
+      expect(passport.use.getCall(0).args[0].name).to.equal('test')
     })
 
     it('uses multiple auth providers', function() {

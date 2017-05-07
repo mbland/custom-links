@@ -118,7 +118,7 @@ _test_run_mocha() {
     $(@go 'glob' "${__GO_TEST_GLOB_ARGS[@]}" "${__test_glob_patterns[@]}"))
 
   if [[ "$__COVERAGE_RUN" == 'true' ]]; then
-    istanbul -- cover node_modules/.bin/_mocha "${argv[@]}"
+    nyc --reporter=lcov node_modules/.bin/_mocha "${argv[@]}"
   else
     mocha "${argv[@]}"
   fi
@@ -127,9 +127,11 @@ _test_run_mocha() {
 _test_coverage() {
   local report_path="${_GO_ROOTDIR}/coverage/lcov-report/index.html"
   local lcov_info_path="${_GO_ROOTDIR}/coverage/lcov.info"
+  local result=0
 
   rm -f "$report_path"
   __COVERAGE_RUN='true' _test_run_mocha "${@:2}"
+  result="$?"
 
   if [[ ! -r "$report_path" ]]; then
     return 1
@@ -155,6 +157,7 @@ _test_coverage() {
       echo 'https://codeclimate.com/github/mbland/slack-github-issues'
     fi
   fi
+  return "$result"
 }
 
 _test() {

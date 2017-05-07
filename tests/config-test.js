@@ -105,11 +105,15 @@ describe('config', function() {
           'AUTH_PROVIDERS',
           'SESSION_SECRET',
           'SESSION_MAX_AGE',
+          'REDIS_PORT',
           'GOOGLE_CLIENT_ID',
           'GOOGLE_CLIENT_SECRET',
           'GOOGLE_CALLBACK_URL'
         ],
         config
+
+    inputConfig.REDIS_PORT = 666
+    compareConfig.REDIS_PORT = 666
 
     properties.forEach(function(name) {
       var value = inputConfig[name]
@@ -124,6 +128,8 @@ describe('config', function() {
       .to.equal(compareConfig.SESSION_SECRET)
     expect(config.SESSION_MAX_AGE)
       .to.equal(compareConfig.SESSION_MAX_AGE)
+    expect(config.REDIS_PORT)
+      .to.equal(compareConfig.REDIS_PORT)
     expect(config.GOOGLE_CLIENT_ID)
       .to.equal(compareConfig.GOOGLE_CLIENT_ID)
     expect(config.GOOGLE_CLIENT_SECRET)
