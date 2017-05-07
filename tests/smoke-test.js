@@ -61,11 +61,14 @@ describe('Smoke test', function() {
     return helpers.killServer(redisServer)
   })
 
-  it('launches successfully using a well-formed config file', function() {
-    return launchServer().should.be.fulfilled
-      .then(function() {
-        stderr.should.equal('')
-        exitCode.should.equal(0)
-      })
+  describe('launches successfully', function() {
+    beforeEach(function() {
+      return launchServer()
+    })
+
+    it('launches successfully using a well-formed config file', function() {
+      stderr.should.equal('')
+      exitCode.should.equal(0)
+    })
   })
 })
