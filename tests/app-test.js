@@ -472,6 +472,62 @@ describe('assembleApp', function() {
           })
       })
     })
+
+    describe('/delete', function() {
+      var deleteRedirection, setArgs
+
+      beforeEach(function() {
+        deleteRedirection = sinon.stub(redirectDb, 'deleteRedirection')
+      })
+
+      afterEach(function() {
+        deleteRedirection.restore()
+      })
+
+      setArgs = function() {
+        return deleteRedirection.withArgs('/foo', 'mbland@acm.org')
+      }
+
+      it('sucessfully deletes a redirection', function() {
+        setArgs().returns(Promise.resolve())
+        return request(app)
+          .delete('/api/delete/foo')
+          .set('cookie', sessionCookie)
+          .expect(204)
+      })
+
+      it('raises a server error', function() {
+        setArgs().callsFake(function(url, user) {
+          return Promise.reject(
+            new Error('forced error for ' + url + ' ' + user))
+        })
+        return request(app)
+          .delete('/api/delete/foo')
+          .set('cookie', sessionCookie)
+          .expect(500)
+          .then(function() {
+            logError.calledOnce.should.be.true
+            expect(logError.args[0][0].message)
+              .to.equal('forced error for /foo mbland@acm.org')
+          })
+      })
+
+      it('returns forbidden when the user doesn\'t own the URL', function() {
+        setArgs().callsFake(function(url, user) {
+          return Promise.reject(user + ' doesn\'t own ' + url)
+        })
+        return request(app)
+          .delete('/api/delete/foo')
+          .set('cookie', sessionCookie)
+          .expect(403)
+          .then(function(res) {
+            res.body.err.should.equal('mbland@acm.org doesn\'t own /foo')
+            logError.calledOnce.should.be.true
+            expect(logError.args[0][0])
+              .to.equal('mbland@acm.org doesn\'t own /foo')
+          })
+      })
+    })
   })
 })
 
