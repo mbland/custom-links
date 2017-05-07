@@ -35,9 +35,13 @@ describe('Smoke test', function() {
 
       urlpServer.stdout.on('data', function(data) {
         stdout += data
+        if (stdout.match(packageInfo.name + ' listening on port ')) {
+          setTimeout(resolve, 100)
+        }
       })
       urlpServer.stderr.on('data', function(data) {
         stderr += data
+        reject(new Error(stderr))
       })
       urlpServer.on('close', function(code) {
         exitCode = code
@@ -46,8 +50,6 @@ describe('Smoke test', function() {
         err.message = 'failed to start ' + scriptPath + ': ' + err.message
         reject(err)
       })
-
-      setTimeout(resolve, 500)
     })
   }
 
@@ -62,7 +64,6 @@ describe('Smoke test', function() {
   it('launches successfully using a well-formed config file', function() {
     return launchServer().should.be.fulfilled
       .then(function() {
-        stdout.should.have.string(packageInfo.name + ' listening on port ')
         stderr.should.equal('')
         exitCode.should.equal(0)
       })
