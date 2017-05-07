@@ -176,6 +176,15 @@ describe('auth', function() {
         })
       }
 
+      it('registers the strategy with passport.use', function() {
+        googleAuth.assemble(passport, redirectDb, {
+          GOOGLE_CLIENT_ID: '<client-id>',
+          GOOGLE_CLIENT_SECRET: '<client-secret>',
+          GOOGLE_CALLBACK_URL: '<callback-url>'
+        })
+        expect(passport.use.getCall(0).args[0].name).to.equal('google')
+      })
+
       it('successfully verifies the user', function() {
         stubDbMethod('findOrCreateUser').withArgs('mbland@acm.org')
           .returns(Promise.resolve({ id: 'mbland@acm.org' }))
