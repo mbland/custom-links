@@ -233,7 +233,7 @@ describe('auth', function() {
         AUTH_PROVIDERS: [ 'google', 'test' ],
         GOOGLE_CLIENT_ID: '<client-id>',
         GOOGLE_CLIENT_SECRET: '<client-secret>',
-        GOOGLE_REDIRECT_URL: '<redirect-url>'
+        GOOGLE_CALLBACK_URL: '<redirect-url>'
       })
       expect(passport.use.getCall(0).args[0].name).to.equal('google')
       expect(passport.use.getCall(1).args[0].name).to.equal('test')
