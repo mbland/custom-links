@@ -29,6 +29,7 @@
     "codeclimate-test-reporter": "^0.4.1",
     "coveralls": "^2.13.1",
     "eslint": "^3.19.0",
+    "live-server": "^1.2.0",
     "mocha": "^3.3.0",
     "nyc": "^10.3.2",
     "sinon": "^2.1.0",

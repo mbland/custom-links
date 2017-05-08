@@ -1,9 +1,49 @@
 #! /usr/local/env bash
 #
-# Runs a local url-pointers server
+# Runs a local url-pointers server or a live-server for UI tests
+#
+# Usage:
+#   {{go}} {{cmd}} [--test|<config-file>]
+#
+# Where:
+#   --test         Run live-server for unauthenticated local UI testing
+#   <config-file>  url-pointers configuration file
+#
+# When running a url-pointers server, there must be a redis-server already
+# running.
+
+urlp.serve_tab_completion() {
+  local word_index="$1"
+  shift
+  local args=("$@")
+  local word="${args[$word_index]}"
+
+  if [[ "$word_index" -eq '0' ]]; then
+    printf -- '--test\n'
+    if [[ "${1:0:1}" == '-' ]]; then
+      return
+    fi
+    @go.compgen -f -- "$word"
+  fi
+}
 
 urlp.serve() {
-  node "$_GO_ROOTDIR/index.js" "$_GO_ROOTDIR/test-config.json"
+  local server_config="${1:-$_GO_ROOTDIR/test-config.json}"
+
+  case "$1" in
+  --complete)
+    # Tab completions
+    shift
+    urlp.serve_tab_completion "$@"
+    return
+    ;;
+  --test)
+    live-server public/
+    return
+    ;;
+  esac
+
+  node "$_GO_ROOTDIR/index.js" "$server_config"
 }
 
 urlp.serve "$@"
