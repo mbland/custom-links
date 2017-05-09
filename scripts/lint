@@ -9,7 +9,8 @@
 # arguments, only lints files matching '<glob>.js'.
 
 declare -r __GO_LINT_GLOB_ARGS=('--ignore'
-  'coverage:node_modules:public/assets/js/vendor:tmp' '.' '.js')
+  'coverage:node_modules:public/assets/js/vendor:public/tests/vendor:tmp'
+  '.' '.js')
 
 _lint_tab_completion() {
   local word_index="$1"
