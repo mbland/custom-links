@@ -1,0 +1,28 @@
+#! /usr/bin/env bash
+#
+# Runs browser tests using Phantom JS
+
+declare PHANTOM_POLYFILL_INPUT="$_GO_ROOTDIR/tests/helpers/phantomjs.js"
+declare PHANTOM_POLYFILL_OUTPUT="$_GO_ROOTDIR/public/tests/phantomjs.js"
+
+_test_browser() {
+  local result=0
+  local server_pid
+
+  if [[ ! -f "$PHANTOMJS_POLYFILL_OUTPUT" ]]; then
+    browserify "$PHANTOM_POLYFILL_INPUT" >"$PHANTOM_POLYFILL_OUTPUT"
+  fi
+
+  set -m
+  live-server --no-browser --port=8081 public/ &
+  server_pid="$!"
+
+  mocha-phantomjs 'http://localhost:8081/tests/'
+  result="$?"
+
+  kill -INT "$server_pid"
+  set +m
+  return "$result"
+}
+
+_test_browser "$@"

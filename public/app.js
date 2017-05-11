@@ -2,7 +2,7 @@
 'use strict';
 
 (function(f) { f(window, document) })(function(window/*,  document */) {
-  var urlp = window.urlp = (window.urlp || {})
+  var urlp = window.urlp = {}
 
   urlp.xhr = function(method, url) {
     return new Promise(function(resolve, reject) {

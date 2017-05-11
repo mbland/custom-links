@@ -2,7 +2,7 @@
 'use strict';
 
 (function(f) { f(window, document) })(function(window, document) {
-  var urlp = window.urlp = (window.urlp || {})
+  var urlp = window.urlp
   var urlpTest = window.urlpTest = {}
   var fixture = urlpTest.fixture = document.createElement('div')
 
