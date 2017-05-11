@@ -4,7 +4,7 @@
 describe('UrlPointers', function() {
   var urlpTest = window.urlpTest
 
-  it('shows the default container', function() {
+  it('shows the default view', function() {
     urlpTest.getView('').length.should.equal(1)
   })
 })

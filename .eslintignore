@@ -1,5 +1,6 @@
 **/vendor/*.js
 coverage/*
 node_modules/*
+public/tests/phantomjs.js
 public/tests/vendor/*
 tmp/

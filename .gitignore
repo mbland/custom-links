@@ -4,6 +4,7 @@
 coverage/
 dump.rdb
 node_modules/
+public/tests/phantomjs.js
 scripts/go-script-bash/
 test-config*.json
 tests/bats/
