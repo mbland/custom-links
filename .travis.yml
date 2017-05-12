@@ -3,7 +3,7 @@ node_js:
 - node
 - '4.2'
 script:
-- "./go lint && ./go test --coverage"
+- "./go lint && ./go test --coverage && ./go test browser"
 env:
   matrix:
     secure: "HFeQtlJi3JNCbONSm498Y/EJQ8TO29Te/iD8f5fduacZi7jF0AZUwJBjrIzpmtLhKKvCLRn8BDb11QJrF9c2jZXCX/EouJldMpVHz7pPRVueWk3BaWI6BJpgeCD3SSuMaFTmZUYhhLlrvfVEUWAzxKauKkcQvIxRvjSgC8uyrFYQBbOF8mWLc4AhPgJutCz8HlgMJQF6xO7vblMW5qORQog3vl3445+sAACLqGu7N3CH+fipPa5Yfua0JUJbtf/oQVoMW+eUmMxAGOOS/10mLGTkeN0wIxTYdv10Z1rI9ijAZLUni6p1osdsypOuOzfXSYcPvB3w5OkOrTcO9uHqMxZc9YNblZe7x3Uzg3eMWN7yzl1MyuR/RIsYwjsW+3dSuGxhvznvhzr9mDAhgaBOkUPmb8qyL4r2cXIgVbAEdKiVIAha8XJFlTOT/VWlTvuNJHmvPN2KjpdtNcmkj1pPSaXSAKe738dQhJyzxE1+LJsNIxgAqdMNOvDBWLnBRgMGyZGCLVHflSBs5a6iF6UvlGrS6fpTLyVmNTG4PbnIN1kJm247MNvuKZi5Kj7fc3Yrt01VZPOP5b/00PibvRd7sudH2t0xLNHR1iaFOn2U3rwHSW+NBIhJd2Ms/BibEgOO628wXJnmHA36XEJxVBpgNZp4uL1jUAEvVj6GE4jFnGM="

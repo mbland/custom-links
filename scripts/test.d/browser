@@ -2,22 +2,36 @@
 #
 # Runs browser tests using Phantom JS
 
-declare PHANTOM_POLYFILL_INPUT="$_GO_ROOTDIR/tests/helpers/phantomjs.js"
-declare PHANTOM_POLYFILL_OUTPUT="$_GO_ROOTDIR/public/tests/phantomjs.js"
+declare PHANTOM_POLYFILL_INPUT="tests/helpers/phantomjs.js"
+declare PHANTOM_POLYFILL_OUTPUT="public/tests/phantomjs.js"
 
 _test_browser() {
   local result=0
+  local port
   local server_pid
 
   if [[ ! -f "$PHANTOMJS_POLYFILL_OUTPUT" ]]; then
     browserify "$PHANTOM_POLYFILL_INPUT" >"$PHANTOM_POLYFILL_OUTPUT"
   fi
 
+  port="$(tests/helpers/pick-unused-port)"
+  if [[ "$?" -ne '0' ]]; then
+    @go.printf 'Failed to pick an unused port.\n' >&2
+    return 1
+  fi
+
   set -m
-  live-server --no-browser --port=8081 public/ &
+  live-server --no-browser --port=${port} public/ &
+  if [[ "$?" -ne '0' ]]; then
+    @go.printf 'Failed to launch live-server on port %d.\n' "$port" >&2
+    return 1
+  elif [[ -n "$CI" ]]; then
+    # live-server needs a little extra time on Travis.
+    sleep 1
+  fi
   server_pid="$!"
 
-  mocha-phantomjs 'http://localhost:8081/tests/'
+  mocha-phantomjs "http://localhost:${port}/tests/"
   result="$?"
 
   kill -INT "$server_pid"
