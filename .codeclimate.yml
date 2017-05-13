@@ -20,5 +20,5 @@ exclude_paths:
 - "*.md"
 - "*.png"
 - "*.json"
-- **/vendor/**/*
-- **/tests/**/*
+- "**/vendor/**/*"
+- "**/tests/**/*"
