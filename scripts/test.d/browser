@@ -7,7 +7,7 @@ declare TEST_BROWSER_HELPER_INPUT='tests/helpers/browser.js'
 
 _test_browser() {
   local result=0
-  local bundle="$TEST_BROWSER_HELPER_DIR/index.js"
+  local bundle
   local url
   local port
   local server_pid
@@ -20,11 +20,13 @@ _test_browser() {
   fi
 
   if [[ "$__COVERAGE_RUN" == 'true' ]]; then
+    bundle="$TEST_BROWSER_HELPER_DIR/coverage.js"
     url='tests/coverage.html'
     browserify -t [ browserify-istanbul --no-defaultIgnore \
       --ignore 'public/tests/vendor/*' --ignore 'public/tests/generated/*' ] \
       "$TEST_BROWSER_HELPER_INPUT" 'public/app.js' public/tests/*.js > "$bundle"
   else
+    bundle="$TEST_BROWSER_HELPER_DIR/index.js"
     url='tests/'
     browserify "$TEST_BROWSER_HELPER_INPUT" >"$bundle"
   fi
