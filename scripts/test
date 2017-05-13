@@ -39,11 +39,9 @@ declare -r __GO_MOCHA_FLAGS_WITH_ARGS=(
   '--watch-extensions'
 )
 
-declare GITHUB_REPO="$(git config --show remote.origin.url)"
+declare GITHUB_REPO="$(git config remote.origin.url)"
 GITHUB_REPO="${GITHUB_REPO##*@github.com:}"
 GITHUB_REPO="${GITHUB_REPO%.git}"
-
-declare GIT_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
 
 _test_mocha_flags() {
   local flag_line_pattern='^ *-'
@@ -171,7 +169,7 @@ _test_coverage() {
       return 1
     fi
     printf 'Coverage report sent to Coveralls: %s' \
-      "https://coveralls.io/github/${GITHUB_REPO}?branch=${GIT_BRANCH}"
+      "https://coveralls.io/github/${GITHUB_REPO}"
 
     if [[ -n "$CODECLIMATE_REPO_TOKEN" ]]; then
       if ! codeclimate-test-reporter < "$lcov_info_path"; then
@@ -179,7 +177,7 @@ _test_coverage() {
         return 1
       fi
       printf 'Report sent to Code Climate: %s' \
-        "https://codeclimate.com/github/${GITHUB_REPO}/compare/${GIT_BRANCH}"
+        "https://codeclimate.com/github/${GITHUB_REPO}"
     fi
   fi
   return "$result"
