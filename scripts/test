@@ -118,10 +118,29 @@ _test_run_mocha() {
     $(@go 'glob' "${__GO_TEST_GLOB_ARGS[@]}" "${__test_glob_patterns[@]}"))
 
   if [[ "$__COVERAGE_RUN" == 'true' ]]; then
-    nyc --reporter=lcov node_modules/.bin/_mocha "${argv[@]}"
+    _test_generate_coverage_report "${argv[@]}"
   else
     mocha "${argv[@]}"
   fi
+}
+
+_test_generate_coverage_report() {
+  local result=0
+
+  if ! nyc --temp-directory='.coverage' node_modules/.bin/_mocha "$@"; then
+    @go.printf 'Failed to collect coverage for backend tests.\n' >&2
+    result=1
+  fi
+  if ! @go test browser; then
+    @go.printf 'Failed to collect coverage for browser tests.\n' >&2
+    result=1
+  fi
+  if ! istanbul report --root '.coverage' --include '*.json'; then
+    @go.printf 'Failed to generate coverage report.\n' >&2
+    result=1
+  fi
+
+  return "$result"
 }
 
 _test_coverage() {

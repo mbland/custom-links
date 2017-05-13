@@ -2,3 +2,5 @@ instrumentation:
   include-all-sources: true
   excludes:
   - public/assets/js/vendor/*
+  - public/tests/generated/*
+  - public/tests/vendor/*
