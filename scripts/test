@@ -40,7 +40,7 @@ declare -r __GO_MOCHA_FLAGS_WITH_ARGS=(
 )
 
 declare GITHUB_REPO="$(git config remote.origin.url)"
-GITHUB_REPO="${GITHUB_REPO##*@github.com:}"
+GITHUB_REPO="${GITHUB_REPO##*[@/]github.com[:/]}"
 GITHUB_REPO="${GITHUB_REPO%.git}"
 
 _test_mocha_flags() {
@@ -168,7 +168,7 @@ _test_coverage() {
       echo "Failed to send coverage report to Coveralls." >&2
       return 1
     fi
-    printf 'Coverage report sent to Coveralls: %s' \
+    printf 'Coverage report sent to Coveralls: %s\n' \
       "https://coveralls.io/github/${GITHUB_REPO}"
 
     if [[ -n "$CODECLIMATE_REPO_TOKEN" ]]; then
@@ -176,7 +176,7 @@ _test_coverage() {
         echo 'Failed to send report to Code Climate.' >&2
         return 1
       fi
-      printf 'Report sent to Code Climate: %s' \
+      printf 'Report sent to Code Climate: %s\n' \
         "https://codeclimate.com/github/${GITHUB_REPO}"
     fi
   fi
