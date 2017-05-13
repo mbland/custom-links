@@ -2,16 +2,36 @@
 #
 # Runs browser tests using Phantom JS
 
-declare PHANTOM_POLYFILL_INPUT="tests/helpers/phantomjs.js"
-declare PHANTOM_POLYFILL_OUTPUT="public/tests/phantomjs.js"
+declare TEST_BROWSER_HELPER_DIR='public/tests/generated'
+declare TEST_BROWSER_HELPER_INPUT='tests/helpers/browser.js'
 
 _test_browser() {
   local result=0
+  local bundle="$TEST_BROWSER_HELPER_DIR/index.js"
+  local url
   local port
   local server_pid
 
-  if [[ ! -f "$PHANTOMJS_POLYFILL_OUTPUT" ]]; then
-    browserify "$PHANTOM_POLYFILL_INPUT" >"$PHANTOM_POLYFILL_OUTPUT"
+  if [[ ! -d "$TEST_BROWSER_HELPER_DIR" ]] &&
+    ! mkdir -p "$TEST_BROWSER_HELPER_DIR"; then
+    @go.printf 'Failed to create directory: %s\n' "$TEST_BROWSER_HELPER_DIR" \
+      >&2
+    return 1
+  fi
+
+  if [[ "$__COVERAGE_RUN" == 'true' ]]; then
+    url='tests/coverage.html'
+    browserify -t [ browserify-istanbul --no-defaultIgnore \
+      --ignore 'public/tests/vendor/*' --ignore 'public/tests/generated/*' ] \
+      "$TEST_BROWSER_HELPER_INPUT" 'public/app.js' public/tests/*.js > "$bundle"
+  else
+    url='tests/'
+    browserify "$TEST_BROWSER_HELPER_INPUT" >"$bundle"
+  fi
+
+  if [[ "$?" -ne '0' ]]; then
+    @go.printf 'Browserify failed to create: %s\n' "$bundle" >&2
+    exit 1
   fi
 
   port="$(tests/helpers/pick-unused-port)"
@@ -31,7 +51,8 @@ _test_browser() {
   fi
   server_pid="$!"
 
-  mocha-phantomjs "http://localhost:${port}/tests/"
+  mocha-phantomjs "http://localhost:${port}/${url}" \
+    --hooks 'tests/helpers/phantomjs.js'
   result="$?"
 
   kill -INT "$server_pid"

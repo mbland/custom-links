@@ -17,6 +17,7 @@ urlp.setup() {
   @go.log_command npm install
   @go.log_command @go lint
   @go.log_command @go test -c
+  @go.log_command @go test browser
   @go.critical_section_end
 }
 

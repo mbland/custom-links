@@ -20,6 +20,5 @@ exclude_paths:
 - "*.md"
 - "*.png"
 - "*.json"
-- public/assets/js/vendor/*
-- tests/*
-- tests/helpers/*
+- "**/vendor/**/*"
+- "**/tests/**/*"

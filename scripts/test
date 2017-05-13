@@ -39,6 +39,10 @@ declare -r __GO_MOCHA_FLAGS_WITH_ARGS=(
   '--watch-extensions'
 )
 
+declare GITHUB_REPO="$(git config remote.origin.url)"
+GITHUB_REPO="${GITHUB_REPO##*[@/]github.com[:/]}"
+GITHUB_REPO="${GITHUB_REPO%.git}"
+
 _test_mocha_flags() {
   local flag_line_pattern='^ *-'
   local line
@@ -118,10 +122,29 @@ _test_run_mocha() {
     $(@go 'glob' "${__GO_TEST_GLOB_ARGS[@]}" "${__test_glob_patterns[@]}"))
 
   if [[ "$__COVERAGE_RUN" == 'true' ]]; then
-    nyc --reporter=lcov node_modules/.bin/_mocha "${argv[@]}"
+    _test_generate_coverage_report "${argv[@]}"
   else
     mocha "${argv[@]}"
   fi
+}
+
+_test_generate_coverage_report() {
+  local result=0
+
+  if ! nyc --temp-directory='.coverage' node_modules/.bin/_mocha "$@"; then
+    @go.printf 'Failed to collect coverage for backend tests.\n' >&2
+    result=1
+  fi
+  if ! @go test browser; then
+    @go.printf 'Failed to collect coverage for browser tests.\n' >&2
+    result=1
+  fi
+  if ! istanbul report --root '.coverage' --include '*.json'; then
+    @go.printf 'Failed to generate coverage report.\n' >&2
+    result=1
+  fi
+
+  return "$result"
 }
 
 _test_coverage() {
@@ -145,16 +168,16 @@ _test_coverage() {
       echo "Failed to send coverage report to Coveralls." >&2
       return 1
     fi
-    echo -n 'Coverage report sent to Coveralls: '
-    echo 'https://coveralls.io/github/mbland/go-script-bash'
+    printf 'Coverage report sent to Coveralls: %s\n' \
+      "https://coveralls.io/github/${GITHUB_REPO}"
 
     if [[ -n "$CODECLIMATE_REPO_TOKEN" ]]; then
       if ! codeclimate-test-reporter < "$lcov_info_path"; then
-        echo 'Failed to send coverage report to Code Climate.' >&2
+        echo 'Failed to send report to Code Climate.' >&2
         return 1
       fi
-      echo -n 'Coverage report sent to Code Climate: '
-      echo 'https://codeclimate.com/github/mbland/slack-github-issues'
+      printf 'Report sent to Code Climate: %s\n' \
+        "https://codeclimate.com/github/${GITHUB_REPO}"
     fi
   fi
   return "$result"
