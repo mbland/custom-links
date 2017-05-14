@@ -11,6 +11,7 @@ describe('UrlPointers', function() {
     spies.forEach(function(spy) {
       spy.restore()
     })
+    window.onhashchange = null
   })
 
   spyOn = function(functionName) {
@@ -45,6 +46,14 @@ describe('UrlPointers', function() {
   it('invokes the router when loaded', function() {
     spyOn('showView')
     urlp.loadApp()
+    urlp.showView.calledWith(window.location.hash).should.be.true
+  })
+
+  it('subscribes to the hashchange event', function() {
+    urlp.loadApp()
+    expect(typeof window.onhashchange).to.equal('function')
+    spyOn('showView')
+    window.onhashchange()
     urlp.showView.calledWith(window.location.hash).should.be.true
   })
 

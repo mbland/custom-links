@@ -20,6 +20,9 @@
   }
 
   urlp.loadApp = function() {
+    window.onhashchange = function() {
+      urlp.showView(window.location.hash)
+    }
     urlp.showView(window.location.hash)
   }
 
