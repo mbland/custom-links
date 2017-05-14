@@ -17,11 +17,13 @@
   }
 
   urlpTest.resetFixture = function() {
-    fixture.parentNode.replaceChild(fixture.cloneNode(true), fixture)
+    var oldFixture = document.getElementsByClassName('fixture').item(0)
+    oldFixture.parentNode.replaceChild(fixture.cloneNode(true), oldFixture)
   }
 
   urlpTest.getView = function(viewClass) {
-    return document.getElementsByClassName('view-container ' + viewClass)
+    return document.getElementsByClassName('view-container').item(0)
+      .getElementsByClassName(viewClass)
   }
 })
 
