@@ -3,7 +3,19 @@
 
 describe('UrlPointers', function() {
   var urlp = window.urlp,
-      urlpTest = window.urlpTest
+      urlpTest = window.urlpTest,
+      spyOn,
+      spies = []
+
+  afterEach(function() {
+    spies.forEach(function(spy) {
+      spy.restore()
+    })
+  })
+
+  spyOn = function(functionName) {
+    spies.push(sinon.spy(urlp, functionName))
+  }
 
   it('shows the landing page view upon page load', function() {
     var view = urlpTest.getView('landing-view')
@@ -25,15 +37,15 @@ describe('UrlPointers', function() {
   })
 
   it('passes the hash view parameter to the view function', function() {
-    var landingViewSpy = sinon.spy(urlp, 'landingView')
+    spyOn('landingView')
     urlp.showView('#-foo-bar')
-    landingViewSpy.calledWith('foo-bar').should.be.true
+    urlp.landingView.calledWith('foo-bar').should.be.true
   })
 
   it('invokes the router when loaded', function() {
-    var showViewSpy = sinon.spy(urlp, 'showView')
+    spyOn('showView')
     urlp.loadApp()
-    showViewSpy.calledWith(window.location.hash).should.be.true
+    urlp.showView.calledWith(window.location.hash).should.be.true
   })
 
   describe('landingView', function() {
