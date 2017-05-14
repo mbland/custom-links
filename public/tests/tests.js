@@ -20,22 +20,22 @@ describe('UrlPointers', function() {
   }
 
   it('shows the landing page view upon page load', function() {
-    var view = urlpTest.getView('landing-view')
-    view.length.should.equal(1)
+    urlpTest.getView('landing-view').length.should.equal(1)
   })
 
   it('shows the landing page view when the hash ID is empty', function() {
-    var view
     urlp.showView('')
-    view = urlpTest.getView('landing-view')
-    view.length.should.equal(1)
+    urlpTest.getView('landing-view').length.should.equal(1)
   })
 
   it('shows the landing page view when the hash ID is a hash only', function() {
-    var view
     urlp.showView('#')
-    view = urlpTest.getView('landing-view')
-    view.length.should.equal(1)
+    urlpTest.getView('landing-view').length.should.equal(1)
+  })
+
+  it('doesn\'t change the view when the hash ID is unknown', function() {
+    urlp.showView('#foobar')
+    urlpTest.getView('landing-view').length.should.equal(1)
   })
 
   it('passes the hash view parameter to the view function', function() {
@@ -60,8 +60,7 @@ describe('UrlPointers', function() {
 
   describe('landingView', function() {
     it('shows a form to create a URL redirection', function() {
-      var view = urlp.landingView(),
-          form = view.getElementsByTagName('form').item(0),
+      var form = urlp.landingView().getElementsByTagName('form').item(0),
           labels = form.getElementsByTagName('label'),
           inputs = form.getElementsByTagName('input'),
           button = form.getElementsByTagName('button').item(0)

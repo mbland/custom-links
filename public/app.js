@@ -34,7 +34,7 @@
         routes = {
           '#': urlp.landingView
         },
-        renderView = routes[viewId[0] === '#' ? viewId : '#']
+        renderView = viewId[0] === '#' ? routes[viewId] : null
 
     if (!renderView) {
       return
