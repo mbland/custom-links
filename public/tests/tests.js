@@ -75,6 +75,21 @@ describe('URL Pointers', function() {
     })
   })
 
+  describe('getTemplate', function() {
+    it('returns a new template element', function() {
+      var original = document.getElementsByClassName('landing-view')[0],
+          template = urlp.getTemplate('landing-view')
+      expect(original.textContent).to.have.string('URL Pointers')
+      expect(template.textContent).to.have.string('URL Pointers')
+      original.should.not.equal(template)
+    })
+
+    it('throws an error if passed an invalid template name', function() {
+      expect(function() { urlp.getTemplate('foobar') })
+        .to.throw(Error, 'unknown template name: foobar')
+    })
+  })
+
   describe('landingView', function() {
     it('shows a form to create a URL redirection', function() {
       var form = urlp.landingView().getElementsByTagName('form').item(0),
