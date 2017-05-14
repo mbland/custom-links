@@ -1,4 +1,5 @@
 /* eslint-env browser, mocha */
+/* global expect, sinon */
 'use strict'
 
 describe('UrlPointers', function() {
