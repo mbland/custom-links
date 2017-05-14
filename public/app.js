@@ -60,12 +60,25 @@
     return template.cloneNode(true)
   }
 
+  urlp.applyData = function(data, element) {
+    Object.keys(data).forEach(function(property) {
+      var binding = element.querySelector('[data-name=' + property + ']')
+      if (binding) {
+        if (binding.tagName === 'INPUT') {
+          binding.defaultValue = data[property]
+        } else {
+          binding.textContent = data[property]
+        }
+      }
+    })
+    return element
+  }
+
   urlp.landingView = function() {
     var view = urlp.getTemplate('landing-view'),
         editForm = urlp.getTemplate('edit-link')
 
-    editForm.getElementsByTagName('button')[0].textContent = 'Create URL'
-    view.appendChild(editForm)
+    view.appendChild(urlp.applyData({ button: 'Create URL' }, editForm))
     return view
   }
 })

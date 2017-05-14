@@ -95,12 +95,32 @@ describe('URL Pointers', function() {
       var form = urlp.landingView().getElementsByTagName('form').item(0),
           labels = form.getElementsByTagName('label'),
           inputs = form.getElementsByTagName('input'),
-          button = form.getElementsByTagName('button').item(0)
+          button = form.getElementsByTagName('button')[0]
       expect(labels[0].textContent).to.eql('Custom link:')
       expect(inputs[0]).not.to.eql(null)
       expect(labels[1].textContent).to.eql('Redirect to:')
       expect(inputs[1]).not.to.eql(null)
       expect(button.textContent).to.contain('Create URL')
+    })
+  })
+
+  describe('applyData', function() {
+    it('applies an object\'s properties to a template', function() {
+      var data = {
+            url: '/foo',
+            location: 'https://mike-bland.com/',
+            button: 'Create URL'
+          },
+          form = urlp.getTemplate('edit-link'),
+          fields = form.getElementsByTagName('input'),
+          url = fields[0],
+          location = fields[1],
+          button = form.getElementsByTagName('button')[0]
+
+      expect(urlp.applyData(data, form)).to.equal(form)
+      expect(url.defaultValue).to.equal('/foo')
+      expect(location.defaultValue).to.equal('https://mike-bland.com/')
+      expect(button.textContent).to.equal('Create URL')
     })
   })
 })
