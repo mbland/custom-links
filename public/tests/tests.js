@@ -12,6 +12,13 @@ describe('UrlPointers', function() {
 
   it('shows the landing page view when the hash ID is empty', function() {
     var view
+    urlp.showView('')
+    view = urlpTest.getView('landing-view')
+    view.length.should.equal(1)
+  })
+
+  it('shows the landing page view when the hash ID is a hash only', function() {
+    var view
     urlp.showView('#')
     view = urlpTest.getView('landing-view')
     view.length.should.equal(1)
@@ -20,8 +27,13 @@ describe('UrlPointers', function() {
   it('passes the hash view parameter to the view function', function() {
     var landingViewSpy = sinon.spy(urlp, 'landingView')
     urlp.showView('#-foo-bar')
-    landingViewSpy.calledOnce.should.be.true
     landingViewSpy.calledWith('foo-bar').should.be.true
+  })
+
+  it('invokes the router when loaded', function() {
+    var showViewSpy = sinon.spy(urlp, 'showView')
+    urlp.loadApp()
+    showViewSpy.calledWith(window.location.hash).should.be.true
   })
 
   describe('landingView', function() {

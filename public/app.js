@@ -19,6 +19,10 @@
     })
   }
 
+  urlp.loadApp = function() {
+    urlp.showView(window.location.hash)
+  }
+
   urlp.showView = function(hashId) {
     var viewId = hashId.split('-', 1),
         viewParam = hashId.slice(viewId.length + 1),
@@ -27,7 +31,7 @@
         routes = {
           '#': urlp.landingView
         },
-        renderView = routes[viewId]
+        renderView = routes[viewId[0] === '#' ? viewId : '#']
 
     if (!renderView) {
       return
