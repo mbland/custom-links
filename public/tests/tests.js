@@ -12,50 +12,67 @@ describe('UrlPointers', function() {
     spies.forEach(function(spy) {
       spy.restore()
     })
-    window.onhashchange = null
   })
 
   spyOn = function(functionName) {
     spies.push(sinon.spy(urlp, functionName))
   }
 
-  it('shows the landing page view upon page load', function() {
-    urlpTest.getView('landing-view').length.should.equal(1)
+  describe('showView', function() {
+    it('shows the landing page view when no other view set', function() {
+      urlp.showView('#foobar')
+      urlpTest.getView('landing-view').length.should.equal(1)
+    })
+
+    it('shows the landing page view when the hash ID is empty', function() {
+      urlp.showView('')
+      urlpTest.getView('landing-view').length.should.equal(1)
+    })
+
+    it('shows the landing page view when the ID is a hash only', function() {
+      urlp.showView('#')
+      urlpTest.getView('landing-view').length.should.equal(1)
+    })
+
+    it('doesn\'t change the view when the hash ID is unknown', function() {
+      urlp.showView('#')
+      urlp.showView('#foobar')
+      urlpTest.getView('landing-view').length.should.equal(1)
+    })
+
+    it('passes the hash view parameter to the view function', function() {
+      spyOn('landingView')
+      urlp.showView('#-foo-bar')
+      urlp.landingView.calledWith('foo-bar').should.be.true
+    })
   })
 
-  it('shows the landing page view when the hash ID is empty', function() {
-    urlp.showView('')
-    urlpTest.getView('landing-view').length.should.equal(1)
-  })
+  describe('loadApp', function() {
+    var invokeLoadApp
 
-  it('shows the landing page view when the hash ID is a hash only', function() {
-    urlp.showView('#')
-    urlpTest.getView('landing-view').length.should.equal(1)
-  })
+    invokeLoadApp = function() {
+      var origHashChangeHandler = window.onhashchange,
+          newHashChangeHandler
 
-  it('doesn\'t change the view when the hash ID is unknown', function() {
-    urlp.showView('#foobar')
-    urlpTest.getView('landing-view').length.should.equal(1)
-  })
+      urlp.loadApp()
+      newHashChangeHandler = window.onhashchange
+      window.onhashchange = origHashChangeHandler
+      return newHashChangeHandler
+    }
 
-  it('passes the hash view parameter to the view function', function() {
-    spyOn('landingView')
-    urlp.showView('#-foo-bar')
-    urlp.landingView.calledWith('foo-bar').should.be.true
-  })
+    it('invokes the router when loaded', function() {
+      spyOn('showView')
+      invokeLoadApp()
+      urlp.showView.calledWith(window.location.hash).should.be.true
+    })
 
-  it('invokes the router when loaded', function() {
-    spyOn('showView')
-    urlp.loadApp()
-    urlp.showView.calledWith(window.location.hash).should.be.true
-  })
-
-  it('subscribes to the hashchange event', function() {
-    urlp.loadApp()
-    expect(typeof window.onhashchange).to.equal('function')
-    spyOn('showView')
-    window.onhashchange()
-    urlp.showView.calledWith(window.location.hash).should.be.true
+    it('subscribes to the hashchange event', function() {
+      var hashChangeHandler = invokeLoadApp()
+      expect(typeof hashChangeHandler).to.equal('function')
+      spyOn('showView')
+      hashChangeHandler()
+      urlp.showView.calledWith(window.location.hash).should.be.true
+    })
   })
 
   describe('landingView', function() {
