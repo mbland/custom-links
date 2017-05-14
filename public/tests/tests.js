@@ -23,4 +23,19 @@ describe('UrlPointers', function() {
     landingViewSpy.calledOnce.should.be.true
     landingViewSpy.calledWith('foo-bar').should.be.true
   })
+
+  describe('landingView', function() {
+    it('shows a form to create a URL redirection', function() {
+      var view = urlp.landingView(),
+          form = view.getElementsByTagName('form').item(0),
+          labels = form.getElementsByTagName('label'),
+          inputs = form.getElementsByTagName('input'),
+          button = form.getElementsByTagName('button').item(0)
+      expect(labels[0].textContent).to.eql('Custom link:')
+      expect(inputs[0]).not.to.eql(null)
+      expect(labels[1].textContent).to.eql('Redirect to:')
+      expect(inputs[1]).not.to.eql(null)
+      expect(button.textContent).to.contain('Create URL')
+    })
+  })
 })
