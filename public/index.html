@@ -1,6 +1,6 @@
 <head>
   <meta charset='utf-8'>
-  <title>Url Pointers</title>
+  <title>URL Pointers</title>
   <link rel='stylesheet' type='text/css' href='css/vendor/raleway-fonts.css'>
   <link rel='stylesheet' href='css/vendor/normalize.css'>
   <link rel='stylesheet' href='css/vendor/skeleton-2.0.4.min.css'>
@@ -10,11 +10,20 @@
 <body>
   <div class='markup'>
     <div class='view-container container'>
-      <div class='row'>
-        <h3>Url Pointers</h3>
-        <p>Placeholder for default view.</p>
-        <a href='' class='button button-primary'>Create URL</a>
+      <div class='landing-view'>
+        <div class='row'>
+          <h3>URL Pointers</h3>
+          <form>
+            <label>Custom link:</label><input class='u-full-width'></input>
+            <label>Redirect to:</label><input class='u-full-width'></input>
+            <button class='button button-primary'>Create URL</button>
+            </p>
+          </form>
+        </div>
       </div>
     </div>
   </div>
+  <script>
+    window.addEventListener('DOMContentLoaded', urlp.loadApp)
+  </script>
 </body>

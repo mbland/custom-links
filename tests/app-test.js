@@ -108,7 +108,7 @@ describe('assembleApp', function() {
       return request(app)
         .get('/')
         .set('cookie', sessionCookie)
-        .expect(200, /Url Pointers/)
+        .expect(200, /URL Pointers/)
     })
 
     it('logs out on /logout', function() {
