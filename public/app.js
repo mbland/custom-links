@@ -29,22 +29,56 @@
   urlp.showView = function(hashId) {
     var viewId = hashId.split('-', 1),
         viewParam = hashId.slice(viewId.length + 1),
-        container = document.getElementsByClassName('view-container').item(0),
+        container = document.getElementsByClassName('view-container')[0],
         replacement = container.cloneNode(false),
         routes = {
           '#': urlp.landingView
         },
-        renderView = viewId[0] === '#' ? routes[viewId] : null
+        renderView = routes[viewId]
 
     if (!renderView) {
-      return
+      if (container.children.length !== 0) {
+        return
+      }
+      renderView = routes['#']
     }
     replacement.appendChild(renderView(viewParam))
     container.parentNode.replaceChild(replacement, container)
   }
 
+  urlp.getTemplate = function(templateName) {
+    var template
+
+    if (!urlp.templates) {
+      urlp.templates = document.getElementsByClassName('templates')[0]
+    }
+    template = urlp.templates.getElementsByClassName(templateName)[0]
+
+    if (!template) {
+      throw new Error('unknown template name: ' + templateName)
+    }
+    return template.cloneNode(true)
+  }
+
+  urlp.applyData = function(data, element) {
+    Object.keys(data).forEach(function(property) {
+      var binding = element.querySelector('[data-name=' + property + ']')
+      if (binding) {
+        if (binding.tagName === 'INPUT') {
+          binding.defaultValue = data[property]
+        } else {
+          binding.textContent = data[property]
+        }
+      }
+    })
+    return element
+  }
+
   urlp.landingView = function() {
-    return document.getElementsByClassName('landing-view')
-      .item(0).cloneNode(true)
+    var view = urlp.getTemplate('landing-view'),
+        editForm = urlp.getTemplate('edit-link')
+
+    view.appendChild(urlp.applyData({ button: 'Create URL' }, editForm))
+    return view
   }
 })
