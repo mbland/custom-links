@@ -132,11 +132,11 @@ _test_generate_coverage_report() {
   local result=0
 
   if ! nyc --temp-directory='.coverage' node_modules/.bin/_mocha "$@"; then
-    @go.printf 'Failed to collect coverage for backend tests.\n' >&2
+    @go.printf 'Backend tests or coverage collection failed.\n' >&2
     result=1
   fi
   if ! @go test browser; then
-    @go.printf 'Failed to collect coverage for browser tests.\n' >&2
+    @go.printf 'Browser tests or coverage collection failed.\n' >&2
     result=1
   fi
   if ! istanbul report --root '.coverage' --include '*.json'; then
