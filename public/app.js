@@ -20,17 +20,19 @@
   }
 
   urlp.showView = function(hashId) {
-    var container = document.getElementsByClassName('view-container').item(0),
+    var viewId = hashId.split('-', 1),
+        viewParam = hashId.slice(viewId.length + 1),
+        container = document.getElementsByClassName('view-container').item(0),
         replacement = container.cloneNode(false),
         routes = {
-          '': urlp.landingView
+          '#': urlp.landingView
         },
-        renderView = routes[hashId]
+        renderView = routes[viewId]
 
     if (!renderView) {
       return
     }
-    replacement.appendChild(renderView())
+    replacement.appendChild(renderView(viewParam))
     container.parentNode.replaceChild(replacement, container)
   }
 
