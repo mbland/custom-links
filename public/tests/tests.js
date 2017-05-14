@@ -2,7 +2,7 @@
 /* global expect, sinon */
 'use strict'
 
-describe('UrlPointers', function() {
+describe('URL Pointers', function() {
   var urlp = window.urlp,
       urlpTest = window.urlpTest,
       spyOn,

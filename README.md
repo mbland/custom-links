@@ -1,4 +1,4 @@
-## Url Pointers custom URL application
+## URL Pointers custom URL application
 
 [![License](https://img.shields.io/github/license/mbland/url-pointers.svg)](https://github.com/mbland/url-pointers/blob/master/LICENSE.md)
 [![Continuous integration status](https://img.shields.io/travis/mbland/url-pointers/master.svg)](https://travis-ci.org/mbland/url-pointers)
