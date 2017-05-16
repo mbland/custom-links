@@ -110,4 +110,11 @@
       doFade()
     })
   }
+
+  urlp.flashElement = function(element, replacementHtml) {
+    return urlp.fade(element, -0.05, 750).then(function(elem) {
+      elem.innerHTML = replacementHtml
+      return urlp.fade(element, 0.05, 1000)
+    })
+  }
 })

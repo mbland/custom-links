@@ -6,16 +6,21 @@ describe('URL Pointers', function() {
   var urlp = window.urlp,
       urlpTest = window.urlpTest,
       spyOn,
-      spies = []
+      stubOut,
+      doubles = []
 
   afterEach(function() {
-    spies.forEach(function(spy) {
-      spy.restore()
+    doubles.forEach(function(double) {
+      double.restore()
     })
   })
 
   spyOn = function(functionName) {
-    spies.push(sinon.spy(urlp, functionName))
+    doubles.push(sinon.spy(urlp, functionName))
+  }
+
+  stubOut = function(functionName) {
+    doubles.push(sinon.stub(urlp, functionName))
   }
 
   describe('showView', function() {
@@ -190,6 +195,40 @@ describe('URL Pointers', function() {
     it('throws an error for deadlines <= 0', function() {
       expect(function() { urlp.fade(null, -0.05, 0) })
         .to.throw(Error, 'deadline must be a positive number: 0')
+    })
+  })
+
+  describe('flashElement', function() {
+    var element
+
+    beforeEach(function() {
+      element = document.createElement('div')
+      // Append directly to the body so the computed style isn't influenced by
+      // urlpTest.fixture's "display: none" style.
+      document.body.appendChild(element)
+      element.style.opacity = 1
+    })
+
+    afterEach(function() {
+      element.parentNode.removeChild(element)
+    })
+
+    it('fades an element out, updates its text, and fades it back', function() {
+      var replacement = '<p>Goodbye, World!</p>'
+
+      stubOut('fade')
+      urlp.fade.callsFake(function(element) {
+        return Promise.resolve(element)
+      })
+      element.innerHTML = '<p>Hello, World!</p>'
+
+      return urlp.flashElement(element, replacement).should.be.fulfilled
+        .then(function(elem) {
+          expect(elem).to.equal(element)
+          expect(urlp.fade.calledTwice).to.be.true
+          expect(parseInt(elem.style.opacity)).to.equal(1)
+          expect(elem.innerHTML).to.equal(replacement)
+        })
     })
   })
 })
