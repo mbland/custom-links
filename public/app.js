@@ -81,4 +81,33 @@
     view.appendChild(urlp.applyData({ button: 'Create URL' }, editForm))
     return view
   }
+
+  urlp.fade = function(element, increment, deadline) {
+    if (window.isNaN(increment) || increment === 0) {
+      throw new Error('increment must be a nonzero number: ' + increment)
+
+    } else if (window.isNaN(deadline) || deadline <= 0) {
+      throw new Error('deadline must be a positive number: ' + deadline)
+    }
+
+    return new Promise(function(resolve) {
+      var current = window.parseFloat(
+            window.getComputedStyle(element)['opacity']),
+          target = increment < 0.0 ? 0 : 1,
+          interval = deadline * window.Math.abs(increment),
+          style = element.style,
+          doFade = function() {
+            current += increment
+
+            if ((increment < 0.0 && current <= target) || current >= target) {
+              style.opacity = target
+              resolve(element)
+            } else {
+              style.opacity = current
+              setTimeout(doFade, interval)
+            }
+          }
+      doFade()
+    })
+  }
 })

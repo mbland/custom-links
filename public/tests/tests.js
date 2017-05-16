@@ -123,4 +123,73 @@ describe('URL Pointers', function() {
       expect(button.textContent).to.equal('Create URL')
     })
   })
+
+  describe('fade', function() {
+    var element
+
+    beforeEach(function() {
+      element = document.createElement('div')
+      // Append directly to the body so the computed style isn't influenced by
+      // urlpTest.fixture's "display: none" style.
+      document.body.appendChild(element)
+    })
+
+    afterEach(function() {
+      element.parentNode.removeChild(element)
+    })
+
+    it('fades out an element', function() {
+      element.style.opacity = 1
+      return urlp.fade(element, -0.1, 10).should.be.fulfilled
+        .then(function(elem) {
+          expect(elem).to.equal(element)
+          expect(parseInt(elem.style.opacity)).to.equal(0)
+        })
+    })
+
+    it('fades in an element', function() {
+      element.style.opacity = 0
+      return urlp.fade(element, 0.1, 10).should.be.fulfilled
+        .then(function(elem) {
+          expect(elem).to.equal(element)
+          expect(parseInt(elem.style.opacity)).to.equal(1)
+        })
+    })
+
+    it('handles increments < -1', function() {
+      element.style.opacity = 1
+      return urlp.fade(element, -1.1, 10).should.be.fulfilled
+        .then(function(elem) {
+          expect(parseInt(elem.style.opacity)).to.equal(0)
+        })
+    })
+
+    it('handles increments > 1', function() {
+      element.style.opacity = 0
+      return urlp.fade(element, 1.1, 10).should.be.fulfilled
+        .then(function(elem) {
+          expect(parseInt(elem.style.opacity)).to.equal(1)
+        })
+    })
+
+    it('throws an error for increments that aren\'t numbers', function() {
+      expect(function() { urlp.fade(null, 'foobar') })
+        .to.throw(Error, 'increment must be a nonzero number: foobar')
+    })
+
+    it('throws an error for increments === 0', function() {
+      expect(function() { urlp.fade(null, 0.0) })
+        .to.throw(Error, 'increment must be a nonzero number: 0')
+    })
+
+    it('throws an error for deadlines that aren\'t numbers', function() {
+      expect(function() { urlp.fade(null, -0.05) })
+        .to.throw(Error, 'deadline must be a positive number: undefined')
+    })
+
+    it('throws an error for deadlines <= 0', function() {
+      expect(function() { urlp.fade(null, -0.05, 0) })
+        .to.throw(Error, 'deadline must be a positive number: 0')
+    })
+  })
 })

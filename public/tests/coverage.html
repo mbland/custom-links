@@ -16,11 +16,12 @@
         window.initMochaPhantomJS()
       }
       mocha.setup('bdd')
-      chai.should()
-      var expect = chai.expect
     </script>
     <script src="generated/coverage.js"></script>
     <script>
+      var expect = chai.expect
+      chai.should()
+      chai.use(window.chaiAsPromised)
       mocha.checkLeaks();
       mocha.run()
     </script>
