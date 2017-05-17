@@ -7,7 +7,8 @@ describe('URL Pointers', function() {
       urlpTest = window.urlpTest,
       spyOn,
       stubOut,
-      doubles = []
+      doubles = [],
+      REDIRECT_LOCATION = 'https://mike-bland.com/'
 
   afterEach(function() {
     doubles.forEach(function(double) {
@@ -113,7 +114,7 @@ describe('URL Pointers', function() {
     it('applies an object\'s properties to a template', function() {
       var data = {
             url: '/foo',
-            location: 'https://mike-bland.com/',
+            location: REDIRECT_LOCATION,
             button: 'Create URL'
           },
           form = urlp.getTemplate('edit-link'),
@@ -124,7 +125,7 @@ describe('URL Pointers', function() {
 
       expect(urlp.applyData(data, form)).to.equal(form)
       expect(url.defaultValue).to.equal('/foo')
-      expect(location.defaultValue).to.equal('https://mike-bland.com/')
+      expect(location.defaultValue).to.equal(REDIRECT_LOCATION)
       expect(button.textContent).to.equal('Create URL')
     })
   })
@@ -229,6 +230,107 @@ describe('URL Pointers', function() {
           expect(parseInt(elem.style.opacity)).to.equal(1)
           expect(elem.innerHTML).to.equal(replacement)
         })
+    })
+  })
+
+  describe('createLink', function() {
+    var linkForm, expectXhr
+
+    beforeEach(function() {
+      linkForm = urlp.getTemplate('edit-link')
+      linkForm.querySelector('[data-name=url]').value = 'foo'
+      linkForm.querySelector('[data-name=location]').value = REDIRECT_LOCATION
+    })
+
+    expectXhr = function() {
+      var payload = { location: REDIRECT_LOCATION }
+      stubOut('xhr')
+      return urlp.xhr.withArgs('POST', '/api/create/foo', payload)
+    }
+
+    it('creates a link that doesn\'t already exist', function() {
+      expectXhr().returns(Promise.resolve())
+      return urlp.createLink(linkForm).should.become(
+        '/foo now redirects to ' + REDIRECT_LOCATION)
+    })
+
+    it('fails to create a link that already exists', function() {
+      expectXhr().callsFake(function() {
+        return Promise.reject({
+          status: 403,
+          response: { err: '/foo already exists' }
+        })
+      })
+
+      return urlp.createLink(linkForm)
+        .should.be.rejectedWith(/\/foo already exists/)
+    })
+
+    it('strips leading slashes from the link name', function() {
+      var payload = { location: REDIRECT_LOCATION }
+      stubOut('xhr')
+      urlp.xhr.withArgs('POST', '/api/create/foo', payload)
+        .returns(Promise.resolve())
+
+      linkForm.querySelector('[data-name=url]').value = '///foo'
+      return urlp.createLink(linkForm).should.become(
+        '/foo now redirects to ' + REDIRECT_LOCATION)
+    })
+
+    it('throws an error if the custom link field is missing', function() {
+      var urlField = linkForm.querySelector('[data-name=url]')
+      urlField.parentNode.removeChild(urlField)
+      expect(function() { urlp.createLink(linkForm) }).to.throw(Error,
+        'fields missing from link form: ' + linkForm.outerHTML)
+    })
+
+    it('throws an error if the redirect location field is missing', function() {
+      var locationField = linkForm.querySelector('[data-name=location]')
+      locationField.parentNode.removeChild(locationField)
+      expect(function() { urlp.createLink(linkForm) }).to.throw(Error,
+        'fields missing from link form: ' + linkForm.outerHTML)
+    })
+
+    it('rejects if the custom link value is missing', function() {
+      linkForm.querySelector('[data-name=url]').value = ''
+      return urlp.createLink(linkForm).should.be.rejectedWith(
+        'Custom link field must not be empty.')
+    })
+
+    it('rejects if the redirect location value is missing', function() {
+      linkForm.querySelector('[data-name=location]').value = ''
+      return urlp.createLink(linkForm).should.be.rejectedWith(
+        'Redirect location field must not be empty.')
+    })
+
+    it('rejects if the location has an incorrect protocol', function() {
+      linkForm.querySelector('[data-name=location]').value = 'gopher://bar'
+      return urlp.createLink(linkForm).should.be.rejectedWith(
+        'Redirect location protocol must be http:// or https://.')
+    })
+
+    it('rejects if the request returns a server error', function() {
+      expectXhr().callsFake(function() {
+        return Promise.reject({ status: 500 })
+      })
+      return urlp.createLink(linkForm)
+        .should.be.rejectedWith(/server error .* \/foo wasn't created/)
+    })
+
+    it('rejects if the request raises a network error', function() {
+      expectXhr().callsFake(function() {
+        return Promise.reject(new Error('A network error occurred.'))
+      })
+      return urlp.createLink(linkForm)
+        .should.be.rejectedWith('A network error occurred.')
+    })
+
+    it('rejects if the request raises another error', function() {
+      expectXhr().callsFake(function() {
+        return Promise.reject('forced error')
+      })
+      return urlp.createLink(linkForm)
+        .should.be.rejectedWith('forced error')
     })
   })
 })
