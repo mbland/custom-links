@@ -4,18 +4,26 @@
 (function(f) { f(window, document) })(function(window,  document) {
   var urlp = window.urlp = {}
 
-  urlp.xhr = function(method, url) {
+  urlp.xhr = function(method, url, body) {
     return new Promise(function(resolve, reject) {
       var r = new XMLHttpRequest()
 
       r.open(method, url, true)
+      if (typeof body === 'object') {
+        body = JSON.stringify(body)
+        r.setRequestHeader('Content-Type', 'application/json')
+      }
+
       r.onreadystatechange = function() {
         if (this.readyState === 4) {
           this.status >= 200 && this.status < 300 ? resolve(r) : reject(r)
         }
       }
-      r.onerror = reject
-      r.send()
+      r.onerror = function() {
+        reject(new Error('A network error occurred. Please check your ' +
+          'connection or contact the system administator, then try again.'))
+      }
+      r.send(body)
     })
   }
 
@@ -116,5 +124,42 @@
       elem.innerHTML = replacementHtml
       return urlp.fade(element, 0.05, 1000)
     })
+  }
+
+  urlp.createLink = function(linkForm) {
+    var url = linkForm.querySelector('[data-name=url]'),
+        location = linkForm.querySelector('[data-name=location]')
+
+    if (!url || !location) {
+      throw new Error('fields missing from link form: ' + linkForm.outerHTML)
+    }
+    url = url.value.replace(/^\/+/, '')
+    location = location.value
+
+    if (url.length === 0) {
+      return Promise.reject('Custom link field must not be empty.')
+    } else if (location.length === 0) {
+      return Promise.reject('Redirect location field must not be empty.')
+    } else if (location.match(/https?:\/\//) === null) {
+      return Promise.reject('Redirect location protocol must be ' +
+        'http:// or https://.')
+    }
+
+    return urlp.xhr('POST', '/api/create/' + url, { location: location })
+      .then(function() {
+        return '/' + url + ' now redirects to ' + location
+      })
+      .catch(function(err) {
+        if (err.status !== undefined) {
+          if (err.status >= 400 && err.status < 500) {
+            return Promise.reject(err.response.err)
+          } else {
+            return Promise.reject('A server error occurred and ' +
+              '/' + url + ' wasn\'t created. Please contact the system ' +
+              'administrator or try again later.')
+          }
+        }
+        return Promise.reject(err.message || err)
+      })
   }
 })
