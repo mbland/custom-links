@@ -234,7 +234,9 @@ describe('URL Pointers', function() {
   })
 
   describe('createLink', function() {
-    var linkForm, expectXhr
+    var linkForm, expectXhr,
+        resultUrl = window.location.origin + '/foo',
+        resultAnchor = '<a href=\'/foo\'>' + resultUrl + '</a>'
 
     beforeEach(function() {
       linkForm = urlp.getTemplate('edit-link')
@@ -251,7 +253,7 @@ describe('URL Pointers', function() {
     it('creates a link that doesn\'t already exist', function() {
       expectXhr().returns(Promise.resolve())
       return urlp.createLink(linkForm).should.become(
-        '/foo now redirects to ' + REDIRECT_LOCATION)
+        resultAnchor + ' now redirects to ' + REDIRECT_LOCATION)
     })
 
     it('fails to create a link that already exists', function() {
@@ -263,7 +265,7 @@ describe('URL Pointers', function() {
       })
 
       return urlp.createLink(linkForm)
-        .should.be.rejectedWith(/\/foo already exists/)
+        .should.be.rejectedWith(new RegExp(resultAnchor + ' already exists'))
     })
 
     it('strips leading slashes from the link name', function() {
@@ -274,7 +276,7 @@ describe('URL Pointers', function() {
 
       linkForm.querySelector('[data-name=url]').value = '///foo'
       return urlp.createLink(linkForm).should.become(
-        '/foo now redirects to ' + REDIRECT_LOCATION)
+        resultAnchor + ' now redirects to ' + REDIRECT_LOCATION)
     })
 
     it('throws an error if the custom link field is missing', function() {
@@ -313,8 +315,9 @@ describe('URL Pointers', function() {
       expectXhr().callsFake(function() {
         return Promise.reject({ status: 500 })
       })
-      return urlp.createLink(linkForm)
-        .should.be.rejectedWith(/server error .* \/foo wasn't created/)
+      return urlp.createLink(linkForm).should.be.rejectedWith(
+        new RegExp('server error .* ' + resultUrl.replace('/', '\\/') +
+          ' wasn\'t created'))
     })
 
     it('rejects if the request raises a network error', function() {
@@ -329,8 +332,21 @@ describe('URL Pointers', function() {
       expectXhr().callsFake(function() {
         return Promise.reject('forced error')
       })
+      return urlp.createLink(linkForm).should.be.rejectedWith('forced error')
+    })
+
+    it('rejects when the server response doesn\'t contain JSON', function() {
+      // This models what happens when trying to POST to the local test server
+      // instead of the actual application backend.
+      expectXhr().callsFake(function() {
+        return Promise.reject({
+          status: 405,
+          statusText: 'Method not allowed'
+        })
+      })
       return urlp.createLink(linkForm)
-        .should.be.rejectedWith('forced error')
+        .should.be.rejectedWith('Could not create ' + resultUrl +
+          ': Method not allowed')
     })
   })
 })
