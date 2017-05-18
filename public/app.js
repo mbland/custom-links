@@ -108,7 +108,8 @@
           doFade = function() {
             current += increment
 
-            if ((increment < 0.0 && current <= target) || current >= target) {
+            if ((increment < 0.0 && current <= target) ||
+                (increment > 0.0 && current >= target)) {
               style.opacity = target
               resolve(element)
             } else {

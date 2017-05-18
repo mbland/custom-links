@@ -131,16 +131,21 @@ describe('URL Pointers', function() {
   })
 
   describe('fade', function() {
-    var element
+    var element, setTimeoutStub
 
     beforeEach(function() {
       element = document.createElement('div')
       // Append directly to the body so the computed style isn't influenced by
       // urlpTest.fixture's "display: none" style.
       document.body.appendChild(element)
+      setTimeoutStub = sinon.stub(window, 'setTimeout')
+      setTimeoutStub.callsFake(function(func) {
+        func()
+      })
     })
 
     afterEach(function() {
+      setTimeoutStub.restore()
       element.parentNode.removeChild(element)
     })
 
@@ -150,6 +155,7 @@ describe('URL Pointers', function() {
         .then(function(elem) {
           expect(elem).to.equal(element)
           expect(parseInt(elem.style.opacity)).to.equal(0)
+          expect(setTimeoutStub.callCount).to.equal(10)
         })
     })
 
@@ -159,6 +165,7 @@ describe('URL Pointers', function() {
         .then(function(elem) {
           expect(elem).to.equal(element)
           expect(parseInt(elem.style.opacity)).to.equal(1)
+          expect(setTimeoutStub.callCount).to.equal(10)
         })
     })
 
