@@ -43,7 +43,8 @@
         routes = {
           '#': urlp.landingView
         },
-        renderView = routes[viewId]
+        renderView = routes[viewId],
+        view
 
     if (!renderView) {
       if (container.children.length !== 0) {
@@ -51,8 +52,13 @@
       }
       renderView = routes['#']
     }
-    replacement.appendChild(renderView(viewParam))
+    view = renderView(viewParam)
+    replacement.appendChild(view.element)
     container.parentNode.replaceChild(replacement, container)
+
+    if (view.done) {
+      view.done()
+    }
   }
 
   urlp.getTemplate = function(templateName) {
@@ -88,7 +94,12 @@
         editForm = urlp.getTemplate('edit-link')
 
     view.appendChild(urlp.applyData({ button: 'Create URL' }, editForm))
-    return view
+    return {
+      element: view,
+      done: function() {
+        view.getElementsByTagName('input')[0].focus()
+      }
+    }
   }
 
   urlp.fade = function(element, increment, deadline) {

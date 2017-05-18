@@ -17,11 +17,15 @@ describe('URL Pointers', function() {
   })
 
   spyOn = function(functionName) {
-    doubles.push(sinon.spy(urlp, functionName))
+    var spy = sinon.spy(urlp, functionName)
+    doubles.push(spy)
+    return spy
   }
 
   stubOut = function(functionName) {
-    doubles.push(sinon.stub(urlp, functionName))
+    var stub = sinon.stub(urlp, functionName)
+    doubles.push(stub)
+    return stub
   }
 
   describe('showView', function() {
@@ -50,6 +54,19 @@ describe('URL Pointers', function() {
       spyOn('landingView')
       urlp.showView('#-foo-bar')
       urlp.landingView.calledWith('foo-bar').should.be.true
+    })
+
+    it('calls the done() callback if present', function() {
+      var landingView = urlp.landingView,
+          view
+
+      stubOut('landingView').callsFake(function() {
+        view = landingView()
+        sinon.spy(view, 'done')
+        return view
+      })
+      urlp.showView('#')
+      expect(view.done.calledOnce).to.be.true
     })
   })
 
@@ -98,15 +115,22 @@ describe('URL Pointers', function() {
 
   describe('landingView', function() {
     it('shows a form to create a URL redirection', function() {
-      var form = urlp.landingView().getElementsByTagName('form').item(0),
+      var view = urlp.landingView(),
+          form = view.element.getElementsByTagName('form').item(0),
           labels = form.getElementsByTagName('label'),
           inputs = form.getElementsByTagName('input'),
-          button = form.getElementsByTagName('button')[0]
+          button = form.getElementsByTagName('button')[0],
+          inputFocus
+
       expect(labels[0].textContent).to.eql('Custom link:')
       expect(inputs[0]).not.to.eql(null)
       expect(labels[1].textContent).to.eql('Redirect to:')
       expect(inputs[1]).not.to.eql(null)
       expect(button.textContent).to.contain('Create URL')
+
+      inputFocus = sinon.stub(inputs[0], 'focus')
+      view.done()
+      expect(inputFocus.calledOnce).to.be.true
     })
   })
 
