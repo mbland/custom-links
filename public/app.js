@@ -91,8 +91,10 @@
 
   urlp.landingView = function() {
     var view = urlp.getTemplate('landing-view'),
-        editForm = urlp.getTemplate('edit-link')
+        editForm = urlp.getTemplate('edit-link'),
+        button = editForm.getElementsByClassName('button')[0]
 
+    button.onclick = urlp.createLinkClick
     view.appendChild(urlp.applyData({ button: 'Create URL' }, editForm))
     return {
       element: view,
@@ -133,9 +135,9 @@
   }
 
   urlp.flashElement = function(element, replacementHtml) {
-    return urlp.fade(element, -0.05, 750).then(function(elem) {
+    return urlp.fade(element, -0.05, 150).then(function(elem) {
       elem.innerHTML = replacementHtml
-      return urlp.fade(element, 0.05, 1000)
+      return urlp.fade(element, 0.05, 250)
     })
   }
 
@@ -182,5 +184,24 @@
         return Promise.reject('Could not create ' + resultUrl + ': ' +
           err.statusText)
       })
+  }
+
+  urlp.createLinkClick = function() {
+    var linkForm = this.parentNode,
+        resultFlash = linkForm.getElementsByClassName('result')[0]
+
+    resultFlash.done = urlp.createLink(linkForm)
+      .then(function(message) {
+        return { template: 'result success', message: message }
+      })
+      .catch(function(err) {
+        return { template: 'result failure', message: (err.message || err) }
+      })
+      .then(function(resultData) {
+        var result = urlp.getTemplate(resultData.template)
+        result.innerHTML = resultData.message
+        return urlp.flashElement(resultFlash, result.outerHTML)
+      })
+    return false
   }
 })
