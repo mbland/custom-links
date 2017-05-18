@@ -12,6 +12,7 @@
       if (typeof body === 'object') {
         body = JSON.stringify(body)
         r.setRequestHeader('Content-Type', 'application/json')
+        r.responseType = 'json'
       }
 
       r.onreadystatechange = function() {
@@ -128,13 +129,17 @@
 
   urlp.createLink = function(linkForm) {
     var url = linkForm.querySelector('[data-name=url]'),
-        location = linkForm.querySelector('[data-name=location]')
+        location = linkForm.querySelector('[data-name=location]'),
+        resultUrl,
+        resultAnchor
 
     if (!url || !location) {
       throw new Error('fields missing from link form: ' + linkForm.outerHTML)
     }
     url = url.value.replace(/^\/+/, '')
     location = location.value
+    resultUrl = window.location.origin + '/' + url
+    resultAnchor = '<a href=\'/' + url + '\'>' + resultUrl + '</a>'
 
     if (url.length === 0) {
       return Promise.reject('Custom link field must not be empty.')
@@ -147,19 +152,23 @@
 
     return urlp.xhr('POST', '/api/create/' + url, { location: location })
       .then(function() {
-        return '/' + url + ' now redirects to ' + location
+        return resultAnchor + ' now redirects to ' + location
       })
       .catch(function(err) {
-        if (err.status !== undefined) {
-          if (err.status >= 400 && err.status < 500) {
-            return Promise.reject(err.response.err)
-          } else {
-            return Promise.reject('A server error occurred and ' +
-              '/' + url + ' wasn\'t created. Please contact the system ' +
-              'administrator or try again later.')
-          }
+        if (err.status === undefined) {
+          return Promise.reject(err.message || err)
         }
-        return Promise.reject(err.message || err)
+        if (err.status >= 500) {
+          return Promise.reject('A server error occurred and ' +
+            resultUrl + ' wasn\'t created. Please contact the system ' +
+            'administrator or try again later.')
+        }
+        if (err.response) {
+          return Promise.reject(err.response.err.replace(
+            '/' + url, resultAnchor))
+        }
+        return Promise.reject('Could not create ' + resultUrl + ': ' +
+          err.statusText)
       })
   }
 })
