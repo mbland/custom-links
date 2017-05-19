@@ -380,4 +380,54 @@ describe('URL Pointers', function() {
           ': Method not allowed')
     })
   })
+
+  describe('createLinkClick', function() {
+    var button, result
+
+    beforeEach(function() {
+      var view
+      urlp.showView('#')
+      view = urlpTest.getView('landing-view')[0]
+      button = view.getElementsByTagName('button')[0]
+      result = view.getElementsByClassName('result')[0]
+
+      // Stub urlp.fade() instead of urlp.flashElement() because we depend upon
+      // the result's innerHTML to be set by the latter.
+      stubOut('fade').returns(Promise.resolve(result))
+    })
+
+    it('flashes on success', function() {
+      stubOut('createLink').returns(Promise.resolve('success'))
+      button.click()
+      return result.done.should.be.fulfilled.then(function() {
+        var successDiv = result.getElementsByClassName('success')[0]
+        expect(successDiv).to.not.be.undefined
+        successDiv.textContent.should.equal('success')
+      })
+    })
+
+    it('flashes on failure', function() {
+      stubOut('createLink').callsFake(function() {
+        return Promise.reject('forced failure')
+      })
+      button.click()
+      return result.done.should.be.fulfilled.then(function() {
+        var failureDiv = result.getElementsByClassName('failure')[0]
+        expect(failureDiv).to.not.be.undefined
+        failureDiv.textContent.should.equal('forced failure')
+      })
+    })
+
+    it('flashes on error', function() {
+      stubOut('createLink').callsFake(function() {
+        return Promise.reject(new Error('forced error'))
+      })
+      button.click()
+      return result.done.should.be.fulfilled.then(function() {
+        var failureDiv = result.getElementsByClassName('failure')[0]
+        expect(failureDiv).to.not.be.undefined
+        failureDiv.textContent.should.equal('forced error')
+      })
+    })
+  })
 })
