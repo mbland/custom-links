@@ -6,7 +6,7 @@
 #   {{go}} {{cmd}} [--coverage|--edit|--list|--mocha-help] [<glob>...]
 #
 # Options:
-#   --coverage    Collect test coverage data using istanbul
+#   --coverage    Collect test coverage data using nyc/istanbul
 #   --edit        Open matching test files using `{{go}} edit`
 #   --list        List test suite names without executing them
 #   --mocha-help  Show output from `mocha --help`
@@ -64,7 +64,7 @@ _test_tab_completion() {
 
   if [[ "$word_index" -eq '0' ]]; then
     if [[ "${1:0:1}" == '-' ]]; then
-      compgen -W "${__GO_TEST_FLAGS[*]} $(_test_mocha_flags)" -- "$1"
+      @go.compgen -W "${__GO_TEST_FLAGS[*]} $(_test_mocha_flags)" -- "$1"
       return
     else
       echo '-'
