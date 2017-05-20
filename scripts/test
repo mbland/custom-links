@@ -130,8 +130,7 @@ _test_run_mocha() {
 
 _test_generate_coverage_report() {
   local result=0
-
-  if ! nyc --temp-directory='.coverage' node_modules/.bin/_mocha "$@"; then
+  if ! nyc --reporter='lcov' --temp-directory='.coverage' mocha "$@"; then
     @go.printf 'Backend tests or coverage collection failed.\n' >&2
     result=1
   fi

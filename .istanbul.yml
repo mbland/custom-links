@@ -4,3 +4,9 @@ instrumentation:
   - public/assets/js/vendor/*
   - public/tests/generated/*
   - public/tests/vendor/*
+reporting:
+  print: summary
+  reports:
+  - lcov
+  - html
+  - text
