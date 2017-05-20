@@ -134,7 +134,7 @@ _test_generate_coverage_report() {
     @go.printf 'Backend tests or coverage collection failed.\n' >&2
     result=1
   fi
-  if ! @go test browser; then
+  if [[ "${#__test_glob_patterns[@]}" -eq '0' ]] && ! @go test browser; then
     @go.printf 'Browser tests or coverage collection failed.\n' >&2
     result=1
   fi
@@ -191,7 +191,7 @@ _test() {
   fi
 
   if [[ "$1" == '--coverage' ]]; then
-    _test_coverage
+    _test_coverage "$@"
   elif [[ "$1" == '--list' ]]; then
     shift
     @go 'glob' '--trim' "${__GO_TEST_GLOB_ARGS[@]}" "$@"
