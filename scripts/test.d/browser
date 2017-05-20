@@ -1,33 +1,44 @@
 #! /usr/bin/env bash
 #
 # Runs browser tests using Phantom JS
+#
+# Usage:
+#   {{go}} {{cmd}} [--coverage]
+#
+# Options:
+#   --coverage  Collect test coverage data using istanbul
 
 declare TEST_BROWSER_HELPER_DIR='public/tests/generated'
 declare TEST_BROWSER_HELPER_INPUT='tests/helpers/browser.js'
 
-_test_browser() {
-  local result=0
-  local bundle
-  local url
-  local port
-  local server_pid
+_test_browser_tab_completion() {
+  local word_index="$1"
+  shift
+  local args=("$@")
+  local word="${args[$word_index]}"
 
-  if [[ ! -d "$TEST_BROWSER_HELPER_DIR" ]] &&
-    ! mkdir -p "$TEST_BROWSER_HELPER_DIR"; then
-    @go.printf 'Failed to create directory: %s\n' "$TEST_BROWSER_HELPER_DIR" \
-      >&2
+  if [[ "$word_index" -ne '0' ]]; then
+    return 1
+  fi
+  @go.compgen -W '--coverage' -- "$word"
+}
+
+_test_browser_create_bundle() {
+  local helper_dir="$TEST_BROWSER_HELPER_DIR"
+  local bundle
+
+  if [[ ! -d "$helper_dir" ]] && ! mkdir -p "$helper_dir"; then
+    @go.printf 'Failed to create directory: %s\n' "$helper_dir" >&2
     return 1
   fi
 
-  if [[ "$__COVERAGE_RUN" == 'true' ]]; then
-    bundle="$TEST_BROWSER_HELPER_DIR/coverage.js"
-    url='tests/coverage.html'
+  if [[ "$__coverage_run" == 'true' ]]; then
+    bundle="$helper_dir/coverage.js"
     browserify -t [ browserify-istanbul --no-defaultIgnore \
       --ignore 'public/tests/vendor/*' --ignore 'public/tests/generated/*' ] \
       "$TEST_BROWSER_HELPER_INPUT" 'public/app.js' public/tests/*.js > "$bundle"
   else
-    bundle="$TEST_BROWSER_HELPER_DIR/index.js"
-    url='tests/'
+    bundle="$helper_dir/index.js"
     browserify "$TEST_BROWSER_HELPER_INPUT" >"$bundle"
   fi
 
@@ -35,12 +46,21 @@ _test_browser() {
     @go.printf 'Browserify failed to create: %s\n' "$bundle" >&2
     exit 1
   fi
+}
+
+_test_browser_run_tests() {
+  local port
+  local test_server_url
+  local server_pid
+  local result
 
   port="$(tests/helpers/pick-unused-port)"
   if [[ "$?" -ne '0' ]]; then
     @go.printf 'Failed to pick an unused port.\n' >&2
     return 1
   fi
+  test_server_url="http://localhost:${port}/tests/"
+  test_server_url+="${__coverage_run:+coverage.html}"
 
   set -m
   live-server --no-browser --port=${port} public/ &
@@ -53,12 +73,55 @@ _test_browser() {
   fi
   server_pid="$!"
 
-  mocha-phantomjs "http://localhost:${port}/${url}" \
-    --hooks 'tests/helpers/phantomjs.js'
+  mocha-phantomjs "$test_server_url" --hooks 'tests/helpers/phantomjs.js'
   result="$?"
-
   kill -INT "$server_pid"
   set +m
+  return "$result"
+}
+
+_test_browser_generate_coverage_report() {
+  local report_path="${_GO_ROOTDIR}/coverage/lcov-report/index.html"
+
+  # .coverage/browser.json is defined in tests/helpers/phantomjs.js
+  if ! istanbul report --root '.coverage' --include 'browser.json'; then
+    @go.printf 'Failed to generate coverage report.\n' >&2
+    return 1
+  elif [[ -z "$__COVERAGE_RUN" ]] && command -v open >/dev/null; then
+    # Pop open the report when invoked with --coverage, not via parent script.
+    open "$report_path"
+  fi
+}
+
+_test_browser() {
+  local __coverage_run="$__COVERAGE_RUN"
+  local result=0
+
+  case "$1" in
+  --complete)
+    # Tab completions
+    shift
+    _test_browser_tab_completion "$@"
+    return
+    ;;
+  --coverage)
+    __coverage_run='true'
+    ;;
+  '')
+    ;;
+  *)
+    @go.printf 'Unknown argument: %s\n' "$1" >&2
+    return 1
+    ;;
+  esac
+
+  _test_browser_create_bundle
+  _test_browser_run_tests
+  result="$?"
+
+  if [[ -n "$__coverage_run" ]]; then
+    _test_browser_generate_coverage_report
+  fi
   return "$result"
 }
 
