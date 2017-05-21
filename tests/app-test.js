@@ -19,7 +19,7 @@ chai.use(chaiAsPromised)
 var REDIRECT_LOCATION = 'https://mike-bland.com/'
 
 describe('assembleApp', function() {
-  var app, redirectDb, logger, logError, config, authenticate, sessionCookie
+  var app, redirectDb, logger, logError, config, sessionCookie
 
   before(function() {
     redirectDb = new RedirectDb
@@ -40,17 +40,7 @@ describe('assembleApp', function() {
 
   beforeEach(function() {
     logError = sinon.spy(logger, 'error')
-    authenticate = sinon.stub(testAuth.strategyImpl, 'authenticate')
-
-    authenticate.callsFake(function(req, info, strategy) {
-      if (req.path === '/auth') {
-        strategy.redirect('/auth/callback')
-      } else if (req.path === '/auth/callback') {
-        strategy.success({ id: 'mbland@acm.org' }, info)
-      } else {
-        strategy.fail()
-      }
-    })
+    process.env.URL_POINTERS_TEST_AUTH = 'mbland@acm.org'
 
     return request(app)
       .get('/auth')
@@ -67,7 +57,7 @@ describe('assembleApp', function() {
   })
 
   afterEach(function() {
-    authenticate.restore()
+    delete process.env.URL_POINTERS_TEST_AUTH
     logError.restore()
   })
 
@@ -83,6 +73,7 @@ describe('assembleApp', function() {
     })
 
     it('redirects to /auth if not logged in', function() {
+      // Note that `.set('cookie', sessionCookie)` isn't called first
       return request(app)
         .get('/foo')
         .expect(302)
@@ -101,6 +92,30 @@ describe('assembleApp', function() {
             .set('cookie', sessionCookie)
             .expect(302)
             .expect('location', '/foo')
+        })
+    })
+
+    it('redirects back to /auth if authentication failed', function() {
+      // Note that `.set('cookie', sessionCookie)` isn't called first
+      return request(app)
+        .get('/foo')
+        .expect(302)
+        .expect('location', '/auth')
+        .then(function(res) {
+          sessionCookie = res.headers['set-cookie']
+          return request(app)
+            .get('/auth')
+            .set('cookie', sessionCookie)
+            .expect(302)
+            .expect('location', '/auth/callback')
+        })
+        .then(function() {
+          process.env.URL_POINTERS_TEST_AUTH = 'fail'
+          return request(app)
+            .get('/auth/callback')
+            .set('cookie', sessionCookie)
+            .expect(302)
+            .expect('location', '/auth')
         })
     })
 

@@ -144,31 +144,44 @@ describe('auth', function() {
     })
 
     describe('test', function() {
-      it('registers the strategy with passport.use', function() {
-        var strategy
-        testAuth.assemble(passport)
+      var strategy
 
+      afterEach(function() {
+        delete process.env.URL_POINTERS_TEST_AUTH
+      })
+
+      it('registers the strategy with passport.use', function() {
+        testAuth.assemble(passport)
         strategy = passport.use.getCall(0).args[0]
         strategy.name.should.equal('test')
       })
 
-      it('throws an error if authenticate() isn\'t stubbed', function() {
-        expect(function() { testAuth.strategyImpl.authenticate() })
-          .to.throw(Error, 'strategyImpl.authenticate() must be stubbed')
-      })
-
-      it('passes the request, opts, and strategy to authenticate', function() {
-        var implAuth = sinon.stub(testAuth.strategyImpl, 'authenticate'),
-            strategy,
-            args
-
+      it('throws an error if URL_POINTERS_TEST_AUTH not set', function() {
         testAuth.assemble(passport)
         strategy = passport.use.getCall(0).args[0]
-        strategy.authenticate({ req: true }, { opts: true })
-        args = implAuth.getCall(0).args
-        implAuth.restore()
+        expect(function() { strategy.authenticate() })
+          .to.throw(Error, 'URL_POINTERS_TEST_AUTH must be defined')
+      })
 
-        args.should.eql([ { req: true }, { opts: true }, strategy ])
+      it('uses fake when URL_POINTERS_TEST_AUTH present', function() {
+        testAuth.assemble(passport)
+        strategy = passport.use.getCall(0).args[0]
+        strategy.success = sinon.spy()
+
+        process.env.URL_POINTERS_TEST_AUTH = 'mbland@acm.org'
+        strategy.authenticate({ path: '/auth/callback' }, { opts: true })
+        strategy.success.getCall(0).args.should.eql(
+          [ { id: 'mbland@acm.org' }, { opts: true } ])
+      })
+
+      it('fails when URL_POINTERS_TEST_AUTH === "fail"', function() {
+        testAuth.assemble(passport)
+        strategy = passport.use.getCall(0).args[0]
+        strategy.fail = sinon.spy()
+
+        process.env.URL_POINTERS_TEST_AUTH = 'fail'
+        strategy.authenticate({ path: '/auth/callback' }, { opts: true })
+        strategy.fail.calledOnce.should.be.true
       })
     })
 
