@@ -22,6 +22,8 @@ describe('assembleApp', function() {
 
   before(function() {
     redirectDb = new RedirectDb
+    sinon.stub(redirectDb, 'findOrCreateUser')
+      .returns(Promise.resolve({ id: 'mbland@acm.org' }))
     sinon.stub(redirectDb, 'findUser')
       .returns(Promise.resolve({ id: 'mbland@acm.org' }))
 
