@@ -73,7 +73,11 @@ _test_browser_run_tests() {
   fi
   server_pid="$!"
 
-  mocha-phantomjs "$test_server_url" --hooks 'tests/helpers/phantomjs.js'
+  phantomjs node_modules/mocha-phantomjs-core/mocha-phantomjs-core.js \
+    "$test_server_url" 'spec' "{ \
+      \"hooks\": \"$_GO_ROOTDIR/tests/helpers/phantomjs.js\",\
+      \"useColors\": true\
+    }"
   result="$?"
   kill -INT "$server_pid"
   set +m
