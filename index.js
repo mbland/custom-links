@@ -12,12 +12,14 @@ var RedisClient = require('./lib/redis-client')
 var redisClientOptions = {}
 var session = require('express-session')
 var RedisStore = require('connect-redis')(session)
+var redisStoreOptions = {}
 var urlPointers = require('./lib')
 var morgan = require('morgan')
 var logger = console
 
 if (config.REDIS_PORT !== undefined) {
   redisClientOptions.port = config.REDIS_PORT
+  redisStoreOptions.port = config.REDIS_PORT
 }
 
 var redisClient = redis.createClient(redisClientOptions)
@@ -27,7 +29,7 @@ urlPointers.assembleApp(
   app,
   new RedirectDb(new RedisClient(redisClient, logger)),
   logger,
-  new RedisStore,
+  new RedisStore(redisStoreOptions),
   config)
 
 var server = app.listen(config.PORT)

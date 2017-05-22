@@ -146,39 +146,77 @@ describe('auth', function() {
     describe('test', function() {
       var strategy
 
+      beforeEach(function() {
+        process.env.URL_POINTERS_TEST_AUTH = 'mbland@acm.org'
+        testAuth.assemble(passport, redirectDb, { users: [ 'mbland@acm.org' ] })
+        strategy = passport.use.getCall(0).args[0]
+      })
+
       afterEach(function() {
         delete process.env.URL_POINTERS_TEST_AUTH
       })
 
       it('registers the strategy with passport.use', function() {
-        testAuth.assemble(passport)
-        strategy = passport.use.getCall(0).args[0]
         strategy.name.should.equal('test')
       })
 
       it('throws an error if URL_POINTERS_TEST_AUTH not set', function() {
-        testAuth.assemble(passport)
-        strategy = passport.use.getCall(0).args[0]
+        delete process.env.URL_POINTERS_TEST_AUTH
         expect(function() { strategy.authenticate() })
           .to.throw(Error, 'URL_POINTERS_TEST_AUTH must be defined')
       })
 
-      it('succeeds when URL_POINTERS_TEST_AUTH present', function() {
-        testAuth.assemble(passport)
-        strategy = passport.use.getCall(0).args[0]
+      it('redirects from /auth to /auth/callback', function() {
+        strategy.redirect = sinon.spy()
+        strategy.authenticate({ path: '/auth' }, { opts: true })
+        strategy.redirect.getCall(0).args.should.eql(['/auth/callback'])
+      })
+
+      it('returns success from /auth/callback succeeds', function() {
+        stubDbMethod('findOrCreateUser')
+          .returns(Promise.resolve({ id: 'mbland@acm.org' }))
         strategy.success = sinon.spy()
 
-        process.env.URL_POINTERS_TEST_AUTH = 'mbland@acm.org'
-        strategy.authenticate({ path: '/auth/callback' }, { opts: true })
+        return strategy.authenticate({ path: '/auth/callback' }, { opts: true })
+          .should.be.fulfilled.then(function() {
+            strategy.success.getCall(0).args.should.eql(
+              [ { id: 'mbland@acm.org' }, { opts: true } ])
+          })
+      })
+
+      it('returns failure from /auth/callback on error', function() {
+        stubDbMethod('findOrCreateUser').callsFake(function() {
+          return Promise.reject(new Error('forced error'))
+        })
+        strategy.fail = sinon.spy()
+
+        return strategy.authenticate({ path: '/auth/callback' }, { opts: true })
+          .should.be.rejectedWith(Error, 'forced error')
+          .then(function() {
+            strategy.fail.calledOnce.should.be.true
+          })
+      })
+
+      it('returns failure from /auth/callback for an unknown user', function() {
+        process.env.URL_POINTERS_TEST_AUTH = 'bogus@unknown.com'
+        strategy.fail = sinon.spy()
+
+        return strategy.authenticate({ path: '/auth/callback' }, { opts: true })
+          .should.be.rejectedWith('unknown user: bogus@unknown.com')
+          .then(function() {
+            strategy.fail.calledOnce.should.be.true
+          })
+      })
+
+      it('succeeds when URL_POINTERS_TEST_AUTH present', function() {
+        strategy.success = sinon.spy()
+        strategy.authenticate({ path: '/' }, { opts: true })
         strategy.success.getCall(0).args.should.eql(
           [ { id: 'mbland@acm.org' }, { opts: true } ])
       })
 
       it('fails when URL_POINTERS_TEST_AUTH === "fail"', function() {
-        testAuth.assemble(passport)
-        strategy = passport.use.getCall(0).args[0]
         strategy.fail = sinon.spy()
-
         process.env.URL_POINTERS_TEST_AUTH = 'fail'
         strategy.authenticate({ path: '/auth/callback' }, { opts: true })
         strategy.fail.calledOnce.should.be.true
