@@ -1,0 +1,12 @@
+#! /usr/bin/env bash
+#
+# Runs end-to-end tests using Selenium and Mocha
+
+_test_end_to_end() {
+  if [[ -n "$CI" ]]; then
+    export SELENIUM_BROWSER=phantomjs
+  fi
+  mocha tests/end-to-end.js
+}
+
+_test_end_to_end "$@"
