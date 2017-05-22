@@ -139,7 +139,7 @@ describe('URL Pointers', function() {
       var data = {
             url: '/foo',
             location: REDIRECT_LOCATION,
-            button: 'Create URL'
+            submit: 'Create URL'
           },
           form = urlp.getTemplate('edit-link'),
           fields = form.getElementsByTagName('input'),

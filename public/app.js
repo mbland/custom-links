@@ -95,7 +95,7 @@
         button = editForm.getElementsByClassName('button')[0]
 
     button.onclick = urlp.createLinkClick
-    view.appendChild(urlp.applyData({ button: 'Create URL' }, editForm))
+    view.appendChild(urlp.applyData({ submit: 'Create URL' }, editForm))
     return {
       element: view,
       done: function() {
