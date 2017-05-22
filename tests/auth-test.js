@@ -163,7 +163,7 @@ describe('auth', function() {
           .to.throw(Error, 'URL_POINTERS_TEST_AUTH must be defined')
       })
 
-      it('uses fake when URL_POINTERS_TEST_AUTH present', function() {
+      it('succeeds when URL_POINTERS_TEST_AUTH present', function() {
         testAuth.assemble(passport)
         strategy = passport.use.getCall(0).args[0]
         strategy.success = sinon.spy()

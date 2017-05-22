@@ -5,7 +5,6 @@ var assembleApp = appLib.assembleApp
 var sessionParams = appLib.sessionParams
 var Config = require('../lib/config')
 var RedirectDb = require('../lib/redirect-db')
-var testAuth = require('../lib/auth/test')
 var express = require('express')
 var request = require('supertest')
 var chai = require('chai')
