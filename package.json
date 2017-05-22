@@ -37,6 +37,7 @@
     "mocha": "^3.3.0",
     "mocha-phantomjs-core": "^2.1.1",
     "nyc": "^10.3.2",
+    "selenium-webdriver": "^3.4.0",
     "sinon": "^2.1.0",
     "supertest": "^3.0.0"
   },
