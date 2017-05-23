@@ -5,12 +5,13 @@ var chai = require('chai')
 var chaiAsPromised = require('chai-as-promised')
 var test = require('selenium-webdriver/testing')
 var webdriver = require('selenium-webdriver')
+var Key = webdriver.Key
 
 chai.should()
 chai.use(chaiAsPromised)
 
 test.describe('End-to-end test', function() {
-  var driver, serverInfo, url
+  var driver, serverInfo, url, targetLocation, activeElement
 
   this.timeout(5000)
 
@@ -22,6 +23,7 @@ test.describe('End-to-end test', function() {
     return helpers.launchAll().then(function(result) {
       serverInfo = result
       url = 'http://localhost:' + serverInfo.port + '/'
+      targetLocation = url + 'tests/redirect-target.html'
     })
   })
 
@@ -31,13 +33,25 @@ test.describe('End-to-end test', function() {
     })
   })
 
-  test.it('WORK IN PROGRESS — creates a new short link', function() {
-    driver.get(url)
-    driver.findElement(webdriver.By.css('*[data-name=url]')).sendKeys('foo')
-    driver.findElement(webdriver.By.css('*[data-name=location]'))
-      .sendKeys('https://mike-bland.com/')
-    driver.findElement(webdriver.By.css('*[data-name=submit]')).click()
-    driver.get(url + 'foo')
+  test.afterEach(function() {
     driver.quit()
+  })
+
+  activeElement = function() {
+    return driver.switchTo().activeElement()
+  }
+
+  test.it('creates a new short link', function() {
+    driver.get(url)
+    activeElement().sendKeys('foo' + Key.TAB)
+    activeElement().sendKeys(targetLocation + Key.TAB)
+    activeElement().sendKeys(Key.ENTER)
+    driver.wait(function() {
+      return activeElement().getText().then(function(text) {
+        return text === url + 'foo'
+      })
+    }, 1250)
+    activeElement().click()
+    driver.getCurrentUrl().should.become(targetLocation)
   })
 })
