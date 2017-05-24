@@ -13,11 +13,13 @@ urlp.setup() {
   @go.critical_section_begin
 
   export PATH="node_modules/.bin:$PATH"
+  export MOCHA_COLORS='true'
   urlp.check_for_required_programs
   @go.log_command npm install
   @go.log_command @go lint
-  @go.log_command @go test -c
+  @go.log_command @go test
   @go.log_command @go test browser
+  SELENIUM_BROWSER=phantomjs @go.log_command @go test end-to-end
   @go.critical_section_end
 }
 

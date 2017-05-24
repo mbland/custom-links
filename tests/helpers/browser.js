@@ -3,6 +3,6 @@
 
 window.chaiAsPromised = require('chai-as-promised')
 
-if (window.callPhantom) {
+if (window.Promise === undefined) {
   require('es6-promise').polyfill()
 }

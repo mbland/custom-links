@@ -5,6 +5,7 @@ coverage/
 dump.rdb
 node_modules/
 public/tests/generated/
+screenshot.png
 scripts/go-script-bash/
 test-config*.json
 tests/bats/
