@@ -1,6 +1,12 @@
 #! /usr/bin/env bash
 #
-# Runs end-to-end tests using Selenium and Mocha
+# Runs end-to-end tests using Selenium-WebDriver and Mocha
+#
+# Usage:
+#   [SELENIUM_BROWSER=<browser>] {{go}} {{cmd}}
+#
+# Where:
+#   <browser>  Browser to use, e.g. chrome (default), firefox, phantomjs, safari
 
 _test_end_to_end() {
   local node_version
