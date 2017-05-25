@@ -22,10 +22,6 @@ _test_end_to_end() {
       "available Node.js version is $node_version. Skipping..."$'\n' >&2
     return
   fi
-
-  if [[ -n "$CI" ]]; then
-    export SELENIUM_BROWSER=phantomjs
-  fi
   mocha tests/end-to-end.js
 }
 
