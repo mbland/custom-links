@@ -1,5 +1,6 @@
 'use strict'
 
+var fs = require('fs')
 var helpers = require('./helpers')
 var chai = require('chai')
 var chaiAsPromised = require('chai-as-promised')
@@ -12,6 +13,9 @@ chai.use(chaiAsPromised)
 
 test.describe('End-to-end test', function() {
   var driver, serverInfo, url, targetLocation, activeElement
+
+  // eslint-disable-next-line no-unused-vars
+  var takeScreenshot
 
   this.timeout(5000)
 
@@ -39,6 +43,15 @@ test.describe('End-to-end test', function() {
 
   activeElement = function() {
     return driver.switchTo().activeElement()
+  }
+
+  takeScreenshot = function() {
+    driver.takeScreenshot().then((screenshot) => {
+      return new Promise((resolve, reject) => {
+        fs.writeFile('screenshot.png', screenshot, 'base64',
+          (err) => err ? reject(err) : resolve())
+      })
+    })
   }
 
   test.it('creates a new short link', function() {

@@ -9,7 +9,7 @@
 # arguments, only lints files matching '<glob>.js'.
 
 declare -r __GO_LINT_GLOB_ARGS=('--ignore'
-  'coverage:node_modules:public/*/vendor:public/tests/generated:tmp'
+  'coverage:node_modules:public/vendor:public/tests/vendor:public/tests/generated:tmp'
   '.' '.js')
 
 _lint_tab_completion() {

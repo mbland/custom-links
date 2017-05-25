@@ -32,6 +32,14 @@
     window.onhashchange = function() {
       urlp.showView(window.location.hash)
     }
+
+    if (window.Promise === undefined) {
+      var head = document.getElementsByTagName('HEAD')[0],
+          js = document.createElement('script')
+      js.type = 'text/javascript'
+      js.src = 'vendor/es6-promise.auto.min.js'
+      head.appendChild(js)
+    }
     urlp.showView(window.location.hash)
   }
 
