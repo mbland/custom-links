@@ -1,0 +1,44 @@
+#! /usr/bin/env bash
+#
+# Coverage report generator
+
+export URLP_COVERAGE_DATADIR="${URLP_COVERAGE_DATADIR:-$_GO_ROOTDIR/.coverage}"
+
+urlp.generate_coverage_report() {
+  local report_path="${_GO_ROOTDIR}/coverage/lcov-report/index.html"
+
+  rm -f "$report_path"
+
+  if ! istanbul report --root "$URLP_COVERAGE_DATADIR" --include '*.json'; then
+    @go.printf 'Failed to generate coverage report.\n' >&2
+    return 1
+  elif [[ -n "$CI" ]]; then
+    urlp.send_coverage_report
+  elif command -v open >/dev/null; then
+    open "$report_path"
+  fi
+}
+
+urlp.send_coverage_report() {
+  local lcov_info_path="${_GO_ROOTDIR}/coverage/lcov.info"
+  local github_repo="$(git config remote.origin.url)"
+
+  github_repo="${github_repo##*[@/]github.com[:/]}"
+  github_repo="${github_repo%.git}"
+
+  if ! coveralls < "$lcov_info_path"; then
+    echo "Failed to send coverage report to Coveralls." >&2
+    return 1
+  fi
+  printf 'Coverage report sent to Coveralls: %s\n' \
+    "https://coveralls.io/github/${github_repo}"
+
+  if [[ -n "$CODECLIMATE_REPO_TOKEN" ]]; then
+    if ! codeclimate-test-reporter < "$lcov_info_path"; then
+      echo 'Failed to send report to Code Climate.' >&2
+      return 1
+    fi
+    printf 'Report sent to Code Climate: %s\n' \
+      "https://codeclimate.com/github/${github_repo}"
+  fi
+}

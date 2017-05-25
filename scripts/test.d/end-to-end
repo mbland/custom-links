@@ -7,6 +7,8 @@
 #
 # Where:
 #   <browser>  Browser to use, e.g. chrome (default), firefox, phantomjs, safari
+#
+# Note the the end-to-end tests DO NOT collect coverage.
 
 _test_end_to_end() {
   local node_version

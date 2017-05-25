@@ -1,71 +1,15 @@
 #! /bin/bash
 # 
-# Run automated tests
+# Run all automated tests
 #
 # Usage:
-#   {{go}} {{cmd}} [--coverage|--edit|--list|--mocha-help] [<glob>...]
-#
-#   To run browser tests only:
-#   {{go}} {{cmd}} browser [--coverage]
-#
-#   To run end-to-end tests:
-#   {{go}} {{cmd}} end-to-end
+#   {{go}} {{cmd}} [--coverage]
 #
 # Options:
 #   --coverage    Collect test coverage data using nyc/istanbul
-#   --edit        Open matching test files using `{{go}} edit`
-#   --list        List test suite names without executing them
-#   --mocha-help  Show output from `mocha --help`
-#
-# In addition to the above option flags, all underlying mocha flags are
-# available.
-#
-# Without <glob> arguments, runs (or edits, or lists) all backend tests from
-# 'tests/'. With one or more <glob> arguments, only runs tests matching
-# 'tests/<glob>-test.js'.
-#
-# With the '--coverage' flag, it will also run the browser tests using
-# PhantomJS. To run browser tests only, without coverage, run `{{go}} {{cmd}}
-# browser`.
 #
 # The '--coverage' flag will place its output in a directory called 'coverage'.
 # An HTML report will be available at 'coverage/lcov-report/index.html'.
-
-declare -r __GO_TEST_FLAGS=('--coverage' '--edit' '--list' '--mocha-help')
-declare -r __GO_TEST_GLOB_ARGS=('tests' '-test.js')
-declare -r __GO_MOCHA_FLAGS_WITH_ARGS=(
-  '-O' '--reporter-options'
-  '-R' '--reporter'
-  '-g' '--grep'
-  '-f' '--fgrep'
-  '-r' '--require'
-  '-s' '--slow'
-  '-t' '--timeout'
-  '-u' '--ui'
-  '-w' '--watch'
-  '--compilers'
-  '--globals'
-  '--opts'
-  '--retries'
-  '--watch-extensions'
-)
-
-declare GITHUB_REPO="$(git config remote.origin.url)"
-GITHUB_REPO="${GITHUB_REPO##*[@/]github.com[:/]}"
-GITHUB_REPO="${GITHUB_REPO%.git}"
-
-_test_mocha_flags() {
-  local flag_line_pattern='^ *-'
-  local line
-
-  mocha -h | while read -r line; do
-    if [[ "$line" =~ $flag_line_pattern ]]; then
-      local line="${line#*-}"
-      line="${line%%[ <]*}"
-      echo "-${line/,/}"
-    fi
-  done
-}
 
 _test_tab_completion() {
   local word_index="$1"
@@ -74,147 +18,46 @@ _test_tab_completion() {
   local word="${args[$word_index]}"
 
   if [[ "$word_index" -eq '0' ]]; then
-    if [[ "${1:0:1}" == '-' ]]; then
-      @go.compgen -W "${__GO_TEST_FLAGS[*]} $(_test_mocha_flags)" -- "$1"
-      return
-    else
-      echo '-'
-    fi
+    @go.compgen -W '--coverage' -- "$1"
   fi
-  @go 'glob' '--complete' "$((word_index + ${#__GO_TEST_GLOB_ARGS[@]}))" \
-    "${__GO_TEST_GLOB_ARGS[@]}" "${args[@]}"
-}
-
-_test_is_mocha_flag_with_arg() {
-  local i
-
-  for ((i=0; i != "${#__GO_MOCHA_FLAGS_WITH_ARGS[@]}"; ++i)); do
-    if [[ "${__GO_MOCHA_FLAGS_WITH_ARGS[$i]}" == "$1" ]]; then
-      return 0
-    fi
-  done
-  return 1
-}
-
-_test_parse_command_line() {
-  while [[ "$#" -ne 0 ]]; do
-    if [[ "${1:0:1}" == '-' ]]; then
-      if [[ "${#glob_patterns[@]}" -ne '0' ]]; then
-        printf "Please specify all flags before glob patterns." >&2
-        return 1
-      fi
-
-      __test_mocha_flags+=("$1")
-      if _test_is_mocha_flag_with_arg "$1"; then
-        __test_mocha_flags+=("$2")
-        shift
-      fi
-    else
-      __test_glob_patterns+=("$1")
-    fi
-    shift
-  done
-}
-
-_test_run_mocha() {
-  local __test_mocha_flags=()
-  local __test_glob_patterns=()
-  local help_flag_pattern='-(h|-help)'
-  local argv=()
-
-  _test_parse_command_line "$@"
-
-  if [[ "${__test_mocha_flags[*]}" =~ $help_flag_pattern ]]; then
-    mocha -h
-    return
-  fi
-
-  argv=("${__test_mocha_flags[@]}"
-    $(@go 'glob' "${__GO_TEST_GLOB_ARGS[@]}" "${__test_glob_patterns[@]}"))
-
-  if [[ "$__COVERAGE_RUN" == 'true' ]]; then
-    _test_generate_coverage_report "${argv[@]}"
-  else
-    mocha "${argv[@]}"
-  fi
-}
-
-_test_generate_coverage_report() {
-  local result=0
-  if ! nyc --reporter='lcov' --temp-directory='.coverage' mocha "$@"; then
-    @go.printf 'Backend tests or coverage collection failed.\n' >&2
-    result=1
-  fi
-  if [[ "${#__test_glob_patterns[@]}" -eq '0' ]] && ! @go test browser; then
-    @go.printf 'Browser tests or coverage collection failed.\n' >&2
-    result=1
-  fi
-  if ! istanbul report --root '.coverage' --include '*.json'; then
-    @go.printf 'Failed to generate coverage report.\n' >&2
-    result=1
-  fi
-
-  return "$result"
-}
-
-_test_coverage() {
-  local report_path="${_GO_ROOTDIR}/coverage/lcov-report/index.html"
-  local lcov_info_path="${_GO_ROOTDIR}/coverage/lcov.info"
-  local result=0
-
-  rm -f "$report_path"
-  __COVERAGE_RUN='true' _test_run_mocha "${@:2}"
-  result="$?"
-
-  if [[ ! -r "$report_path" ]]; then
-    return 1
-  elif [[ -z "$CI" && -z "$__SETUP_RUN" ]]; then
-    echo "Report saved as: $report_path"
-    if command -v open >/dev/null; then
-      open "$report_path"
-    fi
-  elif [[ -n "$CI" ]]; then
-    if ! coveralls < "$lcov_info_path"; then
-      echo "Failed to send coverage report to Coveralls." >&2
-      return 1
-    fi
-    printf 'Coverage report sent to Coveralls: %s\n' \
-      "https://coveralls.io/github/${GITHUB_REPO}"
-
-    if [[ -n "$CODECLIMATE_REPO_TOKEN" ]]; then
-      if ! codeclimate-test-reporter < "$lcov_info_path"; then
-        echo 'Failed to send report to Code Climate.' >&2
-        return 1
-      fi
-      printf 'Report sent to Code Climate: %s\n' \
-        "https://codeclimate.com/github/${GITHUB_REPO}"
-    fi
-  fi
-  return "$result"
 }
 
 _test() {
-  if [[ "$1" == '--complete' ]]; then
+  local coverage_run
+  local result
+
+  case "$1" in
+  --complete)
     # Tab completions
     shift
     _test_tab_completion "$@"
     return
-  fi
+    ;;
+  --coverage)
+    coverage_run='true'
+    . "$_GO_USE_MODULES" 'coverage'
+    ;;
+  esac
+
+  export __TEST_ALL='true'
 
   if [[ "$1" == '--coverage' ]]; then
-    _test_coverage "$@"
-  elif [[ "$1" == '--list' ]]; then
-    shift
-    @go 'glob' '--trim' "${__GO_TEST_GLOB_ARGS[@]}" "$@"
-  elif [[ "$1" == '--edit' ]]; then
-    shift
-    local tests=($(@go 'glob' "${__GO_TEST_GLOB_ARGS[@]}" "$@"))
-    @go 'edit' "${tests[@]}"
-  elif [[ "$1" == '--mocha-help' ]]; then
-    mocha -h
+    @go test backend --coverage && @go test browser --coverage
   else
-    _test_run_mocha "$@"
+    @go test backend && @go test browser
   fi
+
+  result="$?"
+
+  if [[ "$result" -eq '0' ]]; then
+    @go test end-to-end
+    result="$?"
+  fi
+
+  if [[ -n "$coverage_run" ]] && ! urlp.generate_coverage_report; then
+    result='1'
+  fi
+  return "$result"
 }
 
 _test "$@"

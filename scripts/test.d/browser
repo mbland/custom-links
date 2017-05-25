@@ -91,14 +91,14 @@ _test_browser_generate_coverage_report() {
   if ! istanbul report --root '.coverage' --include 'browser.json'; then
     @go.printf 'Failed to generate coverage report.\n' >&2
     return 1
-  elif [[ -z "$__COVERAGE_RUN" ]] && command -v open >/dev/null; then
+  elif [[ -z "$__TEST_ALL" ]] && command -v open >/dev/null; then
     # Pop open the report when invoked with --coverage, not via parent script.
     open "$report_path"
   fi
 }
 
 _test_browser() {
-  local __coverage_run="$__COVERAGE_RUN"
+  local __coverage_run
   local result=0
 
   case "$1" in
@@ -110,6 +110,10 @@ _test_browser() {
     ;;
   --coverage)
     __coverage_run='true'
+    . "$_GO_USE_MODULES" 'coverage'
+    if [[ -z "$__TEST_ALL" ]]; then
+      rm "$URLP_COVERAGE_DATADIR"/*.json
+    fi
     ;;
   '')
     ;;
@@ -119,12 +123,12 @@ _test_browser() {
     ;;
   esac
 
-  _test_browser_create_bundle
-  _test_browser_run_tests
+  _test_browser_create_bundle && _test_browser_run_tests
   result="$?"
 
-  if [[ -n "$__coverage_run" ]]; then
-    _test_browser_generate_coverage_report
+  if [[ -n "$__coverage_run" && -z "$__TEST_ALL" ]] &&
+    ! urlp.generate_coverage_report; then
+    result='1'
   fi
   return "$result"
 }
