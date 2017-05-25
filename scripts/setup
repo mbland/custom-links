@@ -16,21 +16,31 @@ urlp.install_required_tools() {
 }
 
 urlp.setup() {
-  @go.critical_section_begin
+  local result='0'
 
   export PATH="node_modules/.bin:$PATH"
-  export MOCHA_COLORS='true'
   export FORCE_COLOR='true'
 
+  @go.critical_section_begin
+  @go.log START 'Setting up project...'
   urlp.check_for_prerequisite_tools
 
   if [[ ! -d "$_GO_ROOTDIR/node_modules" ]]; then
     @go.log_command npm install
   fi
   urlp.install_required_tools
-  @go.log_command @go lint
-  @go.log_command @go test --coverage
   @go.critical_section_end
+
+  if ! @go.log_command @go lint; then
+    result='1'
+  fi
+  if ! @go.log_command @go test --coverage; then
+    result='1'
+  fi
+
+  if [[ "$result" -eq '0' ]]; then
+    @go.log FINISH 'Project setup completed successfully.'
+  fi
 }
 
 urlp.setup "$@"

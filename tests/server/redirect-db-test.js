@@ -1,7 +1,7 @@
 'use strict'
 
-var RedirectDb = require('../lib/redirect-db')
-var RedisClient = require('../lib/redis-client')
+var RedirectDb = require('../../lib/redirect-db')
+var RedisClient = require('../../lib/redis-client')
 
 var sinon = require('sinon')
 var chai = require('chai')

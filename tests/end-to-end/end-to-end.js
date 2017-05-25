@@ -1,7 +1,7 @@
 'use strict'
 
 var fs = require('fs')
-var helpers = require('./helpers')
+var helpers = require('../helpers')
 var chai = require('chai')
 var chaiAsPromised = require('chai-as-promised')
 var test = require('selenium-webdriver/testing')

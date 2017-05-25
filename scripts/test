@@ -24,7 +24,8 @@ _test_tab_completion() {
 
 _test() {
   local coverage_run
-  local result
+  local flags=()
+  local result='0'
 
   case "$1" in
   --complete)
@@ -35,27 +36,39 @@ _test() {
     ;;
   --coverage)
     coverage_run='true'
+    flags=('--coverage')
     . "$_GO_USE_MODULES" 'coverage'
+    shift
     ;;
   esac
 
+  if [[ "$#" -ne '0' ]]; then
+    @go.printf 'Unknown argument%s: %s\n' "${2:+s}" "$*" >&2
+    return 1
+  fi
+
   export __TEST_ALL='true'
+  export MOCHA_COLORS='true'
+  export FORCE_COLOR='true'
 
-  if [[ "$1" == '--coverage' ]]; then
-    @go test backend --coverage && @go test browser --coverage
-  else
-    @go test backend && @go test browser
+  @go.log START 'Running all automated tests...'
+
+  if ! @go.log_command @go test server "${flags[@]}"; then
+    result='1'
   fi
-
-  result="$?"
-
-  if [[ "$result" -eq '0' ]]; then
-    @go test end-to-end
-    result="$?"
+  if ! @go.log_command @go test browser "${flags[@]}"; then
+    result='1'
   fi
-
+  if ! @go.log_command @go test end-to-end; then
+    result='1'
+  fi
   if [[ -n "$coverage_run" ]] && ! urlp.generate_coverage_report; then
     result='1'
+  fi
+  if [[ "$result" -eq '0' ]]; then
+    @go.log FINISH 'All automated tests finished successfully.'
+  else
+    @go.log ERROR 'One or more of the tests failed; see results above.'
   fi
   return "$result"
 }

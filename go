@@ -32,6 +32,10 @@ fi
 
 export PATH="node_modules/.bin:$PATH"
 
+if [[ -t 1 || -n "$TRAVIS" ]]; then
+  _GO_LOG_FORMATTING='true'
+fi
+
 . "$_GO_USE_MODULES" 'log'
 
 if [[ ! -d "$_GO_ROOTDIR/node_modules" ]]; then

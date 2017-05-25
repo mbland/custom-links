@@ -1,7 +1,7 @@
 'use strict'
 
-var RedisClient = require('../lib/redis-client')
-var helpers = require('./helpers')
+var RedisClient = require('../../lib/redis-client')
+var helpers = require('../helpers')
 var redis = require('redis')
 var sinon = require('sinon')
 var chai = require('chai')
