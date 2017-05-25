@@ -1,10 +1,10 @@
 'use strict'
 
-var appLib = require('../lib')
+var appLib = require('../../lib')
 var assembleApp = appLib.assembleApp
 var sessionParams = appLib.sessionParams
-var Config = require('../lib/config')
-var RedirectDb = require('../lib/redirect-db')
+var Config = require('../../lib/config')
+var RedirectDb = require('../../lib/redirect-db')
 var express = require('express')
 var request = require('supertest')
 var chai = require('chai')

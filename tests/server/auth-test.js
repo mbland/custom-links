@@ -1,9 +1,9 @@
 'use strict'
 
-var auth = require('../lib/auth')
-var testAuth = require('../lib/auth/test')
-var googleAuth = require('../lib/auth/google')
-var RedirectDb = require('../lib/redirect-db')
+var auth = require('../../lib/auth')
+var testAuth = require('../../lib/auth/test')
+var googleAuth = require('../../lib/auth/google')
+var RedirectDb = require('../../lib/redirect-db')
 
 var sinon = require('sinon')
 var chai = require('chai')

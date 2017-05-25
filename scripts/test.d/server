@@ -1,6 +1,6 @@
 #! /bin/bash
 # 
-# Run automated backend tests
+# Run automated server tests
 #
 # Usage:
 #   {{go}} {{cmd}} [--coverage|--edit|--list|--mocha-help] [<glob>...]
@@ -14,15 +14,15 @@
 # In addition to the above option flags, all underlying mocha flags are
 # available.
 #
-# Without <glob> arguments, runs (or edits, or lists) all backend tests from
-# 'tests/'. With one or more <glob> arguments, only runs tests matching
-# 'tests/<glob>-test.js'.
+# Without <glob> arguments, runs (or edits, or lists) all server tests from
+# 'tests/server/'. With one or more <glob> arguments, only runs tests matching
+# 'tests/server/<glob>-test.js'.
 #
 # The '--coverage' flag will place its output in a directory called 'coverage'.
 # An HTML report will be available at 'coverage/lcov-report/index.html'.
 
 declare -r __GO_TEST_FLAGS=('--coverage' '--edit' '--list' '--mocha-help')
-declare -r __GO_TEST_GLOB_ARGS=('tests' '-test.js')
+declare -r __GO_TEST_GLOB_ARGS=('tests/server' '-test.js')
 declare -r __GO_MOCHA_FLAGS_WITH_ARGS=(
   '-O' '--reporter-options'
   '-R' '--reporter'

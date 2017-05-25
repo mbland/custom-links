@@ -24,7 +24,8 @@ _test_tab_completion() {
 
 _test() {
   local coverage_run
-  local result
+  local flags=()
+  local result='0'
 
   case "$1" in
   --complete)
@@ -35,23 +36,16 @@ _test() {
     ;;
   --coverage)
     coverage_run='true'
+    flags=('--coverage')
     . "$_GO_USE_MODULES" 'coverage'
     ;;
   esac
 
   export __TEST_ALL='true'
 
-  if [[ "$1" == '--coverage' ]]; then
-    @go test backend --coverage && @go test browser --coverage
-  else
-    @go test backend && @go test browser
-  fi
-
-  result="$?"
-
-  if [[ "$result" -eq '0' ]]; then
-    @go test end-to-end
-    result="$?"
+  if ! @go test server "${flags[@]}" || ! @go test browser "${flags[@]}" ||
+    ! @go test end-to-end; then
+    result='1'
   fi
 
   if [[ -n "$coverage_run" ]] && ! urlp.generate_coverage_report; then

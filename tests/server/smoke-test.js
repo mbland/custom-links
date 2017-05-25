@@ -1,7 +1,7 @@
 'use strict'
 
 var path = require('path')
-var helpers = require('./helpers')
+var helpers = require('../helpers')
 var chai = require('chai')
 var chaiAsPromised = require('chai-as-promised')
 
@@ -9,7 +9,8 @@ chai.should()
 chai.use(chaiAsPromised)
 
 describe('Smoke test', function() {
-  var testConfig = path.join(__dirname, 'helpers', 'system-test-config.json'),
+  var testConfig = path.join(
+        path.dirname(__dirname), 'helpers', 'system-test-config.json'),
       doLaunch,
       serverInfo
 

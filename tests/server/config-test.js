@@ -1,7 +1,7 @@
 'use strict'
 
-var Config = require('../lib/config')
-var helpers = require('./helpers')
+var Config = require('../../lib/config')
+var helpers = require('../helpers')
 var path = require('path')
 
 var sinon = require('sinon')
@@ -9,7 +9,8 @@ var chai = require('chai')
 var expect = chai.expect
 chai.should()
 
-var TEST_CONFIG_PATH = path.join(__dirname, 'helpers', 'test-config.json')
+var TEST_CONFIG_PATH = path.join(
+  path.dirname(__dirname), 'helpers', 'test-config.json')
 
 describe('config', function() {
   var envVarsToRestore, envVarsToDelete, setEnvVar
