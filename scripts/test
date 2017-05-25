@@ -5,6 +5,12 @@
 # Usage:
 #   {{go}} {{cmd}} [--coverage|--edit|--list|--mocha-help] [<glob>...]
 #
+#   To run browser tests only:
+#   {{go}} {{cmd}} browser [--coverage]
+#
+#   To run end-to-end tests:
+#   {{go}} {{cmd}} end-to-end
+#
 # Options:
 #   --coverage    Collect test coverage data using nyc/istanbul
 #   --edit        Open matching test files using `{{go}} edit`
@@ -14,8 +20,13 @@
 # In addition to the above option flags, all underlying mocha flags are
 # available.
 #
-# Without <glob> arguments, runs (or edits, or lists) all tests. With one or
-# more <glob> arguments, only runs tests matching 'tests/<glob>-test.js'.
+# Without <glob> arguments, runs (or edits, or lists) all backend tests from
+# 'tests/'. With one or more <glob> arguments, only runs tests matching
+# 'tests/<glob>-test.js'.
+#
+# With the '--coverage' flag, it will also run the browser tests using
+# PhantomJS. To run browser tests only, without coverage, run `{{go}} {{cmd}}
+# browser`.
 #
 # The '--coverage' flag will place its output in a directory called 'coverage'.
 # An HTML report will be available at 'coverage/lcov-report/index.html'.
@@ -157,12 +168,12 @@ _test_coverage() {
 
   if [[ ! -r "$report_path" ]]; then
     return 1
-  elif [[ -z "$CI" ]]; then
+  elif [[ -z "$CI" && -z "$__SETUP_RUN" ]]; then
     echo "Report saved as: $report_path"
     if command -v open >/dev/null; then
       open "$report_path"
     fi
-  else
+  elif [[ -n "$CI" ]]; then
     if ! coveralls < "$lcov_info_path"; then
       echo "Failed to send coverage report to Coveralls." >&2
       return 1

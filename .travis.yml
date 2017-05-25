@@ -18,7 +18,7 @@ before_install:
 - "sh -e /etc/init.d/xvfb start"
 
 script:
-- "./go lint && ./go test --coverage && ./go test end-to-end"
+- "./go setup"
 
 env:
   matrix:

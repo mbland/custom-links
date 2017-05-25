@@ -9,16 +9,29 @@ urlp.check_for_required_programs() {
   fi
 }
 
+urlp.install_required_tools() {
+  if ! command -v phantomjs >/dev/null; then
+    npm install phantomjs-prebuilt
+  fi
+}
+
 urlp.setup() {
   @go.critical_section_begin
 
   export PATH="node_modules/.bin:$PATH"
   export MOCHA_COLORS='true'
+  export FORCE_COLOR='true'
+
   urlp.check_for_required_programs
-  @go.log_command npm install
+  urlp.install_required_tools
+
+  if [[ ! -d "$_GO_ROOTDIR/node_modules" ]]; then
+    @go.log_command npm install
+  fi
   @go.log_command @go lint
-  @go.log_command @go test
-  @go.log_command @go test browser
+
+  # --coverage will run both the backend and browser tests.
+  __SETUP_RUN='true' @go.log_command @go test --coverage
   SELENIUM_BROWSER=phantomjs @go.log_command @go test end-to-end
   @go.critical_section_end
 }
