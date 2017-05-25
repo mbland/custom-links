@@ -38,18 +38,37 @@ _test() {
     coverage_run='true'
     flags=('--coverage')
     . "$_GO_USE_MODULES" 'coverage'
+    shift
     ;;
   esac
 
-  export __TEST_ALL='true'
-
-  if ! @go test server "${flags[@]}" || ! @go test browser "${flags[@]}" ||
-    ! @go test end-to-end; then
-    result='1'
+  if [[ "$#" -ne '0' ]]; then
+    @go.printf 'Unknown argument%s: %s\n' "${2:+s}" "$*" >&2
+    return 1
   fi
 
+  export __TEST_ALL='true'
+  export MOCHA_COLORS='true'
+  export FORCE_COLOR='true'
+
+  @go.log START 'Running all automated tests...'
+
+  if ! @go.log_command @go test server "${flags[@]}"; then
+    result='1'
+  fi
+  if ! @go.log_command @go test browser "${flags[@]}"; then
+    result='1'
+  fi
+  if ! @go.log_command @go test end-to-end; then
+    result='1'
+  fi
   if [[ -n "$coverage_run" ]] && ! urlp.generate_coverage_report; then
     result='1'
+  fi
+  if [[ "$result" -eq '0' ]]; then
+    @go.log FINISH 'All automated tests finished successfully.'
+  else
+    @go.log ERROR 'One or more of the tests failed; see results above.'
   fi
   return "$result"
 }
