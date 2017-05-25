@@ -3,6 +3,26 @@
 # Runs end-to-end tests using Selenium and Mocha
 
 _test_end_to_end() {
+  local node_version
+  local major_version
+
+  node_version="$(node --version)"
+
+  if [[ "$?" -eq '0' && "$node_version" =~ v([0-9]+)\. ]]; then
+    major_version="${BASH_REMATCH[1]}"
+  else
+    @go.printf '%s' "Can't determine Node.js version from " \
+      '`node --version`. Aborting...'$'\n' >&2
+    return 1
+  fi
+
+  if [[ "$major_version" -lt '6' ]]; then
+    @go.printf '%s' 'The selenium-webdriver package uses JavaScript syntax ' \
+      "that isn't available until Node.js v6.0.0 and later, but the " \
+      "available Node.js version is $node_version. Skipping..."$'\n' >&2
+    return
+  fi
+
   if [[ -n "$CI" ]]; then
     export SELENIUM_BROWSER=phantomjs
   fi
