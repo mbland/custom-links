@@ -1,0 +1,163 @@
+#! /bin/bash
+# 
+# Run automated backend tests
+#
+# Usage:
+#   {{go}} {{cmd}} [--coverage|--edit|--list|--mocha-help] [<glob>...]
+#
+# Options:
+#   --coverage    Collect test coverage data using nyc/istanbul
+#   --edit        Open matching test files using `{{go}} edit`
+#   --list        List test suite names without executing them
+#   --mocha-help  Show output from `mocha --help`
+#
+# In addition to the above option flags, all underlying mocha flags are
+# available.
+#
+# Without <glob> arguments, runs (or edits, or lists) all backend tests from
+# 'tests/'. With one or more <glob> arguments, only runs tests matching
+# 'tests/<glob>-test.js'.
+#
+# The '--coverage' flag will place its output in a directory called 'coverage'.
+# An HTML report will be available at 'coverage/lcov-report/index.html'.
+
+declare -r __GO_TEST_FLAGS=('--coverage' '--edit' '--list' '--mocha-help')
+declare -r __GO_TEST_GLOB_ARGS=('tests' '-test.js')
+declare -r __GO_MOCHA_FLAGS_WITH_ARGS=(
+  '-O' '--reporter-options'
+  '-R' '--reporter'
+  '-g' '--grep'
+  '-f' '--fgrep'
+  '-r' '--require'
+  '-s' '--slow'
+  '-t' '--timeout'
+  '-u' '--ui'
+  '-w' '--watch'
+  '--compilers'
+  '--globals'
+  '--opts'
+  '--retries'
+  '--watch-extensions'
+)
+
+_test_mocha_flags() {
+  local flag_line_pattern='^ *-'
+  local line
+
+  mocha -h | while read -r line; do
+    if [[ "$line" =~ $flag_line_pattern ]]; then
+      local line="${line#*-}"
+      line="${line%%[ <]*}"
+      echo "-${line/,/}"
+    fi
+  done
+}
+
+_test_tab_completion() {
+  local word_index="$1"
+  shift
+  local args=("$@")
+  local word="${args[$word_index]}"
+
+  if [[ "$word_index" -eq '0' ]]; then
+    if [[ "${1:0:1}" == '-' ]]; then
+      @go.compgen -W "${__GO_TEST_FLAGS[*]} $(_test_mocha_flags)" -- "$1"
+      return
+    else
+      echo '-'
+    fi
+  fi
+  @go 'glob' '--complete' "$((word_index + ${#__GO_TEST_GLOB_ARGS[@]}))" \
+    "${__GO_TEST_GLOB_ARGS[@]}" "${args[@]}"
+}
+
+_test_is_mocha_flag_with_arg() {
+  local i
+
+  for ((i=0; i != "${#__GO_MOCHA_FLAGS_WITH_ARGS[@]}"; ++i)); do
+    if [[ "${__GO_MOCHA_FLAGS_WITH_ARGS[$i]}" == "$1" ]]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+_test_parse_command_line() {
+  while [[ "$#" -ne 0 ]]; do
+    if [[ "${1:0:1}" == '-' ]]; then
+      if [[ "${#glob_patterns[@]}" -ne '0' ]]; then
+        printf "Please specify all flags before glob patterns." >&2
+        return 1
+      fi
+
+      __test_mocha_flags+=("$1")
+      if _test_is_mocha_flag_with_arg "$1"; then
+        __test_mocha_flags+=("$2")
+        shift
+      fi
+    else
+      __test_glob_patterns+=("$1")
+    fi
+    shift
+  done
+}
+
+_test_run_mocha() {
+  local __test_mocha_flags=()
+  local __test_glob_patterns=()
+  local help_flag_pattern='-(h|-help)'
+  local argv=()
+
+  _test_parse_command_line "$@"
+
+  if [[ "${__test_mocha_flags[*]}" =~ $help_flag_pattern ]]; then
+    mocha -h
+    return
+  fi
+
+  argv=("${__test_mocha_flags[@]}"
+    $(@go 'glob' "${__GO_TEST_GLOB_ARGS[@]}" "${__test_glob_patterns[@]}"))
+
+  if [[ "$__coverage_run" == 'true' ]]; then
+    _test_generate_coverage_report "${argv[@]}"
+  else
+    mocha "${argv[@]}"
+  fi
+}
+
+_test_generate_coverage_report() {
+  . "$_GO_USE_MODULES" 'coverage'
+
+  if ! nyc --reporter='lcov' --temp-directory='.coverage' mocha "$@"; then
+    @go.printf 'Backend tests or coverage collection failed.\n' >&2
+    return 1
+  elif [[ -z "$__TEST_ALL" ]]; then
+    urlp.generate_coverage_report
+  fi
+}
+
+_test() {
+  if [[ "$1" == '--complete' ]]; then
+    # Tab completions
+    shift
+    _test_tab_completion "$@"
+    return
+  fi
+
+  if [[ "$1" == '--coverage' ]]; then
+    __coverage_run='true' _test_run_mocha "${@:2}"
+  elif [[ "$1" == '--list' ]]; then
+    shift
+    @go 'glob' '--trim' "${__GO_TEST_GLOB_ARGS[@]}" "$@"
+  elif [[ "$1" == '--edit' ]]; then
+    shift
+    local tests=($(@go 'glob' "${__GO_TEST_GLOB_ARGS[@]}" "$@"))
+    @go 'edit' "${tests[@]}"
+  elif [[ "$1" == '--mocha-help' ]]; then
+    mocha -h
+  else
+    _test_run_mocha "$@"
+  fi
+}
+
+_test "$@"
