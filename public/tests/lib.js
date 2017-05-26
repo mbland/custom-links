@@ -29,8 +29,23 @@
 
 before(function() {
   return window.urlpTest.createFixture()
+    .then(function() {
+      return urlp.xhr('POST', '/coverage/reset')
+        .catch(function(err) {
+          console.log('failed to clear coverage data: ' + (err.message || err))
+        })
+    })
 })
 
 beforeEach(function() {
-  window.urlpTest.resetFixture()
+  return window.urlpTest.resetFixture()
+})
+
+after(function() {
+  if (window.__coverage__) {
+    return urlp.xhr('POST', '/coverage/client', window.__coverage__)
+      .catch(function(err) {
+        console.log('failed to post coverage data: ' + (err.message || err))
+      })
+  }
 })
