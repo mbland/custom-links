@@ -210,8 +210,6 @@
         result.innerHTML = resultData.message
         return urlp.flashElement(resultFlash, result.outerHTML)
           .then(function() {
-            // TODO(mbland): Add a unit test for this (currently covered by
-            // tests/end-to-end.js).
             var link = resultFlash.getElementsByTagName('A')[0]
             if (link) {
               link.focus()

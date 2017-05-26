@@ -382,27 +382,42 @@ describe('URL Pointers', function() {
   })
 
   describe('createLinkClick', function() {
-    var button, result
+    var view, button, result
 
     beforeEach(function() {
-      var view
       urlp.showView('#')
       view = urlpTest.getView('landing-view')[0]
       button = view.getElementsByTagName('button')[0]
       result = view.getElementsByClassName('result')[0]
 
+      // Attach the view to the body to make it visible; needed to test
+      // focus/document.activeElement.
+      document.body.appendChild(view)
+
       // Stub urlp.fade() instead of urlp.flashElement() because we depend upon
       // the result's innerHTML to be set by the latter.
-      stubOut('fade').returns(Promise.resolve(result))
+      stubOut('fade').callsFake(function(element, increment) {
+        element.style.opacity = increment < 0.0 ? 0 : 1
+        return Promise.resolve(element)
+      })
+    })
+
+    afterEach(function() {
+      view.parentNode.removeChild(view)
     })
 
     it('flashes on success', function() {
-      stubOut('createLink').returns(Promise.resolve('success'))
+      stubOut('createLink')
+        .returns(Promise.resolve('<a href="/foo">success</a>'))
       button.click()
       return result.done.should.be.fulfilled.then(function() {
-        var successDiv = result.getElementsByClassName('success')[0]
+        var successDiv = result.getElementsByClassName('success')[0],
+            anchor
         expect(successDiv).to.not.be.undefined
         successDiv.textContent.should.equal('success')
+        anchor = successDiv.getElementsByTagName('A')[0]
+        expect(anchor).to.not.be.undefined
+        anchor.should.equal(document.activeElement)
       })
     })
 
