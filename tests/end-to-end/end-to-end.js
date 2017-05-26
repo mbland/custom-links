@@ -24,7 +24,7 @@ test.describe('End-to-end test', function() {
       .forBrowser('chrome')
       .build()
 
-    return helpers.launchAll().then(function(result) {
+    return helpers.launchAll().then(result => {
       serverInfo = result
       url = 'http://localhost:' + serverInfo.port + '/'
       targetLocation = url + 'tests/redirect-target.html'
@@ -32,24 +32,21 @@ test.describe('End-to-end test', function() {
   })
 
   test.after(function() {
-    return helpers.killServer(serverInfo.server).then(function() {
-      return helpers.killServer(serverInfo.redis.server)
-    })
+    return helpers.killServer(serverInfo.server)
+      .then(() => helpers.killServer(serverInfo.redis.server))
   })
 
   test.afterEach(function() {
     driver.quit()
   })
 
-  activeElement = function() {
-    return driver.switchTo().activeElement()
-  }
+  activeElement = () => driver.switchTo().activeElement()
 
-  takeScreenshot = function() {
-    driver.takeScreenshot().then((screenshot) => {
+  takeScreenshot = () => {
+    driver.takeScreenshot().then(screenshot => {
       return new Promise((resolve, reject) => {
         fs.writeFile('screenshot.png', screenshot, 'base64',
-          (err) => err ? reject(err) : resolve())
+          err => err ? reject(err) : resolve())
       })
     })
   }
@@ -59,10 +56,9 @@ test.describe('End-to-end test', function() {
     activeElement().sendKeys('foo' + Key.TAB)
     activeElement().sendKeys(targetLocation + Key.TAB)
     activeElement().sendKeys(Key.ENTER)
-    driver.wait(function() {
-      return activeElement().getText().then(function(text) {
-        return text === url + 'foo'
-      })
+    driver.wait(() => {
+      return activeElement().getText()
+        .then(text => text === url + 'foo')
     }, 1250)
     activeElement().click()
     driver.getCurrentUrl().should.become(targetLocation)
