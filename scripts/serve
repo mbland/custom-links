@@ -38,7 +38,8 @@ urlp.serve() {
     return
     ;;
   --test)
-    live-server public/
+    live-server \
+      --middleware="$_GO_ROOTDIR/tests/helpers/coverage-middleware.js" public/
     return
     ;;
   esac

@@ -1,5 +1,7 @@
 'use strict'
 
+var express = require('express')
+var app = express()
 var istanbulMiddleware = require('istanbul-middleware')
 var path = require('path')
 var url = require('url')
@@ -7,14 +9,17 @@ var rootDir = path.dirname(path.dirname(__dirname))
 
 istanbulMiddleware.hookLoader(rootDir)
 
-module.exports = istanbulMiddleware.createClientHandler(rootDir, {
+app.use('/coverage', istanbulMiddleware.createHandler())
+
+app.use('/', istanbulMiddleware.createClientHandler(rootDir, {
+  matcher(req) {
+    return /\.js$/.test(req.url) &&
+      ! (/\/(vendor|generated)\//.test(req.url) || /\.min\.js$/.test(req.url))
+  },
   pathTransformer(req) {
     var pathname = url.parse(req.url).pathname.substring(1)
-
-    if (/\/(vendor|generated)\//.test(pathname) ||
-        /\.min\.js$/.test(pathname)) {
-      return null
-    }
     return path.resolve(rootDir, 'public', pathname)
   }
-})
+}))
+
+module.exports = app
