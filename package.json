@@ -33,6 +33,7 @@
     "coveralls": "^2.13.1",
     "eslint": "^3.19.0",
     "istanbul": "^0.4.5",
+    "istanbul-middleware": "^0.2.2",
     "live-server": "^1.2.0",
     "mocha": "^3.3.0",
     "mocha-phantomjs-core": "^2.1.1",

@@ -25,22 +25,14 @@ _test_browser_tab_completion() {
 
 _test_browser_create_bundle() {
   local helper_dir="$TEST_BROWSER_HELPER_DIR"
-  local bundle
+  local bundle="$helper_dir/index.js"
 
   if [[ ! -d "$helper_dir" ]] && ! mkdir -p "$helper_dir"; then
     @go.printf 'Failed to create directory: %s\n' "$helper_dir" >&2
     return 1
   fi
 
-  if [[ "$__coverage_run" == 'true' ]]; then
-    bundle="$helper_dir/coverage.js"
-    browserify -t [ browserify-istanbul --no-defaultIgnore \
-      --ignore 'public/tests/vendor/*' --ignore 'public/tests/generated/*' ] \
-      "$TEST_BROWSER_HELPER_INPUT" 'public/app.js' public/tests/*.js > "$bundle"
-  else
-    bundle="$helper_dir/index.js"
-    browserify "$TEST_BROWSER_HELPER_INPUT" >"$bundle"
-  fi
+  browserify "$TEST_BROWSER_HELPER_INPUT" >"$bundle"
 
   if [[ "$?" -ne '0' ]]; then
     @go.printf 'Browserify failed to create: %s\n' "$bundle" >&2
@@ -60,10 +52,11 @@ _test_browser_run_tests() {
     return 1
   fi
   test_server_url="http://localhost:${port}/tests/"
-  test_server_url+="${__coverage_run:+coverage.html}"
 
   set -m
-  live-server --no-browser --port=${port} public/ &
+  live-server --no-browser --port=${port} \
+    --middleware="$_GO_ROOTDIR/tests/helpers/coverage-middleware.js" public/ &
+
   if [[ "$?" -ne '0' ]]; then
     @go.printf 'Failed to launch live-server on port %d.\n' "$port" >&2
     return 1
