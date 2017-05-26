@@ -5,7 +5,7 @@
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="vendor/mocha.css" />
-    <style type="text/css" media="all">#coverage{font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;margin:60px 50px;}#coverage ul{list-style:none;}</style>
+    <style type="text/css" media="all">#coverage{font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;margin:60px 50px;display:none;}#coverage ul{list-style:none;}</style>
   </head>
   <body>
     <div id="mocha"></div>
@@ -29,12 +29,17 @@
       mocha.checkLeaks();
       mocha.run()
     </script>
-    <div id="coverage" >
+    <div id="coverage">
       <ul>
         <li><a href="/coverage">View coverage report</a></li>
         <li><a href="/coverage.json">Download coverage.json</a></li>
         <li><a href="/coverage/download">Download coverage.zip (HTML, JSON, and LCOV)</a></li>
       </ul>
     </div>
+    <script>
+      if (window.__coverage__) {
+        document.getElementById('coverage').style.display = 'block'
+      }
+    </script>
   </body>
 </html>
