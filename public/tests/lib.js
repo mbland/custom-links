@@ -25,15 +25,21 @@
     return document.getElementsByClassName('view-container').item(0)
       .getElementsByClassName(viewClass)
   }
+
+  urlpTest.handleXhrError = function(description) {
+    return function(err) {
+      console.log('failed to ' + description + ': ' + (err.message || err))
+    }
+  }
 })
 
 before(function() {
   return window.urlpTest.createFixture()
     .then(function() {
-      return urlp.xhr('POST', '/coverage/reset')
-        .catch(function(err) {
-          console.log('failed to clear coverage data: ' + (err.message || err))
-        })
+      if (window.__coverage__) {
+        return window.urlp.xhr('POST', '/coverage/reset')
+          .catch(window.urlpTest.handleXhrError('clear coverage data'))
+      }
     })
 })
 
@@ -43,9 +49,7 @@ beforeEach(function() {
 
 after(function() {
   if (window.__coverage__) {
-    return urlp.xhr('POST', '/coverage/client', window.__coverage__)
-      .catch(function(err) {
-        console.log('failed to post coverage data: ' + (err.message || err))
-      })
+    return window.urlp.xhr('POST', '/coverage/client', window.__coverage__)
+      .catch(window.urlpTest.handleXhrError('post coverage data'))
   }
 })

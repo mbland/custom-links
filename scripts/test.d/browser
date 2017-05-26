@@ -10,6 +10,8 @@
 
 declare TEST_BROWSER_HELPER_DIR='public/tests/generated'
 declare TEST_BROWSER_HELPER_INPUT='tests/helpers/browser.js'
+declare TEST_BROWSER_COVERAGE_FILE="$_GO_ROOTDIR/.coverage/browser.json"
+declare TEST_BROWSER_COVERAGE_MIDDLEWARE="$_GO_ROOTDIR/tests/helpers/coverage-middleware.js"
 
 _test_browser_tab_completion() {
   local word_index="$1"
@@ -51,11 +53,11 @@ _test_browser_run_tests() {
     @go.printf 'Failed to pick an unused port.\n' >&2
     return 1
   fi
-  test_server_url="http://localhost:${port}/tests/"
+  test_server_url="http://localhost:${port}"
 
   set -m
   live-server --no-browser --port=${port} \
-    --middleware="$_GO_ROOTDIR/tests/helpers/coverage-middleware.js" public/ &
+    --middleware="$TEST_BROWSER_COVERAGE_MIDDLEWARE" public/ &
 
   if [[ "$?" -ne '0' ]]; then
     @go.printf 'Failed to launch live-server on port %d.\n' "$port" >&2
@@ -67,26 +69,25 @@ _test_browser_run_tests() {
   server_pid="$!"
 
   phantomjs node_modules/mocha-phantomjs-core/mocha-phantomjs-core.js \
-    "$test_server_url" 'spec' "{ \
-      \"hooks\": \"$_GO_ROOTDIR/tests/helpers/phantomjs.js\",\
-      \"useColors\": true\
-    }"
+    "$test_server_url/tests/" 'spec' "{ \"useColors\": true }"
   result="$?"
+  _test_browser_download_coverage
+
   kill -INT "$server_pid"
   set +m
   return "$result"
 }
 
-_test_browser_generate_coverage_report() {
-  local report_path="${_GO_ROOTDIR}/coverage/lcov-report/index.html"
-
-  # .coverage/browser.json is defined in tests/helpers/phantomjs.js
-  if ! istanbul report --root '.coverage' --include 'browser.json'; then
-    @go.printf 'Failed to generate coverage report.\n' >&2
-    return 1
-  elif [[ -z "$__TEST_ALL" ]] && command -v open >/dev/null; then
-    # Pop open the report when invoked with --coverage, not via parent script.
-    open "$report_path"
+_test_browser_download_coverage() {
+  if [[ -z "$__coverage_run" ]]; then
+    return
+  elif ! mkdir -p "${TEST_BROWSER_COVERAGE_FILE%/*}"; then
+    @go.log WARN 'Failed to create coverage data directory.'
+  elif ! command -v curl >/dev/null; then
+    @go.log WARN 'curl must be installed to download coverage data.'
+  elif ! curl "$test_server_url/coverage.json" \
+    -s -o "$TEST_BROWSER_COVERAGE_FILE"; then
+    @go.log WARN 'Failed to download coverage data.'
   fi
 }
 
@@ -105,7 +106,7 @@ _test_browser() {
     __coverage_run='true'
     . "$_GO_USE_MODULES" 'coverage'
     if [[ -z "$__TEST_ALL" ]]; then
-      rm "$URLP_COVERAGE_DATADIR"/*.json
+      rm -f "$URLP_COVERAGE_DATADIR"/*.json
     fi
     ;;
   '')
