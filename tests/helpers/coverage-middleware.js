@@ -10,6 +10,9 @@ var rootDir = path.dirname(path.dirname(__dirname))
 istanbulMiddleware.hookLoader(rootDir)
 
 app.use('/coverage', istanbulMiddleware.createHandler())
+app.get('/coverage.json', function(req, res) {
+  res.json(global.__coverage__ || {})
+})
 
 app.use('/', istanbulMiddleware.createClientHandler(rootDir, {
   matcher(req) {
