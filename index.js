@@ -35,7 +35,7 @@ urlPointers.assembleApp(
 
 var server = app.listen(config.PORT)
 
-process.on('exit', function() {
+process.on('exit', () => {
   server.close()
   redisClient.quit()
 })

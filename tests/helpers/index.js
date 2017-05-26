@@ -16,26 +16,24 @@ module.exports = exports = {
   SERVER_MAIN: serverMain,
   TEST_CONFIG_PATH: testConfigPath,
 
-  baseConfig: function() {
+  baseConfig() {
     return JSON.parse(JSON.stringify(testConfig))
   },
 
-  pickUnusedPort: function() {
-    return new Promise(function(resolve) {
+  pickUnusedPort() {
+    return new Promise(resolve => {
       var server = net.createServer()
 
-      server.listen(0, function() {
+      server.listen(0, () => {
         var port = server.address().port
-        server.on('close', function() {
-          resolve(port)
-        })
+        server.on('close', () => resolve(port))
         server.close()
       })
     })
   },
 
-  launchRedis: function(port) {
-    return new Promise(function(resolve, reject) {
+  launchRedis(port) {
+    return new Promise((resolve, reject) => {
       var redisServer,
           stdout = ''
 
@@ -43,21 +41,21 @@ module.exports = exports = {
         ['--port', port, '--save', '', '--appendonly', 'no',
           '--dbfilename', 'some-nonexistent-file.db'])
 
-      redisServer.stdout.on('data', function(data) {
+      redisServer.stdout.on('data', data => {
         stdout += data
         if (stdout.match('The server is now ready to accept connections')) {
           resolve({ port: port, server: redisServer })
         }
       })
-      redisServer.on('error', function(err) {
+      redisServer.on('error', err => {
         reject(new Error('failed to start redis-server on port ' + port +
           ': ' + err))
       })
     })
   },
 
-  launchServer: function(port, redisPort, configPath) {
-    return new Promise(function(resolve, reject) {
+  launchServer(port, redisPort, configPath) {
+    return new Promise((resolve, reject) => {
       var args = [ exports.SERVER_MAIN ],
           output = { stdout: '', stderr: '' },
           server,
@@ -74,17 +72,17 @@ module.exports = exports = {
       process.env.URL_POINTERS_TEST_AUTH = 'mbland@acm.org'
       server = spawn('node', args)
 
-      server.stdout.on('data', function(data) {
+      server.stdout.on('data', data => {
         output.stdout += data
         if (output.stdout.match(okString)) {
           resolve({server: server, port: port, output: output})
         }
       })
-      server.stderr.on('data', function(data) {
+      server.stderr.on('data', data => {
         output.stderr += data
         reject(new Error(output.stderr))
       })
-      server.on('error', function(err) {
+      server.on('error', err => {
         err.message = 'failed to start ' + exports.SERVER_MAIN + ': ' +
           err.message
         reject(err)
@@ -92,42 +90,37 @@ module.exports = exports = {
     })
   },
 
-  launchAll: function(configPath) {
+  launchAll(configPath) {
     var redisInfo
     return exports.pickUnusedPort()
       .then(exports.launchRedis)
-      .catch(function(err) {
+      .catch(err => {
         err.message = 'Failed to launch redis server: ' + err.message
         return Promise.reject(err)
       })
-      .then(function(result) {
+      .then(result => {
         redisInfo = result
         return exports.pickUnusedPort()
-          .then(function(port) {
-            return exports.launchServer(port, redisInfo.port, configPath)
-          })
-          .catch(function(err) {
+          .then(port => exports.launchServer(port, redisInfo.port, configPath))
+          .catch(err => {
             err.message = 'Failed to launch server: ' + err.message
-            return exports.killServer(redisInfo.server).then(function() {
-              return Promise.reject(err)
-            })
+            return exports.killServer(redisInfo.server)
+              .then(() => Promise.reject(err))
           })
-          .then(function(serverInfo) {
+          .then(serverInfo => {
             serverInfo.redis = redisInfo
             return serverInfo
           })
       })
   },
 
-  killServer: function(server, signal) {
-    return new Promise(function(resolve) {
+  killServer(server, signal) {
+    return new Promise(resolve => {
       if (!server) {
         return
       }
       signal = signal || 'SIGTERM'
-      server.on('exit', function() {
-        resolve()
-      })
+      server.on('exit', resolve)
       server.kill(signal)
     })
   }
