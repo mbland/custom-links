@@ -15,6 +15,30 @@ urlp.install_required_tools() {
   fi
 }
 
+urlp.install_optional_tools() {
+  local karma_dependencies=('karma-browserify'
+    'karma-chai'
+    'karma-chrome-launcher'
+    'karma-detect-browsers'
+    'karma-edge-launcher'
+    'karma-firefox-launcher'
+    'karma-ie-launcher'
+    'karma-mocha'
+    'karma-mocha-reporter'
+    'karma-opera-launcher'
+    'karma-phantomjs-launcher'
+    'karma-safari-launcher'
+    'karma-sinon'
+    'watchify')
+
+  if [[ "$CI" != 'true' ]] && command -v karma >/dev/null; then
+    if ! karma --help >/dev/null 2>&1; then
+      npm install karma
+    fi
+    npm install "${karma_dependencies[@]}"
+  fi
+}
+
 urlp.setup() {
   local result='0'
 
@@ -23,14 +47,17 @@ urlp.setup() {
 
   @go.critical_section_begin
   @go.log START 'Setting up project...'
-  urlp.check_for_prerequisite_tools
+  @go.log_command urlp.check_for_prerequisite_tools
 
   if [[ -z "$CI" ]]; then
     @go.log_command npm install
   fi
-  urlp.install_required_tools
+  @go.log_command urlp.install_required_tools
   @go.critical_section_end
 
+  if ! @go.log_command urlp.install_optional_tools; then
+    result='1'
+  fi
   if ! @go.log_command @go lint; then
     result='1'
   fi

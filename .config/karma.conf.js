@@ -1,15 +1,13 @@
-var path = require('path')
-
 module.exports = function(config) {
-  config.set({
-    basePath: path.resolve(__dirname, '../../public'),
+  var options = {
+    basePath: '../public',
 
     // frameworks: https://npmjs.org/browse/keyword/karma-adapter
     frameworks: ['mocha', 'sinon', 'chai', 'browserify', 'detectBrowsers'],
 
     files: [
       'app.js',
-      path.resolve(__dirname, '../helpers/browser.js'),
+      '../tests/helpers/browser.js',
       'tests/*.js',
       {pattern: 'index.html', include: false},
       {pattern: 'css/**/*.css', include: false}
@@ -37,33 +35,27 @@ module.exports = function(config) {
     // possible values: LOG_{DISABLE,ERROR,WARN,INFO,DEBUG}
     logLevel: config.LOG_INFO,
 
-    autoWatch: process.env.CI !== 'true',
+    autoWatch: false,
 
     // launchers: https://npmjs.org/browse/keyword/karma-launcher
-    browsers: ['Chrome', 'Firefox'],
+    // When not running under CI, `browsers` will actually get set by
+    // karma-detect-browsers.
+    browsers: [],
+    detectBrowsers: {},
 
-    detectBrowsers: {
-      enabled: process.env.CI !== 'true',
-      usePhantomJS: false
-    },
+    plugins: [ 'karma-*' ],
 
-    plugins: [
-      'karma-mocha',
-      'karma-mocha-reporter',
-      'karma-sinon',
-      'karma-chai',
-      'karma-browserify',
-      'karma-chrome-launcher',
-      'karma-firefox-launcher',
-      'karma-safari-launcher',
-      'karma-ie-launcher',
-      'karma-edge-launcher',
-      'karma-detect-browsers'
-    ],
-
-    singleRun: process.env.CI === 'true' ||
-      process.env.KARMA_SINGLE_RUN == 'true',
+    singleRun: process.env.KARMA_SINGLE_RUN === 'true',
 
     concurrency: Infinity
-  })
+  }
+
+  if (process.env.CI === 'true') {
+    options.autoWatch = false
+    options.singleRun = true
+    options.browsers.push('Chrome', 'Firefox')
+    options.detectBrowsers.enabled = false
+  }
+
+  config.set(options)
 }

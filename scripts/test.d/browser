@@ -1,16 +1,13 @@
 #! /usr/bin/env bash
 #
-# Runs browser tests using Phantom JS
+# Runs browser tests
 #
 # Usage:
-#   {{go}} {{cmd}} [--coverage|--karma]
+#   {{go}} {{cmd}} [--coverage] [--single-run]
 #
 # Options:
-#   --coverage  Collect test coverage data using istanbul
-#   --karma     Run tests using Karma on all available browsers
-#
-# Globals:
-#   KARMA_SINGLE_RUN:  Run in Karma `singleRun` mode if 'true'
+#   --coverage    Collect test coverage data using istanbul
+#   --single-run  Run tests using PhantomJS
 
 declare TEST_BROWSER_HELPER_DIR='public/tests/generated'
 declare TEST_BROWSER_HELPER_INPUT='tests/helpers/browser.js'
@@ -23,10 +20,10 @@ _test_browser_tab_completion() {
   local args=("$@")
   local word="${args[$word_index]}"
 
-  if [[ "$word_index" -ne '0' ]]; then
+  if [[ "$word_index" -gt '1' ]]; then
     return 1
   fi
-  @go.compgen -W '--coverage --karma' -- "$word"
+  @go.compgen -W '--coverage --single-run' -- "$word"
 }
 
 _test_browser_create_bundle() {
@@ -47,8 +44,29 @@ _test_browser_create_bundle() {
 }
 
 _test_browser_run_tests() {
+  if ! _test_browser_create_bundle; then
+    return 1
+  fi
+  if [[ "$__single_run" == 'true' ]]; then
+    _test_browser_run_in_phantomjs
+  else
+    _test_browser_run_in_browser
+  fi
+}
+
+_test_browser_run_in_browser() {
+  local test_args=('--open=/tests/')
+
+  if [[ "$__coverage_run" == 'true' ]]; then
+    test_args+=("--middleware=$TEST_BROWSER_COVERAGE_MIDDLEWARE")
+  fi
+  live-server "${test_args[@]}" public/
+}
+
+_test_browser_run_in_phantomjs() {
   local port
   local test_server_url
+  local sleep_seconds='1'
   local server_pid
   local result
 
@@ -68,8 +86,9 @@ _test_browser_run_tests() {
     return 1
   elif [[ -n "$CI" ]]; then
     # live-server needs a little extra time on Travis.
-    sleep 1
+    sleep_seconds='3'
   fi
+  sleep "$sleep_seconds"
   server_pid="$!"
 
   phantomjs node_modules/mocha-phantomjs-core/mocha-phantomjs-core.js \
@@ -96,40 +115,42 @@ _test_browser_download_coverage() {
 }
 
 _test_browser() {
+  local arg
   local __coverage_run
+  local __single_run="${__TEST_ALL:+true}"
   local result=0
 
-  case "$1" in
-  --complete)
-    # Tab completions
+  while [[ "$#" -ne '0' ]]; do
+    arg="$1"
     shift
-    _test_browser_tab_completion "$@"
-    return
-    ;;
-  --coverage)
-    __coverage_run='true'
-    . "$_GO_USE_MODULES" 'coverage'
-    if [[ -z "$__TEST_ALL" ]]; then
-      rm -f "$URLP_COVERAGE_DATADIR"/*.json
-    fi
-    ;;
-  --karma)
-    karma start tests/browser/karma.conf.js
-    return "$?"
-    ;;
-  '')
-    ;;
-  *)
-    @go.printf 'Unknown argument: %s\n' "$1" >&2
-    return 1
-    ;;
-  esac
+    case "$arg" in
+    --complete)
+      # Tab completions
+      _test_browser_tab_completion "$@"
+      return
+      ;;
+    --coverage)
+      __coverage_run='true'
+      . "$_GO_USE_MODULES" 'coverage'
+      if [[ -z "$__TEST_ALL" ]]; then
+        rm -f "$URLP_COVERAGE_DATADIR"/*.json
+      fi
+      ;;
+    --single-run)
+      __single_run='true'
+      ;;
+    *)
+      @go.printf 'Unknown argument: %s\n' "$1" >&2
+      return 1
+      ;;
+    esac
+  done
 
-  _test_browser_create_bundle && _test_browser_run_tests
+  _test_browser_run_tests
   result="$?"
 
-  if [[ -n "$__coverage_run" && -z "$__TEST_ALL" ]] &&
-    ! urlp.generate_coverage_report; then
+  if [[ "$__coverage_run" == 'true' && "$__single_run" == 'true' &&
+    -z "$__TEST_ALL" ]] && ! urlp.generate_coverage_report; then
     result='1'
   fi
   return "$result"

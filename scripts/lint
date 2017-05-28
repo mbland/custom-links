@@ -26,7 +26,8 @@ _lint() {
     return
   fi
 
-  eslint --color $(@go 'glob' "${__GO_LINT_GLOB_ARGS[@]}" "$@")
+  eslint --color --ignore-pattern '!.config/' --max-warnings 0 \
+    $(@go 'glob' "${__GO_LINT_GLOB_ARGS[@]}" "$@")
 }
 
 _lint "$@"

@@ -60,7 +60,8 @@ _test() {
   if ! @go.log_command @go test browser "${flags[@]}"; then
     result='1'
   fi
-  if ! @go.log_command @go test browser --karma; then
+  if [[ "$CI" != 'true' ]] && command -v karma >/dev/null &&
+    ! @go.log_command karma start; then
     result='1'
   fi
   if ! @go.log_command @go test end-to-end; then

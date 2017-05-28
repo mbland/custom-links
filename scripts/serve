@@ -1,16 +1,14 @@
 #! /usr/local/env bash
 #
-# Runs a local url-pointers server or a live-server for UI tests
+# Runs a local url-pointers server
 #
 # Usage:
-#   {{go}} {{cmd}} [--test|<config-file>]
+#   {{go}} {{cmd}} [<config-file>]
 #
 # Where:
-#   --test         Run live-server for unauthenticated local UI testing
 #   <config-file>  url-pointers configuration file
 #
-# When running a url-pointers server, there must be a redis-server already
-# running.
+# There must be a redis-server already running.
 
 urlp.serve_tab_completion() {
   local word_index="$1"
@@ -19,10 +17,6 @@ urlp.serve_tab_completion() {
   local word="${args[$word_index]}"
 
   if [[ "$word_index" -eq '0' ]]; then
-    printf -- '--test\n'
-    if [[ "${1:0:1}" == '-' ]]; then
-      return
-    fi
     @go.compgen -f -- "$word"
   fi
 }
@@ -35,11 +29,6 @@ urlp.serve() {
     # Tab completions
     shift
     urlp.serve_tab_completion "$@"
-    return
-    ;;
-  --test)
-    live-server \
-      --middleware="$_GO_ROOTDIR/tests/helpers/coverage-middleware.js" public/
     return
     ;;
   esac

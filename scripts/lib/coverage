@@ -12,7 +12,10 @@ urlp.generate_coverage_report() {
   if ! istanbul report --root "$URLP_COVERAGE_DATADIR" --include '*.json'; then
     @go.printf 'Failed to generate coverage report.\n' >&2
     return 1
-  elif [[ -n "$CI" ]]; then
+  fi
+  @go.printf 'Coverage report saved as: file://%s\n' "$report_path"
+
+  if [[ -n "$CI" ]]; then
     urlp.send_coverage_report
   elif command -v open >/dev/null; then
     open "$report_path"
