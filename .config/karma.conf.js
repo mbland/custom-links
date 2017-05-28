@@ -39,7 +39,15 @@ module.exports = function(config) {
     // When not running under CI, `browsers` will actually get set by
     // karma-detect-browsers.
     browsers: [],
-    detectBrowsers: {},
+    detectBrowsers: {
+      // Work around karma-detect-browsers adding multiple Firefox builds.
+      postDetection(browsers) {
+        if (process.platform !== 'linux') {
+          return browsers
+        }
+        return browsers.filter(b => !b.startsWith('Firefox') || b === 'Firefox')
+      }
+    },
 
     plugins: [ 'karma-*' ],
 

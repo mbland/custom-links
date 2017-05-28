@@ -17,6 +17,8 @@ urlp.generate_coverage_report() {
 
   if [[ -n "$CI" ]]; then
     urlp.send_coverage_report
+  elif command -v xdg-open >/dev/null; then
+    xdg-open "$report_path"
   elif command -v open >/dev/null; then
     open "$report_path"
   fi
