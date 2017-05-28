@@ -40,7 +40,10 @@ urlp.setup() {
 
   if [[ "$result" -eq '0' ]]; then
     @go.log FINISH 'Project setup completed successfully.'
+  else
+    @go.log ERROR 'Project setup encountered errors; see above for details.'
   fi
+  return "$result"
 }
 
 urlp.setup "$@"
