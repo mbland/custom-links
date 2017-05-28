@@ -35,8 +35,6 @@ module.exports = function(config) {
     // possible values: LOG_{DISABLE,ERROR,WARN,INFO,DEBUG}
     logLevel: config.LOG_INFO,
 
-    autoWatch: false,
-
     // launchers: https://npmjs.org/browse/keyword/karma-launcher
     // When not running under CI, `browsers` will actually get set by
     // karma-detect-browsers.
