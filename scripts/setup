@@ -25,7 +25,7 @@ urlp.setup() {
   @go.log START 'Setting up project...'
   urlp.check_for_prerequisite_tools
 
-  if [[ ! -d "$_GO_ROOTDIR/node_modules" ]]; then
+  if [[ -z "$CI" ]]; then
     @go.log_command npm install
   fi
   urlp.install_required_tools

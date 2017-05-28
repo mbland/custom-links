@@ -6,6 +6,10 @@
   var urlpTest = window.urlpTest = {}
   var fixture = urlpTest.fixture = document.createElement('div')
 
+  window.expect = window.chai.expect
+  window.chai.should()
+  window.chai.use(window.chaiAsPromised)
+
   urlpTest.createFixture = function() {
     return urlp.xhr('GET', '/index.html').then(function(xhr) {
       fixture.innerHTML = xhr.responseText
@@ -40,6 +44,10 @@ before(function() {
         return window.urlp.xhr('POST', '/coverage/reset')
           .catch(window.urlpTest.handleXhrError('clear coverage data'))
       }
+    })
+    .catch(function(err) {
+      console.error('failed to create test fixture:',
+        err.message ? err : err.statusText)
     })
 })
 

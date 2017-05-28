@@ -50,6 +50,7 @@ _test() {
   export __TEST_ALL='true'
   export MOCHA_COLORS='true'
   export FORCE_COLOR='true'
+  export KARMA_SINGLE_RUN='true'
 
   @go.log START 'Running all automated tests...'
 
@@ -57,6 +58,9 @@ _test() {
     result='1'
   fi
   if ! @go.log_command @go test browser "${flags[@]}"; then
+    result='1'
+  fi
+  if ! @go.log_command @go test browser --karma; then
     result='1'
   fi
   if ! @go.log_command @go test end-to-end; then
