@@ -38,13 +38,10 @@ module.exports = function(config) {
     autoWatch: false,
 
     // launchers: https://npmjs.org/browse/keyword/karma-launcher
-    // These are the default values for continuous integration. During
-    // development, this will actually get set by karma-detect-browsers.
-    browsers: ['Chrome', 'Firefox'],
-
-    detectBrowsers: {
-      usePhantomJS: false
-    },
+    // When not running under CI, `browsers` will actually get set by
+    // karma-detect-browsers.
+    browsers: [],
+    detectBrowsers: {},
 
     plugins: [ 'karma-*' ],
 
@@ -56,6 +53,7 @@ module.exports = function(config) {
   if (process.env.CI === 'true') {
     options.autoWatch = false
     options.singleRun = true
+    options.browsers.push('Chrome', 'Firefox')
     options.detectBrowsers.enabled = false
   }
 

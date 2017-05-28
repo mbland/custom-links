@@ -1,16 +1,12 @@
 #! /usr/bin/env bash
 #
-# Runs browser tests using Phantom JS or in other browsers using Karma
+# Runs browser tests using Phantom JS
 #
 # Usage:
-#   {{go}} {{cmd}} [--coverage|--karma]
+#   {{go}} {{cmd}} [--coverage]
 #
 # Options:
 #   --coverage  Collect test coverage data using istanbul
-#   --karma     Run tests using Karma on all available browsers
-#
-# Globals:
-#   KARMA_SINGLE_RUN:  Run in Karma `singleRun` mode if 'true'
 
 declare TEST_BROWSER_HELPER_DIR='public/tests/generated'
 declare TEST_BROWSER_HELPER_INPUT='tests/helpers/browser.js'
@@ -26,7 +22,7 @@ _test_browser_tab_completion() {
   if [[ "$word_index" -ne '0' ]]; then
     return 1
   fi
-  @go.compgen -W '--coverage --karma' -- "$word"
+  @go.compgen -W '--coverage' -- "$word"
 }
 
 _test_browser_create_bundle() {
@@ -114,10 +110,6 @@ _test_browser() {
     if [[ -z "$__TEST_ALL" ]]; then
       rm -f "$URLP_COVERAGE_DATADIR"/*.json
     fi
-    ;;
-  --karma)
-    karma start
-    return "$?"
     ;;
   '')
     ;;
