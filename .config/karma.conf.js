@@ -47,19 +47,7 @@ module.exports = function(config) {
       usePhantomJS: false
     },
 
-    plugins: [
-      'karma-mocha',
-      'karma-mocha-reporter',
-      'karma-sinon',
-      'karma-chai',
-      'karma-browserify',
-      'karma-chrome-launcher',
-      'karma-firefox-launcher',
-      'karma-safari-launcher',
-      'karma-ie-launcher',
-      'karma-edge-launcher',
-      'karma-detect-browsers'
-    ],
+    plugins: [ 'karma-*' ],
 
     singleRun: process.env.CI === 'true' ||
       process.env.KARMA_SINGLE_RUN == 'true',
