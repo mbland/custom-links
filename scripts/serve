@@ -1,18 +1,14 @@
 #! /usr/local/env bash
 #
-# Runs a local url-pointers server or a live-server for UI tests
+# Runs a local url-pointers server
 #
 # Usage:
-#   {{go}} {{cmd}} [--test|<config-file>]
+#   {{go}} {{cmd}} [<config-file>]
 #
 # Where:
-#   --test         Run live-server for unauthenticated local UI testing
 #   <config-file>  url-pointers configuration file
 #
-# When running a url-pointers server, there must be a redis-server already
-# running.
-
-readonly COVERAGE_MIDDLEWARE="$_GO_ROOTDIR/tests/helpers/coverage-middleware.js"
+# There must be a redis-server already running.
 
 urlp.serve_tab_completion() {
   local word_index="$1"
@@ -21,18 +17,12 @@ urlp.serve_tab_completion() {
   local word="${args[$word_index]}"
 
   if [[ "$word_index" -eq '0' ]]; then
-    printf -- '--test --coverage\n'
-    if [[ "${1:0:1}" == '-' ]]; then
-      return
-    fi
     @go.compgen -f -- "$word"
   fi
 }
 
 urlp.serve() {
   local server_config="${1:-$_GO_ROOTDIR/test-config.json}"
-  local test_server
-  local test_args=('--open=/tests/')
 
   case "$1" in
   --complete)
@@ -41,20 +31,9 @@ urlp.serve() {
     urlp.serve_tab_completion "$@"
     return
     ;;
-  --test)
-    test_server='true'
-    ;;
-  --coverage)
-    test_server='true'
-    test_args+=("--middleware=$COVERAGE_MIDDLEWARE")
-    ;;
   esac
 
-  if [[ "$test_server" == 'true' ]]; then
-    live-server "${test_args[@]}" public/
-  else
-    node "$_GO_ROOTDIR/index.js" "$server_config"
-  fi
+  node "$_GO_ROOTDIR/index.js" "$server_config"
 }
 
 urlp.serve "$@"
