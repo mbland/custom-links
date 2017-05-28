@@ -1,6 +1,6 @@
 #! /usr/bin/env bash
 #
-# Runs browser tests using Phantom JS
+# Runs browser tests using Phantom JS or in other browsers using Karma
 #
 # Usage:
 #   {{go}} {{cmd}} [--coverage|--karma]
@@ -114,7 +114,7 @@ _test_browser() {
     fi
     ;;
   --karma)
-    karma start tests/browser/karma.conf.js
+    karma start
     return "$?"
     ;;
   '')
