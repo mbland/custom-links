@@ -40,10 +40,11 @@ module.exports = function(config) {
     autoWatch: process.env.CI !== 'true',
 
     // launchers: https://npmjs.org/browse/keyword/karma-launcher
-    browsers: ['Chrome', 'Firefox', 'PhantomJS'],
+    browsers: ['Chrome', 'Firefox'],
 
     detectBrowsers: {
-      enabled: process.env.CI !== 'true'
+      enabled: process.env.CI !== 'true',
+      usePhantomJS: false
     },
 
     plugins: [
@@ -55,10 +56,9 @@ module.exports = function(config) {
       'karma-chrome-launcher',
       'karma-firefox-launcher',
       'karma-safari-launcher',
-      'karma-phantomjs-launcher',
       'karma-ie-launcher',
       'karma-edge-launcher',
-      'karma-detect-browsers',
+      'karma-detect-browsers'
     ],
 
     singleRun: process.env.CI === 'true' ||
