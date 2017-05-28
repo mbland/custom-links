@@ -1,6 +1,5 @@
 **/vendor/*.js
 coverage/*
-node_modules/*
 public/tests/generated/**/*
 public/tests/vendor/**/*
 tmp/
