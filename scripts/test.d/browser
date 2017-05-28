@@ -49,6 +49,7 @@ _test_browser_create_bundle() {
 _test_browser_run_tests() {
   local port
   local test_server_url
+  local sleep_seconds='1'
   local server_pid
   local result
 
@@ -68,8 +69,9 @@ _test_browser_run_tests() {
     return 1
   elif [[ -n "$CI" ]]; then
     # live-server needs a little extra time on Travis.
-    sleep 1
+    sleep_seconds='3'
   fi
+  sleep "$sleep_seconds"
   server_pid="$!"
 
   phantomjs node_modules/mocha-phantomjs-core/mocha-phantomjs-core.js \
