@@ -1,5 +1,5 @@
 module.exports = function(config) {
-  config.set({
+  var options = {
     basePath: '../public',
 
     // frameworks: https://npmjs.org/browse/keyword/karma-adapter
@@ -35,21 +35,27 @@ module.exports = function(config) {
     // possible values: LOG_{DISABLE,ERROR,WARN,INFO,DEBUG}
     logLevel: config.LOG_INFO,
 
-    autoWatch: process.env.CI !== 'true',
+    autoWatch: false,
 
     // launchers: https://npmjs.org/browse/keyword/karma-launcher
-    browsers: ['Chrome', 'Firefox'],
+    // This will actually get set by karma-detect-browsers
+    browsers: [],
 
     detectBrowsers: {
-      enabled: process.env.CI !== 'true',
       usePhantomJS: false
     },
 
     plugins: [ 'karma-*' ],
 
-    singleRun: process.env.CI === 'true' ||
-      process.env.KARMA_SINGLE_RUN == 'true',
+    singleRun: process.env.KARMA_SINGLE_RUN === 'true',
 
     concurrency: Infinity
-  })
+  }
+
+  if (process.env.CI === 'true') {
+    options.autoWatch = false
+    options.singleRun = true
+  }
+
+  config.set(options)
 }
