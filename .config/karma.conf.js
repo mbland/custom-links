@@ -1,15 +1,13 @@
-var path = require('path')
-
 module.exports = function(config) {
   config.set({
-    basePath: path.resolve(__dirname, '../public'),
+    basePath: '../public',
 
     // frameworks: https://npmjs.org/browse/keyword/karma-adapter
     frameworks: ['mocha', 'sinon', 'chai', 'browserify', 'detectBrowsers'],
 
     files: [
       'app.js',
-      path.resolve(__dirname, '../tests/helpers/browser.js'),
+      '../tests/helpers/browser.js',
       'tests/*.js',
       {pattern: 'index.html', include: false},
       {pattern: 'css/**/*.css', include: false}
