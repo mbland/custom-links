@@ -47,6 +47,12 @@ _test_browser_run_tests() {
   if ! _test_browser_create_bundle; then
     return 1
   fi
+
+  if [[ "$OSTYPE" == 'msys' ]]; then
+    export MSYS_NO_PATHCONV='true'
+    export MSYS2_ARG_CONV_EXCL='*'
+  fi
+
   if [[ "$__single_run" == 'true' ]]; then
     _test_browser_run_in_phantomjs
   else
