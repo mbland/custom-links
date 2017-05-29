@@ -32,6 +32,13 @@ fi
 
 export PATH="node_modules/.bin:$PATH"
 
+# Keep this until the following is resolved:
+# https://github.com/mbland/go-script-bash/issues/176
+if [[ "$OSTYPE" == 'msys' ]]; then
+  export MSYS_NO_PATHCONV='true'
+  export MSYS2_ARG_CONV_EXCL='*'
+fi
+
 if [[ -t 1 || -n "$TRAVIS" ]]; then
   _GO_LOG_FORMATTING='true'
 fi
