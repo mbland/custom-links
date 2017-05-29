@@ -1,0 +1,14 @@
+#! /usr/bin/env bash
+#
+# Functions and variables shared across setup scripts
+
+export URLP_PLATFORM="${URLP_PLATFORM:-$(node -e \
+  'console.log(process.platform)')}"
+
+urlp.npm_install() {
+  if [[ "$URLP_PLATFORM" == 'win32' ]]; then
+    npm install -s --no-progress "$@" >/dev/null 2>&1
+  else
+    npm install "$@"
+  fi
+}
