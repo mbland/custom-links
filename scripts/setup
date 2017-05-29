@@ -36,7 +36,7 @@ urlp.setup_windows() {
   if ! @go.log_command @go lint; then
     result='1'
   fi
-  if ! KARMA_SINGLE_RUN='true' @go.log_command karma start; then
+  if ! @go.log_command karma start --single-run; then
     result='1'
   fi
   return "$result"

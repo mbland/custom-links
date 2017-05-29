@@ -50,7 +50,6 @@ _test() {
   export __TEST_ALL='true'
   export MOCHA_COLORS='true'
   export FORCE_COLOR='true'
-  export KARMA_SINGLE_RUN='true'
 
   @go.log START 'Running all automated tests...'
 
@@ -61,7 +60,7 @@ _test() {
     result='1'
   fi
   if [[ "$CI" != 'true' ]] && command -v karma >/dev/null &&
-    ! @go.log_command karma start; then
+    ! @go.log_command karma start --single-run; then
     result='1'
   fi
   if ! @go.log_command @go test end-to-end; then

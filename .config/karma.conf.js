@@ -51,15 +51,18 @@ module.exports = function(config) {
 
     plugins: [ 'karma-*' ],
 
-    singleRun: process.env.KARMA_SINGLE_RUN === 'true',
-
     concurrency: Infinity
   }
 
   if (process.env.CI === 'true') {
     options.autoWatch = false
     options.singleRun = true
-    options.browsers.push('Chrome', 'Firefox')
+    options.browsers = [ 'Chrome', 'Firefox' ]
+    options.detectBrowsers.enabled = false
+  }
+
+  if (process.env.KARMA_BROWSERS !== undefined) {
+    options.browsers = process.env.KARMA_BROWSERS.split(',')
     options.detectBrowsers.enabled = false
   }
 
