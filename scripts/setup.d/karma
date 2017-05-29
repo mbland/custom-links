@@ -1,0 +1,35 @@
+#! /usr/bin/env bash
+#
+# Sets up the Karma JavaScript browser test runner
+
+. "$_GO_USE_MODULES" 'setup'
+
+_urlp_setup_karma() {
+  local karma_dependencies=('karma-browserify'
+    'karma-chai'
+    'karma-chrome-launcher'
+    'karma-detect-browsers'
+    'karma-edge-launcher'
+    'karma-firefox-launcher'
+    'karma-ie-launcher'
+    'karma-mocha'
+    'karma-mocha-reporter'
+    'karma-opera-launcher'
+    'karma-phantomjs-launcher'
+    'karma-safari-launcher'
+    'karma-sinon'
+    'watchify')
+
+  if ! command -v karma>/dev/null &&
+     ! @go.log_command urlp.npm_install -g karma-cli; then
+    @go.printf 'Failed to install karma-cli globally; %s\n' \
+      'please make sure you have the necessary permissions and try again.' >&2
+    return 1
+  elif ! karma --help >/dev/null 2>&1; then
+    karma_dependencies+=('karma')
+  fi
+
+  @go.log_command urlp.npm_install "${karma_dependencies[@]}"
+}
+
+_urlp_setup_karma "$@"

@@ -2,11 +2,13 @@
 #
 # Runs first-time setup commands for a freshly-cloned repository
 
+. "$_GO_USE_MODULES" 'setup'
+
 urlp.check_for_prerequisite_tools() {
   if ! command -v node >/dev/null; then
     @go.printf 'Please install Node.js before continuing.\n' >&2
     return 1
-  elif ! command -v redis-server >/dev/null; then
+  elif [[ "$URLP_PLATFORM" != 'win32' ]] && ! command -v redis-server >/dev/null; then
     @go.printf 'Please install redis-server before continuing.\n' >&2
     return 1
   fi
@@ -14,32 +16,45 @@ urlp.check_for_prerequisite_tools() {
 
 urlp.install_required_tools() {
   if ! command -v phantomjs >/dev/null; then
-    npm install phantomjs-prebuilt
+    @go.log_command urlp.npm_install phantomjs-prebuilt
   fi
 }
 
 urlp.install_optional_tools() {
-  local karma_dependencies=('karma-browserify'
-    'karma-chai'
-    'karma-chrome-launcher'
-    'karma-detect-browsers'
-    'karma-edge-launcher'
-    'karma-firefox-launcher'
-    'karma-ie-launcher'
-    'karma-mocha'
-    'karma-mocha-reporter'
-    'karma-opera-launcher'
-    'karma-phantomjs-launcher'
-    'karma-safari-launcher'
-    'karma-sinon'
-    'watchify')
-
   if [[ "$CI" != 'true' ]] && command -v karma >/dev/null; then
-    if ! karma --help >/dev/null 2>&1; then
-      npm install karma
-    fi
-    npm install "${karma_dependencies[@]}"
+    @go.log_command @go setup karma
   fi
+}
+
+urlp.setup_windows() {
+  local result='0'
+
+  @go.log INFO 'Setting up browser-only development with Karma on Windows...'
+  if ! @go.log_command @go setup karma; then
+    result='1'
+  fi
+  if ! @go.log_command @go lint; then
+    result='1'
+  fi
+  if ! KARMA_SINGLE_RUN='true' @go.log_command karma start; then
+    result='1'
+  fi
+  return "$result"
+}
+
+urlp.setup_full() {
+  local result='0'
+
+  if ! @go.log_command urlp.install_optional_tools; then
+    result='1'
+  fi
+  if ! @go.log_command @go lint; then
+    result='1'
+  fi
+  if ! @go.log_command @go test --coverage; then
+    result='1'
+  fi
+  return "$result"
 }
 
 urlp.setup() {
@@ -53,20 +68,17 @@ urlp.setup() {
   @go.log_command urlp.check_for_prerequisite_tools
 
   if [[ -z "$CI" ]]; then
-    @go.log_command npm install
+    @go.log_command urlp.npm_install
   fi
   @go.log_command urlp.install_required_tools
   @go.critical_section_end
 
-  if ! @go.log_command urlp.install_optional_tools; then
-    result='1'
+  if [[ "$URLP_PLATFORM" == 'win32' ]]; then
+    @go.log_command urlp.setup_windows
+  else
+    @go.log_command urlp.setup_full
   fi
-  if ! @go.log_command @go lint; then
-    result='1'
-  fi
-  if ! @go.log_command @go test --coverage; then
-    result='1'
-  fi
+  result="$?"
 
   if [[ "$result" -eq '0' ]]; then
     @go.log FINISH 'Project setup completed successfully.'
