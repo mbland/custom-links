@@ -32,6 +32,7 @@
     "codeclimate-test-reporter": "^0.4.1",
     "coveralls": "^2.13.1",
     "eslint": "^3.19.0",
+    "is-wsl": "^1.1.0",
     "istanbul": "^0.4.5",
     "istanbul-middleware": "^0.2.2",
     "live-server": "^1.2.0",
