@@ -5,9 +5,10 @@
 export URLP_COVERAGE_DATADIR="${URLP_COVERAGE_DATADIR:-$_GO_ROOTDIR/.coverage}"
 
 urlp.generate_coverage_report() {
-  local report_path="${_GO_ROOTDIR}/coverage/lcov-report/index.html"
+  local report_dir="${_GO_ROOTDIR}/coverage/lcov-report"
+  local report_path="$report_dir/index.html"
 
-  rm -f "$report_path"
+  rm -rf "$report_dir"
 
   if ! istanbul report --root "$URLP_COVERAGE_DATADIR" --include '*.json'; then
     @go.printf 'Failed to generate coverage report.\n' >&2
@@ -17,6 +18,10 @@ urlp.generate_coverage_report() {
 
   if [[ -n "$CI" ]]; then
     urlp.send_coverage_report
+  elif [[ "$COVERAGE_REPORT_SERVER" == 'false' ]]; then
+    return
+  elif [[ "$COVERAGE_REPORT_SERVER" == 'true' ]]; then
+    live-server "$report_dir"
   elif command -v xdg-open >/dev/null; then
     xdg-open "$report_path"
   elif command -v open >/dev/null; then
