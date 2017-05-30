@@ -2,7 +2,7 @@
 #
 # Runs first-time setup commands for a freshly-cloned repository
 
-. "$_GO_USE_MODULES" 'setup'
+. "$_GO_USE_MODULES" 'setup' 'karma'
 
 urlp.check_for_prerequisite_tools() {
   if ! command -v node >/dev/null; then
@@ -21,7 +21,7 @@ urlp.install_required_tools() {
 }
 
 urlp.install_optional_tools() {
-  if [[ "$CI" != 'true' ]] && command -v karma >/dev/null; then
+  if [[ "$DISABLE_KARMA" != 'true' ]] && command -v karma >/dev/null; then
     @go.log_command @go setup karma
   fi
 }

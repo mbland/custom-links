@@ -11,6 +11,8 @@
 # The '--coverage' flag will place its output in a directory called 'coverage'.
 # An HTML report will be available at 'coverage/lcov-report/index.html'.
 
+. "$_GO_USE_MODULES" 'karma'
+
 _test_tab_completion() {
   local word_index="$1"
   shift
@@ -59,7 +61,7 @@ _test() {
   if ! @go.log_command @go test browser "${flags[@]}"; then
     result='1'
   fi
-  if [[ "$CI" != 'true' ]] && command -v karma >/dev/null &&
+  if [[ "$DISABLE_KARMA" != 'true' ]] && command -v karma >/dev/null &&
     ! @go.log_command karma start --single-run; then
     result='1'
   fi
