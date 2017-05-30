@@ -62,6 +62,7 @@ urlp.setup() {
 
   export PATH="node_modules/.bin:$PATH"
   export FORCE_COLOR='true'
+  export COVERAGE_REPORT_SERVER='false'
 
   @go.critical_section_begin
   @go.log START 'Setting up project...'

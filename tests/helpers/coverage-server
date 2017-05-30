@@ -1,0 +1,12 @@
+#! /usr/bin/env node
+'use strict'
+
+var path = require('path')
+var express = require('express')
+var app = express()
+var port = process.argv[2]
+
+app.use(require('./coverage-middleware'))
+app.use(express.static(path.resolve(__dirname, '../../public')))
+app.listen(port)
+console.log('coverage server listening on port', port)

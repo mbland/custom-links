@@ -84,8 +84,7 @@ _test_browser_run_in_phantomjs() {
   test_server_url="http://localhost:${port}"
 
   set -m
-  live-server --no-browser --port=${port} \
-    --middleware="$TEST_BROWSER_COVERAGE_MIDDLEWARE" public/ &
+  "$_GO_ROOTDIR/tests/helpers/coverage-server" "$port" &
 
   if [[ "$?" -ne '0' ]]; then
     @go.printf 'Failed to launch live-server on port %d.\n' "$port" >&2
