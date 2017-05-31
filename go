@@ -37,7 +37,10 @@ if [[ -t 1 || -n "$TRAVIS" ]]; then
 fi
 
 . "$_GO_USE_MODULES" 'log'
-. "$_GO_ROOTDIR/.config/env.local"
+
+if [[ -f "$_GO_ROOTDIR/.config/env.local" ]]; then
+  . "$_GO_ROOTDIR/.config/env.local"
+fi
 
 if [[ ! -d "$_GO_ROOTDIR/node_modules" ]]; then
   @go.setup_project 'setup'
