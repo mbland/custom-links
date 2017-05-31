@@ -11,10 +11,16 @@
 # The '--coverage' flag will place its output in a directory called 'coverage'.
 # An HTML report will be available at 'coverage/lcov-report/index.html'.
 
-# Disable Karma for continuous integration and Windows Subsystem for Linux runs
-if [[ -z "$DISABLE_KARMA" && -n "$CI" ]] ||
+# Disable Karma for Windows Subsystem for Linux runs
+if [[ -z "$DISABLE_KARMA" ]] &&
   node -e "process.exit(require('is-wsl') ? 0 : 1)"; then
   export DISABLE_KARMA='true'
+fi
+
+# Don't run Chrome on Travis CI due to the "Some of your tests did a full page
+# reload!" bug.
+if [[ "$CI" == 'true' ]]; then
+  export KARMA_BROWSERS=Firefox,PhantomJS
 fi
 
 _test_tab_completion() {
