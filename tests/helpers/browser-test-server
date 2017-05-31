@@ -6,7 +6,9 @@ var express = require('express')
 var app = express()
 var port = process.argv[2]
 
-app.use(require('./coverage-middleware'))
+if (process.env.COVERAGE_RUN === 'true') {
+  app.use(require('./coverage-middleware'))
+}
 app.use(express.static(path.resolve(__dirname, '../../public')))
 app.listen(port)
 console.log(path.basename(__filename) + ' listening on port', port)
