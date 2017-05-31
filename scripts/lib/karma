@@ -1,8 +1,0 @@
-#! /usr/bin/env bash
-#
-# Disables Karma for continuous integration and Windows Subsystem for Linux runs
-
-if [[ -z "$DISABLE_KARMA" && -n "$CI" ]] ||
-  node -e "process.exit(require('is-wsl') ? 0 : 1)"; then
-  export DISABLE_KARMA='true'
-fi
