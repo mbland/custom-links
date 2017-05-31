@@ -21,7 +21,10 @@ urlp.generate_coverage_report() {
   elif [[ "$COVERAGE_REPORT_SERVER" == 'false' ]]; then
     return
   elif [[ "$COVERAGE_REPORT_SERVER" == 'true' ]]; then
+    @go.printf 'Opening report with live-server; kill with CTRL-C.\n'
+    trap 'printf "\nClosing live-server...\n"' INT
     live-server "$report_dir"
+    return 0
   elif command -v xdg-open >/dev/null; then
     xdg-open "$report_path"
   elif command -v open >/dev/null; then
