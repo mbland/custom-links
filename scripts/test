@@ -11,7 +11,17 @@
 # The '--coverage' flag will place its output in a directory called 'coverage'.
 # An HTML report will be available at 'coverage/lcov-report/index.html'.
 
-. "$_GO_USE_MODULES" 'karma'
+# Disable Karma for Windows Subsystem for Linux runs
+if [[ -z "$DISABLE_KARMA" ]] &&
+  node -e "process.exit(require('is-wsl') ? 0 : 1)"; then
+  export DISABLE_KARMA='true'
+fi
+
+# Don't run Chrome on Travis CI due to the "Some of your tests did a full page
+# reload!" bug.
+if [[ "$CI" == 'true' ]]; then
+  export KARMA_BROWSERS=Firefox,PhantomJS
+fi
 
 _test_tab_completion() {
   local word_index="$1"
@@ -61,7 +71,7 @@ _test() {
   if ! @go.log_command @go test browser "${flags[@]}"; then
     result='1'
   fi
-  if [[ "$DISABLE_KARMA" != 'true' ]] && command -v karma >/dev/null &&
+  if [[ "$DISABLE_KARMA" != 'true' ]] &&
     ! @go.log_command karma start --single-run; then
     result='1'
   fi
