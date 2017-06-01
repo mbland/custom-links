@@ -57,9 +57,10 @@ urlp.setup() {
     result=1
   fi
 
-  if [[ "$URLP_PLATFORM" == 'win32' ]] &&
-    ! @go.log_command karma start --single-run; then
-    result='1'
+  if [[ "$URLP_PLATFORM" == 'win32' ]]; then
+    if ! @go.log_command karma start --single-run; then
+      result='1'
+    fi
   elif ! @go.log_command @go test --coverage; then
     result=1
   fi
