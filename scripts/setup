@@ -2,7 +2,8 @@
 #
 # Runs first-time setup commands for a freshly-cloned repository
 
-. "$_GO_USE_MODULES" 'setup'
+export URLP_PLATFORM="${URLP_PLATFORM:-$(node -e \
+  'console.log(process.platform)')}"
 
 urlp.check_for_prerequisite_tools() {
   if ! command -v node >/dev/null; then
@@ -12,6 +13,22 @@ urlp.check_for_prerequisite_tools() {
     ! command -v redis-server >/dev/null; then
     @go.printf 'Please install redis-server before continuing.\n' >&2
     return 1
+  fi
+}
+
+# Some Node.js processes hang on Windows, most notably NPM, due to the way file
+# descriptors that reference the terminal are managed. On top of that, npm can
+# be rather noisy. Consequently, we save all output to a file for consistency
+# across platforms.
+urlp.npm_install() {
+  local npm_log="$_GO_ROOTDIR/npm.log"
+
+  if ! npm install -q --no-progress "$@" >"$npm_log" 2>&1; then
+    @go.log ERROR "npm install failed (from $npm_log):"
+    printf '%s\n' "$(< "$npm_log")" >&2
+    return '1'
+  else
+    rm "$npm_log"
   fi
 }
 
