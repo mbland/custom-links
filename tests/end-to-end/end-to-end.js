@@ -42,11 +42,11 @@ test.describe('End-to-end test', function() {
 
   activeElement = () => driver.switchTo().activeElement()
 
-  takeScreenshot = () => {
+  takeScreenshot = (filename) => {
     driver.takeScreenshot().then(screenshot => {
       return new Promise((resolve, reject) => {
-        fs.writeFile('screenshot.png', screenshot, 'base64',
-          err => err ? reject(err) : resolve())
+        fs.writeFile('screenshot' + (filename ? ('-' + filename) : '') + '.png',
+          screenshot, 'base64', err => err ? reject(err) : resolve())
       })
     })
   }
