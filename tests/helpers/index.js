@@ -43,7 +43,7 @@ module.exports = exports = {
 
       redisServer.stdout.on('data', data => {
         stdout += data
-        if (stdout.match('The server is now ready to accept connections')) {
+        if (stdout.match('[Rr]eady to accept connections')) {
           resolve({ port: port, server: redisServer })
         }
       })
