@@ -7,7 +7,7 @@ dump.rdb
 node_modules/
 npm.log
 public/tests/generated/
-screenshot.png
+screenshot*.png
 scripts/go-script-bash/
 test-config*.json
 tests/bats/
