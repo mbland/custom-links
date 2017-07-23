@@ -1,6 +1,7 @@
 'use strict'
 
 var fs = require('fs')
+var redis = require('redis')
 var helpers = require('../helpers')
 var chai = require('chai')
 var chaiAsPromised = require('chai-as-promised')
@@ -12,7 +13,7 @@ chai.should()
 chai.use(chaiAsPromised)
 
 test.describe('End-to-end test', function() {
-  var driver, serverInfo, url, targetLocation, activeElement
+  var driver, serverInfo, redisClient, url, targetLocation, activeElement
 
   // eslint-disable-next-line no-unused-vars
   var takeScreenshot
@@ -28,16 +29,23 @@ test.describe('End-to-end test', function() {
       serverInfo = result
       url = 'http://localhost:' + serverInfo.port + '/'
       targetLocation = url + 'tests/redirect-target.html'
+      redisClient = redis.createClient({ port: serverInfo.redis.port })
     })
   })
 
-  test.after(function() {
-    return helpers.killServer(serverInfo.server)
-      .then(() => helpers.killServer(serverInfo.redis.server))
+  test.afterEach(function() {
+    return driver.close()
+      .then(function() {
+        return new Promise(function(resolve, reject) {
+          redisClient.flushdb(err => err ? reject(err) : resolve())
+        })
+      })
   })
 
-  test.afterEach(function() {
-    driver.quit()
+  test.after(function() {
+    return driver.quit()
+      .then(() => helpers.killServer(serverInfo.server))
+      .then(() => helpers.killServer(serverInfo.redis.server))
   })
 
   activeElement = () => driver.switchTo().activeElement()
