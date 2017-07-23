@@ -150,22 +150,23 @@ describe('RedirectDb', function() {
     })
 
     it('fails to create a new redirection when one already exists', function() {
-      var createRedirect = stubClientMethod('createRedirect'),
-          addUrlToOwner = stubClientMethod('addUrlToOwner')
-
       stubClientMethod('userExists').returns(Promise.resolve(true))
-      createRedirect.onFirstCall().returns(Promise.resolve(true))
-      addUrlToOwner.onFirstCall().returns(Promise.resolve())
-      createRedirect.onSecondCall().returns(Promise.resolve(false))
-      addUrlToOwner.onSecondCall().callsFake(function() {
-        throw new Error('should not get called')
-      })
+      stubClientMethod('createRedirect').returns(Promise.resolve(false))
+      stubClientMethod('getRedirect')
+        .returns(Promise.resolve({ url: '/foo', owner: 'mbland' }))
 
       return redirectDb.createRedirect('/foo', REDIRECT_TARGET, 'mbland')
-        .should.be.fulfilled.then(function() {
-          return redirectDb.createRedirect('/foo', REDIRECT_TARGET, 'mbland')
-        })
         .should.be.rejectedWith('/foo already exists')
+    })
+
+    it('error shows owner of existing redirection if another user', function() {
+      stubClientMethod('userExists').returns(Promise.resolve(true))
+      stubClientMethod('createRedirect').returns(Promise.resolve(false))
+      stubClientMethod('getRedirect')
+        .returns(Promise.resolve({ url: '/foo', owner: 'msb' }))
+
+      return redirectDb.createRedirect('/foo', REDIRECT_TARGET, 'mbland')
+        .should.be.rejectedWith('redirection for /foo is owned by msb')
     })
 
     it('fails to create a new redirection due to a server error', function() {
