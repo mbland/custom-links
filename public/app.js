@@ -40,7 +40,14 @@
       js.src = 'vendor/es6-promise.auto.min.js'
       head.appendChild(js)
     }
-    urlp.showView(window.location.hash)
+    urlp.userId = urlp.xhr('GET', '/id')
+      .then(r => r.response)
+      .catch(() => '<unknown user>')
+
+    return urlp.userId.then(id => {
+      document.getElementById('userid').textContent = id
+      urlp.showView(window.location.hash)
+    })
   }
 
   urlp.showView = function(hashId) {
