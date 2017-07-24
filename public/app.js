@@ -41,10 +41,10 @@
       head.appendChild(js)
     }
     urlp.userId = urlp.xhr('GET', '/id')
-      .then(r => r.response)
-      .catch(() => '<unknown user>')
+      .then(function(xhr) { return xhr.response })
+      .catch(function() { return '&lt;unknown user&gt;' })
 
-    return urlp.userId.then(id => {
+    return urlp.userId.then(function(id) {
       document.getElementById('userid').textContent = id
       urlp.showView(window.location.hash)
     })

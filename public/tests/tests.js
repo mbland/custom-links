@@ -100,7 +100,7 @@ describe('URL Pointers', function() {
     })
 
     it('subscribes to the hashchange event', function() {
-      return invokeLoadApp().then(hashChangeHandler => {
+      return invokeLoadApp().then(function(hashChangeHandler) {
         expect(typeof hashChangeHandler).to.equal('function')
         spyOn('showView')
         hashChangeHandler()
@@ -109,7 +109,7 @@ describe('URL Pointers', function() {
     })
 
     it('shows the logged in/logout block', function() {
-      return invokeLoadApp().then(() => {
+      return invokeLoadApp().then(function() {
         var loginBlock,
             userId,
             logout
@@ -131,9 +131,9 @@ describe('URL Pointers', function() {
     it('shows an unknown user marker on /id error', function() {
       urlp.xhr.withArgs('GET', '/id').returns(
         Promise.reject({ status: 404, response: 'forced error' }))
-      return invokeLoadApp().then(() => {
+      return invokeLoadApp().then(function() {
         document.getElementById('userid').textContent
-          .should.equal('<unknown user>')
+          .should.equal('&lt;unknown user&gt;')
       })
     })
   })
