@@ -10,6 +10,10 @@ describe('URL Pointers', function() {
       doubles = [],
       REDIRECT_LOCATION = 'https://mike-bland.com/'
 
+  beforeEach(function() {
+    stubOut('xhr')
+  })
+
   afterEach(function() {
     doubles.forEach(function(double) {
       double.restore()
@@ -73,28 +77,64 @@ describe('URL Pointers', function() {
   describe('loadApp', function() {
     var invokeLoadApp
 
-    invokeLoadApp = function() {
-      var origHashChangeHandler = window.onhashchange,
-          newHashChangeHandler
+    beforeEach(function() {
+      urlp.xhr.withArgs('GET', '/id').returns(
+        Promise.resolve({ response: 'mbland@acm.org' }))
+    })
 
-      urlp.loadApp()
-      newHashChangeHandler = window.onhashchange
-      window.onhashchange = origHashChangeHandler
-      return newHashChangeHandler
+    invokeLoadApp = function() {
+      var origHashChangeHandler = window.onhashchange
+
+      return urlp.loadApp().then(function() {
+        var newHashChangeHandler = window.onhashchange
+        window.onhashchange = origHashChangeHandler
+        return newHashChangeHandler
+      })
     }
 
     it('invokes the router when loaded', function() {
       spyOn('showView')
-      invokeLoadApp()
-      urlp.showView.calledWith(window.location.hash).should.be.true
+      return invokeLoadApp().then(function() {
+        urlp.showView.calledWith(window.location.hash).should.be.true
+      })
     })
 
     it('subscribes to the hashchange event', function() {
-      var hashChangeHandler = invokeLoadApp()
-      expect(typeof hashChangeHandler).to.equal('function')
-      spyOn('showView')
-      hashChangeHandler()
-      urlp.showView.calledWith(window.location.hash).should.be.true
+      return invokeLoadApp().then(function(hashChangeHandler) {
+        expect(typeof hashChangeHandler).to.equal('function')
+        spyOn('showView')
+        hashChangeHandler()
+        urlp.showView.calledWith(window.location.hash).should.be.true
+      })
+    })
+
+    it('shows the logged in/logout block', function() {
+      return invokeLoadApp().then(function() {
+        var loginBlock,
+            userId,
+            logout
+
+        loginBlock = document.getElementsByClassName('login')[0]
+        expect(loginBlock).to.not.be.undefined
+
+        userId = loginBlock.querySelector('[id=userid]')
+        expect(userId).to.not.be.undefined
+        userId.textContent.should.equal('mbland@acm.org')
+
+        logout = loginBlock.getElementsByTagName('A')[0]
+        expect(logout).to.not.be.undefined
+        logout.href.should.equal(
+          window.location.protocol + '//' + window.location.host + '/logout')
+      })
+    })
+
+    it('shows an unknown user marker on /id error', function() {
+      urlp.xhr.withArgs('GET', '/id').returns(
+        Promise.reject({ status: 404, response: 'forced error' }))
+      return invokeLoadApp().then(function() {
+        document.getElementById('userid').textContent
+          .should.equal('&lt;unknown user&gt;')
+      })
     })
   })
 
@@ -277,7 +317,6 @@ describe('URL Pointers', function() {
 
     expectXhr = function() {
       var payload = { location: REDIRECT_LOCATION }
-      stubOut('xhr')
       return urlp.xhr.withArgs('POST', '/api/create/foo', payload)
     }
 
@@ -301,7 +340,6 @@ describe('URL Pointers', function() {
 
     it('strips leading slashes from the link name', function() {
       var payload = { location: REDIRECT_LOCATION }
-      stubOut('xhr')
       urlp.xhr.withArgs('POST', '/api/create/foo', payload)
         .returns(Promise.resolve())
 
