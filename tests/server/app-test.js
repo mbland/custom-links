@@ -127,6 +127,13 @@ describe('assembleApp', function() {
         .expect(200, /URL Pointers/)
     })
 
+    it('provides the user ID on /id', function() {
+      return request(app)
+        .get('/id')
+        .set('cookie', sessionCookie)
+        .expect(200, 'mbland@acm.org')
+    })
+
     it('logs out on /logout', function() {
       return request(app)
         .get('/logout')
