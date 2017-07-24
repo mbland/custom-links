@@ -34,12 +34,9 @@ test.describe('End-to-end test', function() {
   })
 
   test.afterEach(function() {
-    return driver.close()
-      .then(function() {
-        return new Promise(function(resolve, reject) {
-          redisClient.flushdb(err => err ? reject(err) : resolve())
-        })
-      })
+    return new Promise(function(resolve, reject) {
+      redisClient.flushdb(err => err ? reject(err) : resolve())
+    })
   })
 
   test.after(function() {
