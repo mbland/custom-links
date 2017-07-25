@@ -133,7 +133,7 @@ describe('URL Pointers', function() {
         Promise.reject({ status: 404, response: 'forced error' }))
       return invokeLoadApp().then(function() {
         document.getElementById('userid').textContent
-          .should.equal('&lt;unknown user&gt;')
+          .should.equal('<unknown user>')
       })
     })
   })
@@ -142,8 +142,8 @@ describe('URL Pointers', function() {
     it('returns a new template element', function() {
       var original = document.getElementsByClassName('landing-view')[0],
           template = urlp.getTemplate('landing-view')
-      expect(original.textContent).to.have.string('URL Pointers')
-      expect(template.textContent).to.have.string('URL Pointers')
+      expect(original).to.not.be.undefined
+      expect(template).to.not.be.undefined
       original.should.not.equal(template)
     })
 
