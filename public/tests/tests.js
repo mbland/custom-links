@@ -108,20 +108,20 @@ describe('URL Pointers', function() {
       })
     })
 
-    it('shows the logged in/logout block', function() {
+    it('shows the nav bar', function() {
       return invokeLoadApp().then(function() {
-        var loginBlock,
+        var navBar,
             userId,
             logout
 
-        loginBlock = document.getElementsByClassName('login')[0]
-        expect(loginBlock).to.not.be.undefined
+        navBar = document.getElementsByClassName('nav')[0]
+        expect(navBar).to.not.be.undefined
 
-        userId = loginBlock.querySelector('[id=userid]')
+        userId = navBar.querySelector('[id=userid]')
         expect(userId).to.not.be.undefined
         userId.textContent.should.equal('mbland@acm.org')
 
-        logout = loginBlock.getElementsByTagName('A')[0]
+        logout = navBar.getElementsByTagName('A')[0]
         expect(logout).to.not.be.undefined
         logout.href.should.equal(
           window.location.protocol + '//' + window.location.host + '/logout')
