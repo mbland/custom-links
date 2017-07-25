@@ -108,23 +108,24 @@ describe('URL Pointers', function() {
       })
     })
 
-    it('shows the logged in/logout block', function() {
+    it('shows the nav bar', function() {
       return invokeLoadApp().then(function() {
-        var loginBlock,
+        var hostPrefix = window.location.protocol + '//' + window.location.host,
+            navBar,
             userId,
-            logout
+            navLinks
 
-        loginBlock = document.getElementsByClassName('login')[0]
-        expect(loginBlock).to.not.be.undefined
+        navBar = document.getElementsByClassName('nav')[0]
+        expect(navBar).to.not.be.undefined
 
-        userId = loginBlock.querySelector('[id=userid]')
+        userId = navBar.querySelector('[id=userid]')
         expect(userId).to.not.be.undefined
         userId.textContent.should.equal('mbland@acm.org')
 
-        logout = loginBlock.getElementsByTagName('A')[0]
-        expect(logout).to.not.be.undefined
-        logout.href.should.equal(
-          window.location.protocol + '//' + window.location.host + '/logout')
+        navLinks = navBar.getElementsByTagName('A')
+        navLinks.length.should.equal(2)
+        navLinks[0].href.should.equal(hostPrefix + '/')
+        navLinks[1].href.should.equal(hostPrefix + '/logout')
       })
     })
 
@@ -133,7 +134,7 @@ describe('URL Pointers', function() {
         Promise.reject({ status: 404, response: 'forced error' }))
       return invokeLoadApp().then(function() {
         document.getElementById('userid').textContent
-          .should.equal('&lt;unknown user&gt;')
+          .should.equal('<unknown user>')
       })
     })
   })
@@ -142,8 +143,8 @@ describe('URL Pointers', function() {
     it('returns a new template element', function() {
       var original = document.getElementsByClassName('landing-view')[0],
           template = urlp.getTemplate('landing-view')
-      expect(original.textContent).to.have.string('URL Pointers')
-      expect(template.textContent).to.have.string('URL Pointers')
+      expect(original).to.not.be.undefined
+      expect(template).to.not.be.undefined
       original.should.not.equal(template)
     })
 

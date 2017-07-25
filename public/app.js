@@ -42,7 +42,7 @@
     }
     urlp.userId = urlp.xhr('GET', '/id')
       .then(function(xhr) { return xhr.response })
-      .catch(function() { return '&lt;unknown user&gt;' })
+      .catch(function() { return '<unknown user>' })
 
     return urlp.userId.then(function(id) {
       document.getElementById('userid').textContent = id
