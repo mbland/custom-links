@@ -63,13 +63,13 @@ module.exports = exports = {
 
       if (configPath) {
         args.push(configPath)
-      } else if (configPath !== null && !process.env.URL_POINTERS_CONFIG_PATH) {
+      } else if (configPath !== null && !process.env.CUSTOM_LINKS_CONFIG_PATH) {
         args.push(path.join(__dirname, 'system-test-config.json'))
       }
 
-      process.env.URL_POINTERS_PORT = port
-      process.env.URL_POINTERS_REDIS_PORT = redisPort
-      process.env.URL_POINTERS_TEST_AUTH = 'mbland@acm.org'
+      process.env.CUSTOM_LINKS_PORT = port
+      process.env.CUSTOM_LINKS_REDIS_PORT = redisPort
+      process.env.CUSTOM_LINKS_TEST_AUTH = 'mbland@acm.org'
       server = spawn('node', args)
 
       server.stdout.on('data', data => {

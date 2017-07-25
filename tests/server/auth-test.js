@@ -147,23 +147,23 @@ describe('auth', function() {
       var strategy
 
       beforeEach(function() {
-        process.env.URL_POINTERS_TEST_AUTH = 'mbland@acm.org'
+        process.env.CUSTOM_LINKS_TEST_AUTH = 'mbland@acm.org'
         testAuth.assemble(passport, redirectDb, { users: [ 'mbland@acm.org' ] })
         strategy = passport.use.getCall(0).args[0]
       })
 
       afterEach(function() {
-        delete process.env.URL_POINTERS_TEST_AUTH
+        delete process.env.CUSTOM_LINKS_TEST_AUTH
       })
 
       it('registers the strategy with passport.use', function() {
         strategy.name.should.equal('test')
       })
 
-      it('throws an error if URL_POINTERS_TEST_AUTH not set', function() {
-        delete process.env.URL_POINTERS_TEST_AUTH
+      it('throws an error if CUSTOM_LINKS_TEST_AUTH not set', function() {
+        delete process.env.CUSTOM_LINKS_TEST_AUTH
         expect(function() { strategy.authenticate() })
-          .to.throw(Error, 'URL_POINTERS_TEST_AUTH must be defined')
+          .to.throw(Error, 'CUSTOM_LINKS_TEST_AUTH must be defined')
       })
 
       it('redirects from /auth to /auth/callback', function() {
@@ -198,7 +198,7 @@ describe('auth', function() {
       })
 
       it('returns failure from /auth/callback for an unknown user', function() {
-        process.env.URL_POINTERS_TEST_AUTH = 'bogus@unknown.com'
+        process.env.CUSTOM_LINKS_TEST_AUTH = 'bogus@unknown.com'
         strategy.fail = sinon.spy()
 
         return strategy.authenticate({ path: '/auth/callback' }, { opts: true })
@@ -208,16 +208,16 @@ describe('auth', function() {
           })
       })
 
-      it('succeeds when URL_POINTERS_TEST_AUTH present', function() {
+      it('succeeds when CUSTOM_LINKS_TEST_AUTH present', function() {
         strategy.success = sinon.spy()
         strategy.authenticate({ path: '/' }, { opts: true })
         strategy.success.getCall(0).args.should.eql(
           [ { id: 'mbland@acm.org' }, { opts: true } ])
       })
 
-      it('fails when URL_POINTERS_TEST_AUTH === "fail"', function() {
+      it('fails when CUSTOM_LINKS_TEST_AUTH === "fail"', function() {
         strategy.fail = sinon.spy()
-        process.env.URL_POINTERS_TEST_AUTH = 'fail'
+        process.env.CUSTOM_LINKS_TEST_AUTH = 'fail'
         strategy.authenticate({ path: '/auth/callback' }, { opts: true })
         strategy.fail.calledOnce.should.be.true
       })

@@ -41,7 +41,7 @@ describe('assembleApp', function() {
 
   beforeEach(function() {
     logError = sinon.spy(logger, 'error')
-    process.env.URL_POINTERS_TEST_AUTH = 'mbland@acm.org'
+    process.env.CUSTOM_LINKS_TEST_AUTH = 'mbland@acm.org'
 
     return request(app)
       .get('/auth')
@@ -58,7 +58,7 @@ describe('assembleApp', function() {
   })
 
   afterEach(function() {
-    delete process.env.URL_POINTERS_TEST_AUTH
+    delete process.env.CUSTOM_LINKS_TEST_AUTH
     logError.restore()
   })
 
@@ -111,7 +111,7 @@ describe('assembleApp', function() {
             .expect('location', '/auth/callback')
         })
         .then(function() {
-          process.env.URL_POINTERS_TEST_AUTH = 'fail'
+          process.env.CUSTOM_LINKS_TEST_AUTH = 'fail'
           return request(app)
             .get('/auth/callback')
             .set('cookie', sessionCookie)
@@ -124,7 +124,7 @@ describe('assembleApp', function() {
       return request(app)
         .get('/')
         .set('cookie', sessionCookie)
-        .expect(200, /URL Pointers/)
+        .expect(200, /Custom Links/)
     })
 
     it('provides the user ID on /id', function() {

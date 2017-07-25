@@ -20,7 +20,7 @@ describe('config', function() {
     envVarsToDelete = []
 
     Object.keys(process.env).forEach(function(envVar) {
-      if (envVar.startsWith('URL_POINTERS_')) {
+      if (envVar.startsWith('CUSTOM_LINKS_')) {
         envVarsToRestore[envVar] = process.env[envVar]
         delete process.env[envVar]
       }
@@ -37,7 +37,7 @@ describe('config', function() {
   })
 
   setEnvVar = function(name, value) {
-    name = 'URL_POINTERS_' + name
+    name = 'CUSTOM_LINKS_' + name
     process.env[name] = value
     envVarsToDelete.push(name)
   }

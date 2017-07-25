@@ -18,11 +18,11 @@ describe('Smoke test', function() {
 
   beforeEach(function() {
     serverInfo = null
-    delete process.env.URL_POINTERS_CONFIG_PATH
+    delete process.env.CUSTOM_LINKS_CONFIG_PATH
   })
 
   afterEach(function() {
-    delete process.env.URL_POINTERS_CONFIG_PATH
+    delete process.env.CUSTOM_LINKS_CONFIG_PATH
     if (serverInfo === null) {
       return
     }
@@ -49,8 +49,8 @@ describe('Smoke test', function() {
     return doLaunch(testConfig)
   })
 
-  it('launches using URL_POINTERS_CONFIG_PATH', function() {
-    process.env.URL_POINTERS_CONFIG_PATH = testConfig
+  it('launches using CUSTOM_LINKS_CONFIG_PATH', function() {
+    process.env.CUSTOM_LINKS_CONFIG_PATH = testConfig
     return doLaunch()
   })
 
