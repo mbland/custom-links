@@ -110,9 +110,10 @@ describe('URL Pointers', function() {
 
     it('shows the nav bar', function() {
       return invokeLoadApp().then(function() {
-        var navBar,
+        var hostPrefix = window.location.protocol + '//' + window.location.host,
+            navBar,
             userId,
-            logout
+            navLinks
 
         navBar = document.getElementsByClassName('nav')[0]
         expect(navBar).to.not.be.undefined
@@ -121,10 +122,10 @@ describe('URL Pointers', function() {
         expect(userId).to.not.be.undefined
         userId.textContent.should.equal('mbland@acm.org')
 
-        logout = navBar.getElementsByTagName('A')[0]
-        expect(logout).to.not.be.undefined
-        logout.href.should.equal(
-          window.location.protocol + '//' + window.location.host + '/logout')
+        navLinks = navBar.getElementsByTagName('A')
+        navLinks.length.should.equal(2)
+        navLinks[0].href.should.equal(hostPrefix + '/')
+        navLinks[1].href.should.equal(hostPrefix + '/logout')
       })
     })
 
