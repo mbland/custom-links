@@ -1,7 +1,7 @@
 'use strict'
 
 var Config = require('./lib/config')
-var configFile = process.argv[2] || process.env.URL_POINTERS_CONFIG_PATH
+var configFile = process.argv[2] || process.env.CUSTOM_LINKS_CONFIG_PATH
 var config = configFile ? Config.fromFile(configFile, console) : new Config({})
 
 var packageInfo = require('./package.json')

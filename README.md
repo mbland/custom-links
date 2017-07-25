@@ -1,11 +1,11 @@
-## URL Pointers custom URL application
+## Custom Links
 
-[![License](https://img.shields.io/github/license/mbland/url-pointers.svg)](https://github.com/mbland/url-pointers/blob/master/LICENSE.md)
-[![Continuous integration status](https://img.shields.io/travis/mbland/url-pointers/master.svg)](https://travis-ci.org/mbland/url-pointers)
-[![Coverage Status](https://img.shields.io/coveralls/mbland/url-pointers/master.svg)](https://coveralls.io/github/mbland/url-pointers?branch=master)
-[![Static analysis status](https://img.shields.io/codeclimate/github/mbland/url-pointers.svg)](https://codeclimate.com/github/mbland/url-pointers)
+[![License](https://img.shields.io/github/license/mbland/custom-links.svg)](https://github.com/mbland/custom-links/blob/master/LICENSE.md)
+[![Continuous integration status](https://img.shields.io/travis/mbland/custom-links/master.svg)](https://travis-ci.org/mbland/custom-links)
+[![Coverage Status](https://img.shields.io/coveralls/mbland/custom-links/master.svg)](https://coveralls.io/github/mbland/custom-links?branch=master)
+[![Static analysis status](https://img.shields.io/codeclimate/github/mbland/custom-links.svg)](https://codeclimate.com/github/mbland/custom-links)
 
-Source: https://github.com/mbland/url-pointers
+Source: https://github.com/mbland/custom-links
 
 **WORK IN PROGRESS**
 
