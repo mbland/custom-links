@@ -15,9 +15,9 @@ before_install:
 - export DISPLAY=:99.0
 - sh -e /etc/init.d/xvfb start
 - export PATH=$PWD/node_modules/phantomjs-prebuilt/lib/phantom/bin:$PATH
-- npm install -g npm@^5.0.1
+- if [[ ( "$TRAVIS_PULL_REQUEST" != 'false' || "$TRAVIS_BRANCH" == 'master' ) && "$TRAVIS_JOB_NUMBER" =~ [.]1$ ]]; then curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter; chmod +x ./cc-test-reporter; fi
 script:
 - "./go setup"
 env:
   global:
-  - secure: ANIV8Nbz0uyJlbyGhOAHifuFJRvuhqGG2Tbo2vNr8hATd56Bxp1J+DCs9LDWi3uZK6zGrxOhDvywttdnC/ulYpV6btWmBCR7sl57BoyEc2xkX2Q1qQpSJ6fr+/4fmJkkZU2KRiQ+JSV4rBNVsqQywZiaRCXBlVUQlV81t7uIzqg6U3T8a7zOCY7Gg0gKNMjYOMEYGTyeIvcEYvKAAqZ0Z7Qib3ireMhzRj+lll94NrRyFNJwYQtxBZPXbF3FI/MmkKo61UeRuhVS/UyZv0qv9rnIyak16nydQjLyifG+s2h3xAW+sqQTocLYVKzgwKJPORAZQwCEkazKi/RnpzEuMjLXpvQ7dEZF0L8O/X+Mrb++15j01iTK85l+9+P3U1RnAgjFwpjnoAKXf/r0pU9O8N8y9xt9pwbSEy5sH+4dLAVU400+4R2Py+JNntNwCwJ7m2Giy5D+9FwV9w0fPz8PQMUom4PUDWulrA9y8pz7MOx3VdYPaCp1346nxSVkpv0B9u8GebTot/geoqmbbJB8nFstnC0G3HgM2jKnve8h4ok0xW3zN3C1JTzT37F+xsEgHddoP6dZ+6aLnDjgtcxvouME2kHGoNwU9n4Rw8cVJyfyy1BG2UJIWLxStm8U1zgEgTsWro5+wT5PK8o5CXCrmKhiWfGo2UEoLxVwTNK2tX0=
+  - secure: nqpv3MQGMDVSIx0TD6CL0oJVAvgD8HyUn02mzJ79HX8DMvT7UGaL6HuXbc7nATX04px9jdbkH2IKIFDuvIc73ZxZFRygwgU1MA+kuAPcafXQKjOwXTyDgTYWMetPM+PFcALY2756MNfeSWTrjOuxq5wuLxHlq1D4CnPvxonKAOmta0qXk69De4+BgDvqC8HDvXGwcWDXjvGOabAAp2Yqi/gU69AZfPm8J9AzkNEqzwOcTCIFihD89drJM85AT0MsnMMFu2r7xktiOoIh2AEkKVIRKsm10q5sKGPPkfj4gCTGTXUZq2732id8lMWv8a1br9S5pLZhJl2L15S6CMS70AthReUW3dTrqiMLhzxirUyblpBvfe56gUkCAzm8IZKEIVXExXZdv3aWzJ2S7YPLd5+HCWthMw5Ahy8zrtu9vY18ByJ1wDgW8EgOaF0LF5683zfbp/dZ0J7gsP19s64oy9va5fdhqXAUdrENpzIgJKCHEc6TLC5gE+0hLiMGaN++XeHgV4uwgPEpqa+TV3OKr5oS1LrtKbhD/4S4zw61toN3wwVKE6h8/w9mVUSkUmmtL9pl1Nax7/54cI2uhD6Vd8chuOKsxs954isk4Aqt4O24db5EOcYxXz2A6xozv0pNweOj200StsV9xH9Ly68LpbXkskq70XHFrsCDu2Q7KIo=

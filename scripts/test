@@ -65,6 +65,9 @@ _test() {
 
   @go.log START 'Running all automated tests...'
 
+  if [[ -n "$coverage_run" ]] && ! urlp.init_code_climate; then
+    result='1'
+  fi
   if ! @go.log_command @go test server "${flags[@]}"; then
     result='1'
   fi
@@ -78,7 +81,7 @@ _test() {
   if ! @go.log_command @go test end-to-end; then
     result='1'
   fi
-  if [[ -n "$coverage_run" ]] && ! urlp.generate_coverage_report; then
+  if [[ -n "$coverage_run" ]] && ! urlp.generate_coverage_report "$result"; then
     result='1'
   fi
   if [[ "$result" -eq '0' ]]; then
