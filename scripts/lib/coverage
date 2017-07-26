@@ -3,6 +3,16 @@
 # Coverage report generator
 
 export URLP_COVERAGE_DATADIR="${URLP_COVERAGE_DATADIR:-$_GO_ROOTDIR/.coverage}"
+declare CC_TEST_REPORTER="${_GO_ROOTDIR}/cc-test-reporter"
+
+urlp.init_code_climate() {
+  if [[ -n "$CC_TEST_REPORTER_ID" && -x "$CC_TEST_REPORTER" ]]; then
+    if ! "$CC_TEST_REPORTER" before-build; then
+      echo 'Failed to initiate Code Climate coverage report.' >&2
+      return 1
+    fi
+  fi
+}
 
 urlp.generate_coverage_report() {
   local report_dir="${_GO_ROOTDIR}/coverage/lcov-report"
@@ -46,8 +56,8 @@ urlp.send_coverage_report() {
   printf 'Coverage report sent to Coveralls: %s\n' \
     "https://coveralls.io/github/${github_repo}"
 
-  if [[ -n "$CODECLIMATE_REPO_TOKEN" ]]; then
-    if ! codeclimate-test-reporter < "$lcov_info_path"; then
+  if [[ -n "$CC_TEST_REPORTER_ID" && -x "$CC_TEST_REPORTER" ]]; then
+    if ! "$CC_TEST_REPORTER" after-build --exit-code "$TRAVIS_TEST_RESULT"; then
       echo 'Failed to send report to Code Climate.' >&2
       return 1
     fi
