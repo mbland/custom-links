@@ -16,8 +16,7 @@ before_install:
 - sh -e /etc/init.d/xvfb start
 - export PATH=$PWD/node_modules/phantomjs-prebuilt/lib/phantom/bin:$PATH
 - npm install -g npm@^5.0.1
-- curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
-- chmod +x ./cc-test-reporter
+- if [[ ( "$TRAVIS_PULL_REQUEST" != 'false' || "$TRAVIS_BRANCH" == 'master' ) && "$TRAVIS_JOB_NUMBER" =~ [.]1$ ]]; then curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter; chmod +x ./cc-test-reporter; fi
 script:
 - "./go setup"
 env:
