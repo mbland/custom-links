@@ -3,7 +3,7 @@
 # Coverage report generator
 
 export URLP_COVERAGE_DATADIR="${URLP_COVERAGE_DATADIR:-$_GO_ROOTDIR/.coverage}"
-declare CC_TEST_REPORTER="${_GO_ROOTDIR}/cc-test-reporter"
+export CC_TEST_REPORTER="${_GO_ROOTDIR}/cc-test-reporter"
 
 urlp.init_code_climate() {
   if [[ -n "$CC_TEST_REPORTER_ID" && -x "$CC_TEST_REPORTER" ]]; then
@@ -11,6 +11,7 @@ urlp.init_code_climate() {
       echo 'Failed to initiate Code Climate coverage report.' >&2
       return 1
     fi
+    echo 'Code Climate coverage report initiated.'
   fi
 }
 
