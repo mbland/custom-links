@@ -62,7 +62,7 @@
         view
 
     if (!renderView) {
-      if (container.children.length !== 0) {
+      if (hashId !== '' && container.children.length !== 0) {
         return
       }
       renderView = routes['#']

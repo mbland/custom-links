@@ -33,6 +33,10 @@ describe('Custom Links', function() {
   }
 
   describe('showView', function() {
+    it('does not show the landing view until called', function() {
+      urlpTest.getView('landing-view').length.should.equal(0)
+    })
+
     it('shows the landing page view when no other view set', function() {
       urlp.showView('#foobar')
       urlpTest.getView('landing-view').length.should.equal(1)
@@ -44,6 +48,8 @@ describe('Custom Links', function() {
     })
 
     it('shows the landing page view when the ID is a hash only', function() {
+      // This normally won't happen, since window.location.hash will return the
+      // empty string if only '#' is present.
       urlp.showView('#')
       urlpTest.getView('landing-view').length.should.equal(1)
     })
@@ -71,6 +77,16 @@ describe('Custom Links', function() {
       })
       urlp.showView('#')
       expect(view.done.calledOnce).to.be.true
+    })
+
+    it('shows the landing view when the container isn\'t empty', function() {
+      var container = document.getElementsByClassName('view-container')[0]
+      container.children.length.should.equal(0)
+      container.appendChild(document.createElement('p'))
+      container.children.length.should.equal(1)
+      urlp.showView('')
+      container.children.length.should.equal(1)
+      urlpTest.getView('landing-view').length.should.equal(1)
     })
   })
 
@@ -124,7 +140,7 @@ describe('Custom Links', function() {
 
         navLinks = navBar.getElementsByTagName('A')
         navLinks.length.should.equal(2)
-        navLinks[0].href.should.equal(hostPrefix + '/')
+        navLinks[0].href.should.equal(hostPrefix + '/#')
         navLinks[1].href.should.equal(hostPrefix + '/logout')
       })
     })
