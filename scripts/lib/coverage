@@ -16,6 +16,7 @@ urlp.init_code_climate() {
 }
 
 urlp.generate_coverage_report() {
+  local test_result="$1"
   local report_dir="${_GO_ROOTDIR}/coverage/lcov-report"
   local report_path="$report_dir/index.html"
 
@@ -28,7 +29,7 @@ urlp.generate_coverage_report() {
   @go.printf 'Coverage report saved as: file://%s\n' "$report_path"
 
   if [[ -n "$CI" ]]; then
-    urlp.send_coverage_report
+    urlp.send_coverage_report "$test_result"
   elif [[ "$COVERAGE_REPORT_SERVER" == 'false' ]]; then
     return
   elif [[ "$COVERAGE_REPORT_SERVER" == 'true' ]]; then
@@ -44,6 +45,7 @@ urlp.generate_coverage_report() {
 }
 
 urlp.send_coverage_report() {
+  local test_result="$1"
   local lcov_info_path="${_GO_ROOTDIR}/coverage/lcov.info"
   local github_repo="$(git config remote.origin.url)"
 
@@ -58,7 +60,7 @@ urlp.send_coverage_report() {
     "https://coveralls.io/github/${github_repo}"
 
   if [[ -n "$CC_TEST_REPORTER_ID" && -x "$CC_TEST_REPORTER" ]]; then
-    if ! "$CC_TEST_REPORTER" after-build --exit-code "$TRAVIS_TEST_RESULT"; then
+    if ! "$CC_TEST_REPORTER" after-build --exit-code "$test_result"; then
       echo 'Failed to send report to Code Climate.' >&2
       return 1
     fi
