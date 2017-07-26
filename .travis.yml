@@ -2,28 +2,22 @@ language: node_js
 node_js:
 - node
 - '4.2'
-
 dist: trusty
 sudo: false
-
 cache:
   directories:
   - node_modules
-
 addons:
   apt:
     packages:
     - google-chrome-stable
-
 before_install:
-- "export DISPLAY=:99.0"
-- "sh -e /etc/init.d/xvfb start"
-- "export PATH=$PWD/node_modules/phantomjs-prebuilt/lib/phantom/bin:$PATH"
-- "npm install -g npm@^5.0.1"
-
+- export DISPLAY=:99.0
+- sh -e /etc/init.d/xvfb start
+- export PATH=$PWD/node_modules/phantomjs-prebuilt/lib/phantom/bin:$PATH
+- npm install -g npm@^5.0.1
 script:
 - "./go setup"
-
 env:
   matrix:
-    secure: "HFeQtlJi3JNCbONSm498Y/EJQ8TO29Te/iD8f5fduacZi7jF0AZUwJBjrIzpmtLhKKvCLRn8BDb11QJrF9c2jZXCX/EouJldMpVHz7pPRVueWk3BaWI6BJpgeCD3SSuMaFTmZUYhhLlrvfVEUWAzxKauKkcQvIxRvjSgC8uyrFYQBbOF8mWLc4AhPgJutCz8HlgMJQF6xO7vblMW5qORQog3vl3445+sAACLqGu7N3CH+fipPa5Yfua0JUJbtf/oQVoMW+eUmMxAGOOS/10mLGTkeN0wIxTYdv10Z1rI9ijAZLUni6p1osdsypOuOzfXSYcPvB3w5OkOrTcO9uHqMxZc9YNblZe7x3Uzg3eMWN7yzl1MyuR/RIsYwjsW+3dSuGxhvznvhzr9mDAhgaBOkUPmb8qyL4r2cXIgVbAEdKiVIAha8XJFlTOT/VWlTvuNJHmvPN2KjpdtNcmkj1pPSaXSAKe738dQhJyzxE1+LJsNIxgAqdMNOvDBWLnBRgMGyZGCLVHflSBs5a6iF6UvlGrS6fpTLyVmNTG4PbnIN1kJm247MNvuKZi5Kj7fc3Yrt01VZPOP5b/00PibvRd7sudH2t0xLNHR1iaFOn2U3rwHSW+NBIhJd2Ms/BibEgOO628wXJnmHA36XEJxVBpgNZp4uL1jUAEvVj6GE4jFnGM="
+    secure: eviVtG6s0OtE+iadzDWkEGvwg3RArqnZw6abQjV9bT8hjWkSbO8GFAFMERc15I84gXhL0A3gIVqvu9LiosMqttyMCY81G/cjvW+5trO2vL6WlXS3aHClWo+8YNy+p2KZ0kIvdDwooxxNp1e5/NusTkQbZUlfVSMGB76bUpnxsaWOkdII4FfmvVJXZ1K3/t6/w4TdPE2FmF0gampDfVHXbxbfx7BzdQLu/HtRjgdA5/5fUYtczZYf0BgFs937S5ywvuXi6gy6j9sqHhHoJTNhRbjhqDguADPwtypWXqlyUS2mUMxQWch0WEt8BH5fNmjoYMfRP391p9HBDFDksCkU1wjf0F5jGDEy5/t7pS53NRpcLmOivbpuN8bOyLCYQx+DTXC+uCKCee1yuNONUbyNO7cmiWLPiBuA/HxsPwToR21tx+zyJn7ZshDoX96AHxMB0fONFILRKtVttShkwVNLhRgoNO9+U3RGJp0ufOvxb6ii9JmVIj6uY/siE4QWmiWjo/qG7ErqJW1WknD+MIQ0u2YZd/uTOc+nqNBt+mefArIe2OzXzMS4+TV8ggYqt8+diMYROpLqVoHLQwWDJDP374KixrkZaZguidSZDajq5s0u0u03NHmyrLGZEY4er2qLpe/KreMXqXfPE+O8C7G8yNEL54teiZd7Ao+Vhmeshwk=
