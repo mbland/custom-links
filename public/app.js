@@ -2,9 +2,9 @@
 'use strict';
 
 (function(f) { f(window, document) })(function(window,  document) {
-  var urlp = window.urlp = {}
+  var cl = window.cl = {}
 
-  urlp.xhr = function(method, url, body) {
+  cl.xhr = function(method, url, body) {
     return new Promise(function(resolve, reject) {
       var r = new XMLHttpRequest()
 
@@ -28,9 +28,9 @@
     })
   }
 
-  urlp.loadApp = function() {
+  cl.loadApp = function() {
     window.onhashchange = function() {
-      urlp.showView(window.location.hash)
+      cl.showView(window.location.hash)
     }
 
     if (window.Promise === undefined) {
@@ -40,23 +40,23 @@
       js.src = 'vendor/es6-promise.auto.min.js'
       head.appendChild(js)
     }
-    urlp.userId = urlp.xhr('GET', '/id')
+    cl.userId = cl.xhr('GET', '/id')
       .then(function(xhr) { return xhr.response })
       .catch(function() { return '<unknown user>' })
 
-    return urlp.userId.then(function(id) {
+    return cl.userId.then(function(id) {
       document.getElementById('userid').textContent = id
-      urlp.showView(window.location.hash)
+      cl.showView(window.location.hash)
     })
   }
 
-  urlp.showView = function(hashId) {
+  cl.showView = function(hashId) {
     var viewId = hashId.split('-', 1),
         viewParam = hashId.slice(viewId.length + 1),
         container = document.getElementsByClassName('view-container')[0],
         replacement = container.cloneNode(false),
         routes = {
-          '#': urlp.landingView
+          '#': cl.landingView
         },
         renderView = routes[viewId],
         view
@@ -76,13 +76,13 @@
     }
   }
 
-  urlp.getTemplate = function(templateName) {
+  cl.getTemplate = function(templateName) {
     var template
 
-    if (!urlp.templates) {
-      urlp.templates = document.getElementsByClassName('templates')[0]
+    if (!cl.templates) {
+      cl.templates = document.getElementsByClassName('templates')[0]
     }
-    template = urlp.templates.getElementsByClassName(templateName)[0]
+    template = cl.templates.getElementsByClassName(templateName)[0]
 
     if (!template) {
       throw new Error('unknown template name: ' + templateName)
@@ -90,7 +90,7 @@
     return template.cloneNode(true)
   }
 
-  urlp.applyData = function(data, element) {
+  cl.applyData = function(data, element) {
     Object.keys(data).forEach(function(property) {
       var binding = element.querySelector('[data-name=' + property + ']')
       if (binding) {
@@ -104,13 +104,13 @@
     return element
   }
 
-  urlp.landingView = function() {
-    var view = urlp.getTemplate('landing-view'),
-        editForm = urlp.getTemplate('edit-link'),
+  cl.landingView = function() {
+    var view = cl.getTemplate('landing-view'),
+        editForm = cl.getTemplate('edit-link'),
         button = editForm.getElementsByClassName('button')[0]
 
-    button.onclick = urlp.createLinkClick
-    view.appendChild(urlp.applyData({ submit: 'Create URL' }, editForm))
+    button.onclick = cl.createLinkClick
+    view.appendChild(cl.applyData({ submit: 'Create URL' }, editForm))
     return {
       element: view,
       done: function() {
@@ -119,7 +119,7 @@
     }
   }
 
-  urlp.fade = function(element, increment, deadline) {
+  cl.fade = function(element, increment, deadline) {
     if (window.isNaN(increment) || increment === 0) {
       throw new Error('increment must be a nonzero number: ' + increment)
 
@@ -149,14 +149,14 @@
     })
   }
 
-  urlp.flashElement = function(element, replacementHtml) {
-    return urlp.fade(element, -0.05, 150).then(function(elem) {
+  cl.flashElement = function(element, replacementHtml) {
+    return cl.fade(element, -0.05, 150).then(function(elem) {
       elem.innerHTML = replacementHtml
-      return urlp.fade(element, 0.05, 250)
+      return cl.fade(element, 0.05, 250)
     })
   }
 
-  urlp.createLink = function(linkForm) {
+  cl.createLink = function(linkForm) {
     var url = linkForm.querySelector('[data-name=url]'),
         location = linkForm.querySelector('[data-name=location]'),
         resultUrl,
@@ -179,7 +179,7 @@
         'http:// or https://.')
     }
 
-    return urlp.xhr('POST', '/api/create/' + url, { location: location })
+    return cl.xhr('POST', '/api/create/' + url, { location: location })
       .then(function() {
         return resultAnchor + ' now redirects to ' + location
       })
@@ -201,11 +201,11 @@
       })
   }
 
-  urlp.createLinkClick = function() {
+  cl.createLinkClick = function() {
     var linkForm = this.parentNode,
         resultFlash = linkForm.getElementsByClassName('result')[0]
 
-    resultFlash.done = urlp.createLink(linkForm)
+    resultFlash.done = cl.createLink(linkForm)
       .then(function(message) {
         return { template: 'result success', message: message }
       })
@@ -213,9 +213,9 @@
         return { template: 'result failure', message: (err.message || err) }
       })
       .then(function(resultData) {
-        var result = urlp.getTemplate(resultData.template)
+        var result = cl.getTemplate(resultData.template)
         result.innerHTML = resultData.message
-        return urlp.flashElement(resultFlash, result.outerHTML)
+        return cl.flashElement(resultFlash, result.outerHTML)
           .then(function() {
             var link = resultFlash.getElementsByTagName('A')[0]
             if (link) {

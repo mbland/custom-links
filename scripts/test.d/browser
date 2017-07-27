@@ -139,7 +139,7 @@ _test_browser() {
       __coverage_run='true'
       . "$_GO_USE_MODULES" 'coverage'
       if [[ -z "$__TEST_ALL" ]]; then
-        rm -f "$URLP_COVERAGE_DATADIR"/*.json
+        rm -f "$CL_COVERAGE_DATADIR"/*.json
       fi
       ;;
     --single-run)
@@ -156,7 +156,7 @@ _test_browser() {
   result="$?"
 
   if [[ "$__coverage_run" == 'true' && "$__single_run" == 'true' &&
-    -z "$__TEST_ALL" ]] && ! urlp.generate_coverage_report; then
+    -z "$__TEST_ALL" ]] && ! cl.generate_coverage_report; then
     result='1'
   fi
   return "$result"

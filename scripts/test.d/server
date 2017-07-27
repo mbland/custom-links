@@ -132,7 +132,7 @@ _test_generate_coverage_report() {
     @go.printf 'Backend tests or coverage collection failed.\n' >&2
     return 1
   elif [[ -z "$__TEST_ALL" ]]; then
-    urlp.generate_coverage_report
+    cl.generate_coverage_report
   fi
 }
 

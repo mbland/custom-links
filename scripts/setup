@@ -2,14 +2,14 @@
 #
 # Runs first-time setup commands for a freshly-cloned repository
 
-export URLP_PLATFORM="${URLP_PLATFORM:-$(node -e \
+export CL_PLATFORM="${CL_PLATFORM:-$(node -e \
   'console.log(process.platform)')}"
 
-urlp.check_for_prerequisite_tools() {
+cl.check_for_prerequisite_tools() {
   if ! command -v node >/dev/null; then
     @go.printf 'Please install Node.js before continuing.\n' >&2
     return 1
-  elif [[ "$URLP_PLATFORM" != 'win32' ]] &&
+  elif [[ "$CL_PLATFORM" != 'win32' ]] &&
     ! command -v redis-server >/dev/null; then
     @go.printf 'Please install redis-server before continuing.\n' >&2
     return 1
@@ -20,7 +20,7 @@ urlp.check_for_prerequisite_tools() {
 # descriptors that reference the terminal are managed. On top of that, npm can
 # be rather noisy. Consequently, we save all output to a file for consistency
 # across platforms.
-urlp.npm_install() {
+cl.npm_install() {
   local npm_log="$_GO_ROOTDIR/npm.log"
 
   if ! npm install -q --no-progress "$@" >"$npm_log" 2>&1; then
@@ -32,7 +32,7 @@ urlp.npm_install() {
   fi
 }
 
-urlp.setup() {
+cl.setup() {
   local result=0
   local start_msg='Setting up project...'
 
@@ -40,16 +40,16 @@ urlp.setup() {
   export FORCE_COLOR='true'
   export COVERAGE_REPORT_SERVER='false'
 
-  if [[ "$URLP_PLATFORM" == 'win32' ]]; then
+  if [[ "$CL_PLATFORM" == 'win32' ]]; then
     start_msg='Setting up browser-only development with Karma on Windows...'
   fi
 
   @go.critical_section_begin
   @go.log START "$start_msg"
-  @go.log_command urlp.check_for_prerequisite_tools
+  @go.log_command cl.check_for_prerequisite_tools
 
   if [[ -z "$CI" ]]; then
-    @go.log_command urlp.npm_install
+    @go.log_command cl.npm_install
   fi
   @go.critical_section_end
 
@@ -57,7 +57,7 @@ urlp.setup() {
     result=1
   fi
 
-  if [[ "$URLP_PLATFORM" == 'win32' ]]; then
+  if [[ "$CL_PLATFORM" == 'win32' ]]; then
     if ! @go.log_command karma start --single-run; then
       result='1'
     fi
@@ -73,4 +73,4 @@ urlp.setup() {
   return "$result"
 }
 
-urlp.setup "$@"
+cl.setup "$@"

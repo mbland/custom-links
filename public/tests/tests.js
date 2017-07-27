@@ -3,8 +3,8 @@
 'use strict'
 
 describe('Custom Links', function() {
-  var urlp = window.urlp,
-      urlpTest = window.urlpTest,
+  var cl = window.cl,
+      clTest = window.clTest,
       spyOn,
       stubOut,
       doubles = [],
@@ -21,53 +21,53 @@ describe('Custom Links', function() {
   })
 
   spyOn = function(functionName) {
-    var spy = sinon.spy(urlp, functionName)
+    var spy = sinon.spy(cl, functionName)
     doubles.push(spy)
     return spy
   }
 
   stubOut = function(functionName) {
-    var stub = sinon.stub(urlp, functionName)
+    var stub = sinon.stub(cl, functionName)
     doubles.push(stub)
     return stub
   }
 
   describe('showView', function() {
     it('does not show the landing view until called', function() {
-      urlpTest.getView('landing-view').length.should.equal(0)
+      clTest.getView('landing-view').length.should.equal(0)
     })
 
     it('shows the landing page view when no other view set', function() {
-      urlp.showView('#foobar')
-      urlpTest.getView('landing-view').length.should.equal(1)
+      cl.showView('#foobar')
+      clTest.getView('landing-view').length.should.equal(1)
     })
 
     it('shows the landing page view when the hash ID is empty', function() {
-      urlp.showView('')
-      urlpTest.getView('landing-view').length.should.equal(1)
+      cl.showView('')
+      clTest.getView('landing-view').length.should.equal(1)
     })
 
     it('shows the landing page view when the ID is a hash only', function() {
       // This normally won't happen, since window.location.hash will return the
       // empty string if only '#' is present.
-      urlp.showView('#')
-      urlpTest.getView('landing-view').length.should.equal(1)
+      cl.showView('#')
+      clTest.getView('landing-view').length.should.equal(1)
     })
 
     it('doesn\'t change the view when the hash ID is unknown', function() {
-      urlp.showView('#')
-      urlp.showView('#foobar')
-      urlpTest.getView('landing-view').length.should.equal(1)
+      cl.showView('#')
+      cl.showView('#foobar')
+      clTest.getView('landing-view').length.should.equal(1)
     })
 
     it('passes the hash view parameter to the view function', function() {
       spyOn('landingView')
-      urlp.showView('#-foo-bar')
-      urlp.landingView.calledWith('foo-bar').should.be.true
+      cl.showView('#-foo-bar')
+      cl.landingView.calledWith('foo-bar').should.be.true
     })
 
     it('calls the done() callback if present', function() {
-      var landingView = urlp.landingView,
+      var landingView = cl.landingView,
           view
 
       stubOut('landingView').callsFake(function() {
@@ -75,7 +75,7 @@ describe('Custom Links', function() {
         sinon.spy(view, 'done')
         return view
       })
-      urlp.showView('#')
+      cl.showView('#')
       expect(view.done.calledOnce).to.be.true
     })
 
@@ -84,9 +84,9 @@ describe('Custom Links', function() {
       container.children.length.should.equal(0)
       container.appendChild(document.createElement('p'))
       container.children.length.should.equal(1)
-      urlp.showView('')
+      cl.showView('')
       container.children.length.should.equal(1)
-      urlpTest.getView('landing-view').length.should.equal(1)
+      clTest.getView('landing-view').length.should.equal(1)
     })
   })
 
@@ -94,14 +94,14 @@ describe('Custom Links', function() {
     var invokeLoadApp
 
     beforeEach(function() {
-      urlp.xhr.withArgs('GET', '/id').returns(
+      cl.xhr.withArgs('GET', '/id').returns(
         Promise.resolve({ response: 'mbland@acm.org' }))
     })
 
     invokeLoadApp = function() {
       var origHashChangeHandler = window.onhashchange
 
-      return urlp.loadApp().then(function() {
+      return cl.loadApp().then(function() {
         var newHashChangeHandler = window.onhashchange
         window.onhashchange = origHashChangeHandler
         return newHashChangeHandler
@@ -111,7 +111,7 @@ describe('Custom Links', function() {
     it('invokes the router when loaded', function() {
       spyOn('showView')
       return invokeLoadApp().then(function() {
-        urlp.showView.calledWith(window.location.hash).should.be.true
+        cl.showView.calledWith(window.location.hash).should.be.true
       })
     })
 
@@ -120,7 +120,7 @@ describe('Custom Links', function() {
         expect(typeof hashChangeHandler).to.equal('function')
         spyOn('showView')
         hashChangeHandler()
-        urlp.showView.calledWith(window.location.hash).should.be.true
+        cl.showView.calledWith(window.location.hash).should.be.true
       })
     })
 
@@ -146,7 +146,7 @@ describe('Custom Links', function() {
     })
 
     it('shows an unknown user marker on /id error', function() {
-      urlp.xhr.withArgs('GET', '/id').returns(
+      cl.xhr.withArgs('GET', '/id').returns(
         Promise.reject({ status: 404, response: 'forced error' }))
       return invokeLoadApp().then(function() {
         document.getElementById('userid').textContent
@@ -158,21 +158,21 @@ describe('Custom Links', function() {
   describe('getTemplate', function() {
     it('returns a new template element', function() {
       var original = document.getElementsByClassName('landing-view')[0],
-          template = urlp.getTemplate('landing-view')
+          template = cl.getTemplate('landing-view')
       expect(original).to.not.be.undefined
       expect(template).to.not.be.undefined
       original.should.not.equal(template)
     })
 
     it('throws an error if passed an invalid template name', function() {
-      expect(function() { urlp.getTemplate('foobar') })
+      expect(function() { cl.getTemplate('foobar') })
         .to.throw(Error, 'unknown template name: foobar')
     })
   })
 
   describe('landingView', function() {
     it('shows a form to create a URL redirection', function() {
-      var view = urlp.landingView(),
+      var view = cl.landingView(),
           form = view.element.getElementsByTagName('form').item(0),
           labels = form.getElementsByTagName('label'),
           inputs = form.getElementsByTagName('input'),
@@ -198,13 +198,13 @@ describe('Custom Links', function() {
             location: REDIRECT_LOCATION,
             submit: 'Create URL'
           },
-          form = urlp.getTemplate('edit-link'),
+          form = cl.getTemplate('edit-link'),
           fields = form.getElementsByTagName('input'),
           url = fields[0],
           location = fields[1],
           button = form.getElementsByTagName('button')[0]
 
-      expect(urlp.applyData(data, form)).to.equal(form)
+      expect(cl.applyData(data, form)).to.equal(form)
       expect(url.defaultValue).to.equal('/foo')
       expect(location.defaultValue).to.equal(REDIRECT_LOCATION)
       expect(button.textContent).to.equal('Create URL')
@@ -217,7 +217,7 @@ describe('Custom Links', function() {
     beforeEach(function() {
       element = document.createElement('div')
       // Append directly to the body so the computed style isn't influenced by
-      // urlpTest.fixture's "display: none" style.
+      // clTest.fixture's "display: none" style.
       document.body.appendChild(element)
       setTimeoutStub = sinon.stub(window, 'setTimeout')
       setTimeoutStub.callsFake(function(func) {
@@ -232,7 +232,7 @@ describe('Custom Links', function() {
 
     it('fades out an element', function() {
       element.style.opacity = 1
-      return urlp.fade(element, -0.1, 10).should.be.fulfilled
+      return cl.fade(element, -0.1, 10).should.be.fulfilled
         .then(function(elem) {
           expect(elem).to.equal(element)
           expect(parseInt(elem.style.opacity)).to.equal(0)
@@ -242,7 +242,7 @@ describe('Custom Links', function() {
 
     it('fades in an element', function() {
       element.style.opacity = 0
-      return urlp.fade(element, 0.1, 10).should.be.fulfilled
+      return cl.fade(element, 0.1, 10).should.be.fulfilled
         .then(function(elem) {
           expect(elem).to.equal(element)
           expect(parseInt(elem.style.opacity)).to.equal(1)
@@ -252,7 +252,7 @@ describe('Custom Links', function() {
 
     it('handles increments < -1', function() {
       element.style.opacity = 1
-      return urlp.fade(element, -1.1, 10).should.be.fulfilled
+      return cl.fade(element, -1.1, 10).should.be.fulfilled
         .then(function(elem) {
           expect(parseInt(elem.style.opacity)).to.equal(0)
         })
@@ -260,29 +260,29 @@ describe('Custom Links', function() {
 
     it('handles increments > 1', function() {
       element.style.opacity = 0
-      return urlp.fade(element, 1.1, 10).should.be.fulfilled
+      return cl.fade(element, 1.1, 10).should.be.fulfilled
         .then(function(elem) {
           expect(parseInt(elem.style.opacity)).to.equal(1)
         })
     })
 
     it('throws an error for increments that aren\'t numbers', function() {
-      expect(function() { urlp.fade(null, 'foobar') })
+      expect(function() { cl.fade(null, 'foobar') })
         .to.throw(Error, 'increment must be a nonzero number: foobar')
     })
 
     it('throws an error for increments === 0', function() {
-      expect(function() { urlp.fade(null, 0.0) })
+      expect(function() { cl.fade(null, 0.0) })
         .to.throw(Error, 'increment must be a nonzero number: 0')
     })
 
     it('throws an error for deadlines that aren\'t numbers', function() {
-      expect(function() { urlp.fade(null, -0.05) })
+      expect(function() { cl.fade(null, -0.05) })
         .to.throw(Error, 'deadline must be a positive number: undefined')
     })
 
     it('throws an error for deadlines <= 0', function() {
-      expect(function() { urlp.fade(null, -0.05, 0) })
+      expect(function() { cl.fade(null, -0.05, 0) })
         .to.throw(Error, 'deadline must be a positive number: 0')
     })
   })
@@ -293,7 +293,7 @@ describe('Custom Links', function() {
     beforeEach(function() {
       element = document.createElement('div')
       // Append directly to the body so the computed style isn't influenced by
-      // urlpTest.fixture's "display: none" style.
+      // clTest.fixture's "display: none" style.
       document.body.appendChild(element)
       element.style.opacity = 1
     })
@@ -306,15 +306,15 @@ describe('Custom Links', function() {
       var replacement = '<p>Goodbye, World!</p>'
 
       stubOut('fade')
-      urlp.fade.callsFake(function(element) {
+      cl.fade.callsFake(function(element) {
         return Promise.resolve(element)
       })
       element.innerHTML = '<p>Hello, World!</p>'
 
-      return urlp.flashElement(element, replacement).should.be.fulfilled
+      return cl.flashElement(element, replacement).should.be.fulfilled
         .then(function(elem) {
           expect(elem).to.equal(element)
-          expect(urlp.fade.calledTwice).to.be.true
+          expect(cl.fade.calledTwice).to.be.true
           expect(parseInt(elem.style.opacity)).to.equal(1)
           expect(elem.innerHTML).to.equal(replacement)
         })
@@ -327,19 +327,19 @@ describe('Custom Links', function() {
         resultAnchor = '<a href=\'/foo\'>' + resultUrl + '</a>'
 
     beforeEach(function() {
-      linkForm = urlp.getTemplate('edit-link')
+      linkForm = cl.getTemplate('edit-link')
       linkForm.querySelector('[data-name=url]').value = 'foo'
       linkForm.querySelector('[data-name=location]').value = REDIRECT_LOCATION
     })
 
     expectXhr = function() {
       var payload = { location: REDIRECT_LOCATION }
-      return urlp.xhr.withArgs('POST', '/api/create/foo', payload)
+      return cl.xhr.withArgs('POST', '/api/create/foo', payload)
     }
 
     it('creates a link that doesn\'t already exist', function() {
       expectXhr().returns(Promise.resolve())
-      return urlp.createLink(linkForm).should.become(
+      return cl.createLink(linkForm).should.become(
         resultAnchor + ' now redirects to ' + REDIRECT_LOCATION)
     })
 
@@ -351,49 +351,49 @@ describe('Custom Links', function() {
         })
       })
 
-      return urlp.createLink(linkForm)
+      return cl.createLink(linkForm)
         .should.be.rejectedWith(new RegExp(resultAnchor + ' already exists'))
     })
 
     it('strips leading slashes from the link name', function() {
       var payload = { location: REDIRECT_LOCATION }
-      urlp.xhr.withArgs('POST', '/api/create/foo', payload)
+      cl.xhr.withArgs('POST', '/api/create/foo', payload)
         .returns(Promise.resolve())
 
       linkForm.querySelector('[data-name=url]').value = '///foo'
-      return urlp.createLink(linkForm).should.become(
+      return cl.createLink(linkForm).should.become(
         resultAnchor + ' now redirects to ' + REDIRECT_LOCATION)
     })
 
     it('throws an error if the custom link field is missing', function() {
       var urlField = linkForm.querySelector('[data-name=url]')
       urlField.parentNode.removeChild(urlField)
-      expect(function() { urlp.createLink(linkForm) }).to.throw(Error,
+      expect(function() { cl.createLink(linkForm) }).to.throw(Error,
         'fields missing from link form: ' + linkForm.outerHTML)
     })
 
     it('throws an error if the redirect location field is missing', function() {
       var locationField = linkForm.querySelector('[data-name=location]')
       locationField.parentNode.removeChild(locationField)
-      expect(function() { urlp.createLink(linkForm) }).to.throw(Error,
+      expect(function() { cl.createLink(linkForm) }).to.throw(Error,
         'fields missing from link form: ' + linkForm.outerHTML)
     })
 
     it('rejects if the custom link value is missing', function() {
       linkForm.querySelector('[data-name=url]').value = ''
-      return urlp.createLink(linkForm).should.be.rejectedWith(
+      return cl.createLink(linkForm).should.be.rejectedWith(
         'Custom link field must not be empty.')
     })
 
     it('rejects if the redirect location value is missing', function() {
       linkForm.querySelector('[data-name=location]').value = ''
-      return urlp.createLink(linkForm).should.be.rejectedWith(
+      return cl.createLink(linkForm).should.be.rejectedWith(
         'Redirect location field must not be empty.')
     })
 
     it('rejects if the location has an incorrect protocol', function() {
       linkForm.querySelector('[data-name=location]').value = 'gopher://bar'
-      return urlp.createLink(linkForm).should.be.rejectedWith(
+      return cl.createLink(linkForm).should.be.rejectedWith(
         'Redirect location protocol must be http:// or https://.')
     })
 
@@ -401,7 +401,7 @@ describe('Custom Links', function() {
       expectXhr().callsFake(function() {
         return Promise.reject({ status: 500 })
       })
-      return urlp.createLink(linkForm).should.be.rejectedWith(
+      return cl.createLink(linkForm).should.be.rejectedWith(
         new RegExp('server error .* ' + resultUrl.replace('/', '\\/') +
           ' wasn\'t created'))
     })
@@ -410,7 +410,7 @@ describe('Custom Links', function() {
       expectXhr().callsFake(function() {
         return Promise.reject(new Error('A network error occurred.'))
       })
-      return urlp.createLink(linkForm)
+      return cl.createLink(linkForm)
         .should.be.rejectedWith('A network error occurred.')
     })
 
@@ -418,7 +418,7 @@ describe('Custom Links', function() {
       expectXhr().callsFake(function() {
         return Promise.reject('forced error')
       })
-      return urlp.createLink(linkForm).should.be.rejectedWith('forced error')
+      return cl.createLink(linkForm).should.be.rejectedWith('forced error')
     })
 
     it('rejects when the server response doesn\'t contain JSON', function() {
@@ -430,7 +430,7 @@ describe('Custom Links', function() {
           statusText: 'Method not allowed'
         })
       })
-      return urlp.createLink(linkForm)
+      return cl.createLink(linkForm)
         .should.be.rejectedWith('Could not create ' + resultUrl +
           ': Method not allowed')
     })
@@ -440,8 +440,8 @@ describe('Custom Links', function() {
     var view, button, result
 
     beforeEach(function() {
-      urlp.showView('#')
-      view = urlpTest.getView('landing-view')[0]
+      cl.showView('#')
+      view = clTest.getView('landing-view')[0]
       button = view.getElementsByTagName('button')[0]
       result = view.getElementsByClassName('result')[0]
 
@@ -449,8 +449,8 @@ describe('Custom Links', function() {
       // focus/document.activeElement.
       document.body.appendChild(view)
 
-      // Stub urlp.fade() instead of urlp.flashElement() because we depend upon
-      // the result's innerHTML to be set by the latter.
+      // Stub cl.fade() instead of cl.flashElement() because we depend upon the
+      // result's innerHTML to be set by the latter.
       stubOut('fade').callsFake(function(element, increment) {
         element.style.opacity = increment < 0.0 ? 0 : 1
         return Promise.resolve(element)
