@@ -30,6 +30,16 @@
       .getElementsByClassName(viewClass)
   }
 
+  // Use this to create elements appended directly to the body so the computed
+  // style isn't influenced by clTest.fixture's "display: none" style.
+  clTest.createVisibleElement = function(tagName) {
+    return document.body.appendChild(document.createElement(tagName))
+  }
+
+  clTest.removeElement = function(element) {
+    element.parentNode.removeChild(element)
+  }
+
   clTest.handleXhrError = function(description) {
     return function(err) {
       console.log('failed to ' + description + ': ' + (err.message || err))
