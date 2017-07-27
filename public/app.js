@@ -51,7 +51,7 @@
   }
 
   cl.showView = function(hashId) {
-    var viewId = hashId.split('-', 1),
+    var viewId = hashId === '' ? '#' : hashId.split('-', 1),
         viewParam = hashId.slice(viewId.length + 1),
         container = document.getElementsByClassName('view-container')[0],
         routes = {
@@ -60,7 +60,7 @@
         renderView = routes[viewId]
 
     if (!renderView) {
-      if (hashId !== '' && container.children.length !== 0) {
+      if (container.children.length !== 0) {
         return
       }
       renderView = routes['#']
