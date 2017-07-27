@@ -38,45 +38,55 @@ describe('Custom Links', function() {
     })
 
     it('shows the landing page view when no other view set', function() {
-      cl.showView('#foobar')
-      clTest.getView('landing-view').length.should.equal(1)
+      return cl.showView('#foobar').then(function() {
+        clTest.getView('landing-view').length.should.equal(1)
+      })
     })
 
     it('shows the landing page view when the hash ID is empty', function() {
-      cl.showView('')
-      clTest.getView('landing-view').length.should.equal(1)
+      return cl.showView('').then(function() {
+        clTest.getView('landing-view').length.should.equal(1)
+      })
     })
 
     it('shows the landing page view when the ID is a hash only', function() {
       // This normally won't happen, since window.location.hash will return the
       // empty string if only '#' is present.
-      cl.showView('#')
-      clTest.getView('landing-view').length.should.equal(1)
+      return cl.showView('#').then(function() {
+        clTest.getView('landing-view').length.should.equal(1)
+      })
     })
 
     it('doesn\'t change the view when the hash ID is unknown', function() {
-      cl.showView('#')
-      cl.showView('#foobar')
-      clTest.getView('landing-view').length.should.equal(1)
+      return cl.showView('#')
+        .then(function() {
+          return cl.showView('#foobar')
+        })
+        .then(function() {
+          clTest.getView('landing-view').length.should.equal(1)
+        })
     })
 
     it('passes the hash view parameter to the view function', function() {
       spyOn('landingView')
-      cl.showView('#-foo-bar')
-      cl.landingView.calledWith('foo-bar').should.be.true
+      return cl.showView('#-foo-bar').then(function() {
+        cl.landingView.calledWith('foo-bar').should.be.true
+      })
     })
 
     it('calls the done() callback if present', function() {
       var landingView = cl.landingView,
-          view
+          doneSpy
 
       stubOut('landingView').callsFake(function() {
-        view = landingView()
-        sinon.spy(view, 'done')
-        return view
+        return landingView().then(function(view) {
+          doneSpy = sinon.spy(view, 'done')
+          return view
+        })
       })
-      cl.showView('#')
-      expect(view.done.calledOnce).to.be.true
+      return cl.showView('#').then(function() {
+        expect(doneSpy.calledOnce).to.be.true
+      })
     })
 
     it('shows the landing view when the container isn\'t empty', function() {
@@ -84,9 +94,11 @@ describe('Custom Links', function() {
       container.children.length.should.equal(0)
       container.appendChild(document.createElement('p'))
       container.children.length.should.equal(1)
-      cl.showView('')
-      container.children.length.should.equal(1)
-      clTest.getView('landing-view').length.should.equal(1)
+
+      return cl.showView('').then(function() {
+        container.children.length.should.equal(1)
+        clTest.getView('landing-view').length.should.equal(1)
+      })
     })
   })
 
@@ -150,7 +162,7 @@ describe('Custom Links', function() {
         Promise.reject({ status: 404, response: 'forced error' }))
       return invokeLoadApp().then(function() {
         document.getElementById('userid').textContent
-          .should.equal('<unknown user>')
+          .should.equal(cl.UNKNOWN_USER)
       })
     })
   })
@@ -172,22 +184,23 @@ describe('Custom Links', function() {
 
   describe('landingView', function() {
     it('shows a form to create a URL redirection', function() {
-      var view = cl.landingView(),
-          form = view.element.getElementsByTagName('form').item(0),
-          labels = form.getElementsByTagName('label'),
-          inputs = form.getElementsByTagName('input'),
-          button = form.getElementsByTagName('button')[0],
-          inputFocus
+      return cl.landingView().then(function(view) {
+        var form = view.element.getElementsByTagName('form').item(0),
+            labels = form.getElementsByTagName('label'),
+            inputs = form.getElementsByTagName('input'),
+            button = form.getElementsByTagName('button')[0],
+            inputFocus
 
-      expect(labels[0].textContent).to.eql('Custom link:')
-      expect(inputs[0]).not.to.eql(null)
-      expect(labels[1].textContent).to.eql('Redirect to:')
-      expect(inputs[1]).not.to.eql(null)
-      expect(button.textContent).to.contain('Create URL')
+        expect(labels[0].textContent).to.eql('Custom link:')
+        expect(inputs[0]).not.to.eql(null)
+        expect(labels[1].textContent).to.eql('Redirect to:')
+        expect(inputs[1]).not.to.eql(null)
+        expect(button.textContent).to.contain('Create URL')
 
-      inputFocus = sinon.stub(inputs[0], 'focus')
-      view.done()
-      expect(inputFocus.calledOnce).to.be.true
+        inputFocus = sinon.stub(inputs[0], 'focus')
+        view.done()
+        expect(inputFocus.calledOnce).to.be.true
+      })
     })
   })
 
@@ -478,20 +491,21 @@ describe('Custom Links', function() {
     var view, button, result
 
     beforeEach(function() {
-      cl.showView('#')
-      view = clTest.getView('landing-view')[0]
-      button = view.getElementsByTagName('button')[0]
-      result = view.getElementsByClassName('result')[0]
+      return cl.showView('#').then(function() {
+        view = clTest.getView('landing-view')[0]
+        button = view.getElementsByTagName('button')[0]
+        result = view.getElementsByClassName('result')[0]
 
-      // Attach the view to the body to make it visible; needed to test
-      // focus/document.activeElement.
-      document.body.appendChild(view)
+        // Attach the view to the body to make it visible; needed to test
+        // focus/document.activeElement.
+        document.body.appendChild(view)
 
-      // Stub cl.fade() instead of cl.flashElement() because we depend upon the
-      // result's innerHTML to be set by the latter.
-      stubOut('fade').callsFake(function(element, increment) {
-        element.style.opacity = increment < 0.0 ? 0 : 1
-        return Promise.resolve(element)
+        // Stub cl.fade() instead of cl.flashElement() because we depend upon
+        // the result's innerHTML to be set by the latter.
+        stubOut('fade').callsFake(function(element, increment) {
+          element.style.opacity = increment < 0.0 ? 0 : 1
+          return Promise.resolve(element)
+        })
       })
     })
 

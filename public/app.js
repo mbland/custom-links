@@ -4,6 +4,8 @@
 (function(f) { f(window, document) })(function(window,  document) {
   var cl = window.cl = {}
 
+  cl.UNKNOWN_USER = '<unknown user>'
+
   cl.xhr = function(method, url, body) {
     return new Promise(function(resolve, reject) {
       var r = new XMLHttpRequest()
@@ -42,38 +44,39 @@
     }
     cl.userId = cl.xhr('GET', '/id')
       .then(function(xhr) { return xhr.response })
-      .catch(function() { return '<unknown user>' })
+      .catch(function() { return cl.UNKNOWN_USER })
 
     return cl.userId.then(function(id) {
       document.getElementById('userid').textContent = id
-      cl.showView(window.location.hash)
+      return cl.showView(window.location.hash)
     })
   }
 
   cl.showView = function(hashId) {
-    var viewId = hashId.split('-', 1),
+    var viewId = hashId === '' ? '#' : hashId.split('-', 1),
         viewParam = hashId.slice(viewId.length + 1),
         container = document.getElementsByClassName('view-container')[0],
-        replacement = container.cloneNode(false),
         routes = {
           '#': cl.landingView
         },
-        renderView = routes[viewId],
-        view
+        renderView = routes[viewId]
 
     if (!renderView) {
-      if (hashId !== '' && container.children.length !== 0) {
+      if (container.children.length !== 0) {
         return
       }
       renderView = routes['#']
     }
-    view = renderView(viewParam)
-    replacement.appendChild(view.element)
-    container.parentNode.replaceChild(replacement, container)
+    return renderView(viewParam).then(function(view) {
+      var replacement = container.cloneNode(false)
 
-    if (view.done) {
-      view.done()
-    }
+      replacement.appendChild(view.element)
+      container.parentNode.replaceChild(replacement, container)
+
+      if (view.done) {
+        return view.done()
+      }
+    })
   }
 
   cl.getTemplate = function(templateName) {
@@ -111,12 +114,12 @@
 
     button.onclick = cl.createLinkClick
     view.appendChild(cl.applyData({ submit: 'Create URL' }, editForm))
-    return {
+    return Promise.resolve({
       element: view,
       done: function() {
         cl.focusFirstElement(view, 'input')
       }
-    }
+    })
   }
 
   cl.fade = function(element, increment, deadline) {
