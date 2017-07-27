@@ -162,7 +162,7 @@ describe('Custom Links', function() {
         Promise.reject({ status: 404, response: 'forced error' }))
       return invokeLoadApp().then(function() {
         document.getElementById('userid').textContent
-          .should.equal('<unknown user>')
+          .should.equal(cl.UNKNOWN_USER)
       })
     })
   })

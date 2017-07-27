@@ -4,6 +4,8 @@
 (function(f) { f(window, document) })(function(window,  document) {
   var cl = window.cl = {}
 
+  cl.UNKNOWN_USER = '<unknown user>'
+
   cl.xhr = function(method, url, body) {
     return new Promise(function(resolve, reject) {
       var r = new XMLHttpRequest()
@@ -42,7 +44,7 @@
     }
     cl.userId = cl.xhr('GET', '/id')
       .then(function(xhr) { return xhr.response })
-      .catch(function() { return '<unknown user>' })
+      .catch(function() { return cl.UNKNOWN_USER })
 
     return cl.userId.then(function(id) {
       document.getElementById('userid').textContent = id
