@@ -5,7 +5,7 @@
   <link rel='stylesheet' href='css/vendor/normalize.css'>
   <link rel='stylesheet' href='css/vendor/skeleton-2.0.4.min.css'>
   <script src='app.js'></script>
-  <style type="text/css" media="all">body{margin-top:30px;}.templates{display:none;}.nav{text-align:right;}.result{padding:5px;border-radius:5px;}.result.success{background-color:whitesmoke;}.result.failure{background-color:lavenderblush;}</style>
+  <style type="text/css" media="all">body{margin-top:30px;}.templates{display:none;}.nav{text-align:right;}.result{padding:5px;border-radius:5px;}.result.success{background-color:whitesmoke;}.result.failure{background-color:lavenderblush;}.links .header,.link{display:flex;justify-content:space-between}.links .header{font-weight:bold;background-color:whitesmoke;border-radius:5px;}.links .link{border-bottom: 2px solid whitesmoke}.links .cell{padding:2px}.link-target{overflow:hidden;}.link-target .cell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}.clicks-action{text-align:right;}@media (min-width:551px){.link-target{display:flex;flex:1;}.clicks-action{display:flex;flex:0.5;justify-content:flex-end;}.links .cell{flex:0 0 100px;}.links .cell.target{flex:1;}}@media (max-width:550px){.links .link{display:flex;}.clicks-action{flex:0 0;}}</style>
 </head>
 <body>
   <div class='markup'>
@@ -13,6 +13,7 @@
       <div class='nav'>
         <span id='userid'></span> |
         <a href='/#'>New&nbsp;link</a> |
+        <a href='/#links'>My&nbsp;links</a> |
         <a href='/logout'>Log&nbsp;out</a>
       </div>
       <h3>Custom Links</h3>
@@ -33,6 +34,34 @@
       <div class='result success'>
       </div>
       <div class='result failure'>
+      </div>
+      <div class='link-view'>
+      </div>
+      <div class='links'>
+        <div class='header'>
+          <div class='wrapper link-target'>
+            <div class='label cell'>Link</div>
+            <div class='label cell target'>Target</div>
+          </div>
+          <div class='wrapper clicks-action'>
+            <div class='label cell'>Clicks</div>
+            <div class='label cell'>Action</div>
+          </div>
+        </div>
+      </div>
+      <div class='link'>
+        <div class='wrapper link-target'>
+          <div class='cell'></div>
+          <div class='cell target'></div>
+        </div>
+        <div class='wrapper clicks-action'>
+          <div class='cell'></div>
+          <div class='cell'><a href=''>Edit</a>&nbsp;|&nbsp;<a href=''>Delete</a></div>
+        </div>
+      </div>
+      <div class='no-links'>
+        <p>You do not own any custom links.</p>
+        <p><a href='/'>Create a new custom link</a> now.</p>
       </div>
     </div>
   </div>

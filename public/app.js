@@ -57,7 +57,8 @@
         viewParam = hashId.slice(viewId.length + 1),
         container = document.getElementsByClassName('view-container')[0],
         routes = {
-          '#': cl.landingView
+          '#': cl.landingView,
+          '#links': cl.linksView
         },
         renderView = routes[viewId]
 
@@ -120,6 +121,91 @@
         cl.focusFirstElement(view, 'input')
       }
     })
+  }
+
+  cl.linksView = function() {
+    var linksView = cl.getTemplate('link-view')
+
+    return cl.userId
+      .then(function(uid) {
+        if (uid === cl.UNKNOWN_USER) {
+          return { response: '{}' }
+        }
+        return cl.xhr('GET', '/api/user/' + uid).catch(function(err) {
+          throw new Error('Request for user info failed: ' +
+            (err.message || err.statusText))
+        })
+      })
+      .then(function(result) {
+        var response
+
+        try {
+          response = JSON.parse(result.response)
+        } catch (err) {
+          console.error('Bad user info response:', result.response)
+          throw new Error('Failed to parse user info response: ' +
+            err.message + '<br/>See console messages for details.')
+        }
+
+        if (response.urls === undefined || response.urls.length === 0) {
+          linksView.appendChild(cl.getTemplate('no-links'))
+        } else {
+          linksView.appendChild(cl.createLinksTable(response.urls))
+        }
+      })
+      .catch(function(err) {
+        var errMessage = cl.getTemplate('result failure')
+
+        console.error(err)
+        errMessage.innerHTML = err.message
+        linksView.appendChild(errMessage)
+      })
+      .then(function() {
+        return {
+          element: linksView,
+          done: function() {
+            cl.focusFirstElement(linksView, 'a')
+          }
+        }
+      })
+  }
+
+  cl.createLinksTable = function(links, options) {
+    var linkTable = cl.getTemplate('links'),
+        linkEntry = cl.getTemplate('link'),
+        sortKey,
+        order,
+        cells
+
+    options = options || {}
+    sortKey = options.sortKey || 'url'
+    options.order = options.order || 'ascending'
+
+    switch (options.order) {
+    case 'ascending':
+      order = 1
+      break
+    case 'descending':
+      order = -1
+      break
+    default:
+      throw new Error('invalid sort order: ' + options.order)
+    }
+
+    links.sort(function(lhs, rhs) {
+      lhs = lhs[sortKey]
+      rhs = rhs[sortKey]
+      return lhs < rhs ? -order : (lhs > rhs ? order : 0)
+    })
+    links.forEach(function(link) {
+      var current = linkEntry.cloneNode(true)
+      cells = current.getElementsByClassName('cell')
+      cells[0].appendChild(cl.createAnchor(link.url))
+      cells[1].appendChild(cl.createAnchor(link.location))
+      cells[2].textContent = link.count
+      linkTable.appendChild(current)
+    })
+    return linkTable
   }
 
   cl.fade = function(element, increment, deadline) {

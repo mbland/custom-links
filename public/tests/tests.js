@@ -8,6 +8,8 @@ describe('Custom Links', function() {
       spyOn,
       stubOut,
       doubles = [],
+      viewElementReceivesFocus,
+      HOST_PREFIX = window.location.protocol + '//' + window.location.host,
       REDIRECT_LOCATION = 'https://mike-bland.com/'
 
   beforeEach(function() {
@@ -24,6 +26,12 @@ describe('Custom Links', function() {
     var spy = sinon.spy(cl, functionName)
     doubles.push(spy)
     return spy
+  }
+
+  viewElementReceivesFocus = function(view, element) {
+    var inputFocus = sinon.stub(element, 'focus')
+    view.done()
+    return inputFocus.calledOnce
   }
 
   stubOut = function(functionName) {
@@ -138,8 +146,7 @@ describe('Custom Links', function() {
 
     it('shows the nav bar', function() {
       return invokeLoadApp().then(function() {
-        var hostPrefix = window.location.protocol + '//' + window.location.host,
-            navBar,
+        var navBar,
             userId,
             navLinks
 
@@ -151,9 +158,10 @@ describe('Custom Links', function() {
         userId.textContent.should.equal('mbland@acm.org')
 
         navLinks = navBar.getElementsByTagName('A')
-        navLinks.length.should.equal(2)
-        navLinks[0].href.should.equal(hostPrefix + '/#')
-        navLinks[1].href.should.equal(hostPrefix + '/logout')
+        navLinks.length.should.equal(3)
+        navLinks[0].href.should.equal(HOST_PREFIX + '/#')
+        navLinks[1].href.should.equal(HOST_PREFIX + '/#links')
+        navLinks[2].href.should.equal(HOST_PREFIX + '/logout')
       })
     })
 
@@ -188,18 +196,14 @@ describe('Custom Links', function() {
         var form = view.element.getElementsByTagName('form').item(0),
             labels = form.getElementsByTagName('label'),
             inputs = form.getElementsByTagName('input'),
-            button = form.getElementsByTagName('button')[0],
-            inputFocus
+            button = form.getElementsByTagName('button')[0]
 
         expect(labels[0].textContent).to.eql('Custom link:')
         expect(inputs[0]).not.to.eql(null)
         expect(labels[1].textContent).to.eql('Redirect to:')
         expect(inputs[1]).not.to.eql(null)
         expect(button.textContent).to.contain('Create URL')
-
-        inputFocus = sinon.stub(inputs[0], 'focus')
-        view.done()
-        expect(inputFocus.calledOnce).to.be.true
+        expect(viewElementReceivesFocus(view, inputs[0])).to.equal(true)
       })
     })
   })
@@ -549,6 +553,198 @@ describe('Custom Links', function() {
         var failureDiv = result.getElementsByClassName('failure')[0]
         expect(failureDiv).to.not.be.undefined
         failureDiv.textContent.should.equal('forced error')
+      })
+    })
+  })
+
+  describe('createLinksTable', function() {
+    it('returns an empty table if no links', function() {
+      var table = cl.createLinksTable([]),
+          header = table.children[0]
+
+      table.children.length.should.equal(1)
+      header.className.split(' ').indexOf('header').should.not.equal(-1)
+    })
+
+    it('returns a table with a single element', function() {
+      var table = cl.createLinksTable([
+            { url: '/foo', location: 'https://foo.com/', count: 3 }
+          ]),
+          linkRow = table.children[1],
+          anchors,
+          linkTarget,
+          clicksAction
+
+      table.children.length.should.equal(2)
+      linkTarget = linkRow.children[0]
+      anchors = linkTarget.getElementsByTagName('a')
+      anchors.length.should.equal(2)
+      anchors[0].textContent.should.equal('/foo')
+      anchors[0].href.should.equal(HOST_PREFIX + '/foo')
+      anchors[1].textContent.should.equal('https://foo.com/')
+      anchors[1].href.should.equal('https://foo.com/')
+
+      clicksAction = linkRow.children[1]
+      clicksAction.children.length.should.equal(2)
+      clicksAction.children[0].textContent.should.equal('3')
+      anchors = clicksAction.children[1].getElementsByTagName('a')
+      anchors.length.should.equal(2)
+
+      // Note that as yet, the Edit and Delete links have yet to be implemented.
+      anchors[0].textContent.should.equal('Edit')
+      anchors[0].href.should.equal(window.location.href)
+      anchors[1].textContent.should.equal('Delete')
+      anchors[1].href.should.equal(window.location.href)
+    })
+
+    it('returns a table of multiple elements sorted by link', function() {
+      var links =[
+            { url: '/foo', location: 'https://foo.com/', count: 1 },
+            { url: '/bar', location: 'https://bar.com/', count: 2 },
+            { url: '/baz', location: 'https://baz.com/', count: 3 }
+          ],
+          rows = cl.createLinksTable(links).getElementsByClassName('link')
+
+      rows.length.should.equal(links.length)
+      rows[0].getElementsByTagName('a')[0].textContent.should.equal('/bar')
+      rows[1].getElementsByTagName('a')[0].textContent.should.equal('/baz')
+      rows[2].getElementsByTagName('a')[0].textContent.should.equal('/foo')
+    })
+
+    it('returns a table of multiple elements sorted by clicks', function() {
+      var links = [
+              { url: '/foo', location: 'https://foo.com/', count: 1 },
+              { url: '/bar', location: 'https://bar.com/', count: 2 },
+              { url: '/baz', location: 'https://baz.com/', count: 3 }
+          ],
+          tableOptions = { sortKey: 'count', order: 'descending' },
+          table = cl.createLinksTable(links, tableOptions),
+          rows = table.getElementsByClassName('link')
+
+      rows.length.should.equal(links.length)
+      rows[0].getElementsByTagName('a')[0].textContent.should.equal('/baz')
+      rows[1].getElementsByTagName('a')[0].textContent.should.equal('/bar')
+      rows[2].getElementsByTagName('a')[0].textContent.should.equal('/foo')
+    })
+
+    it('raises an error for a bad sort order option', function() {
+      expect(function() { cl.createLinksTable([], { order: 'bogus' }) })
+        .to.throw(Error, 'invalid sort order: bogus')
+    })
+  })
+
+  describe('linksView', function() {
+    var origUserId = cl.userId,
+        userId = 'mbland@acm.org',
+        errorLog,
+        setApiResponseLinks
+
+    beforeEach(function() {
+      cl.userId = Promise.resolve(userId)
+      errorLog = sinon.stub(console, 'error')
+      doubles.push(errorLog)
+    })
+
+    afterEach(function() {
+      cl.userId = origUserId
+    })
+
+    setApiResponseLinks = function(links) {
+      cl.xhr.withArgs('GET', '/api/user/' + userId).returns(
+        Promise.resolve({ response: JSON.stringify({ urls: links }) }))
+    }
+
+    it('shows no links for a valid user', function() {
+      setApiResponseLinks([])
+      return cl.linksView().then(function(view) {
+        var noLinksNotice = view.element.getElementsByClassName('no-links')[0],
+            newLinkAnchor
+
+        expect(noLinksNotice).to.not.be.undefined
+        newLinkAnchor = noLinksNotice.getElementsByTagName('a')[0]
+        expect(newLinkAnchor).to.not.be.undefined
+        expect(viewElementReceivesFocus(view, newLinkAnchor)).to.equal(true)
+      })
+    })
+
+    it('shows no links for cl.UNKNOWN_USER', function() {
+      setApiResponseLinks([{ url: 'bogus', location: 'should not appear' }])
+      cl.userId = Promise.resolve(cl.UNKNOWN_USER)
+      return cl.linksView().then(function(view) {
+        expect(view.element.getElementsByClassName('no-links')[0])
+          .to.not.be.undefined
+      })
+    })
+
+    it('shows links belonging to a valid user', function() {
+      setApiResponseLinks([
+        { url: '/foo', location: 'https://foo.com/', count: 1 },
+        { url: '/bar', location: 'https://bar.com/', count: 2 },
+        { url: '/baz', location: 'https://baz.com/', count: 3 }
+      ])
+
+      return cl.linksView().then(function(view) {
+        var linksTable = view.element.getElementsByClassName('links')[0],
+            rows,
+            firstLink
+
+        expect(linksTable).to.not.be.undefined
+        rows = linksTable.getElementsByClassName('link')
+        rows.length.should.equal(3)
+
+        firstLink = rows[0].getElementsByTagName('a')[0]
+        firstLink.textContent.should.equal('/bar')
+        expect(viewElementReceivesFocus(view, firstLink)).to.equal(true)
+
+        rows[1].getElementsByTagName('a')[0].textContent.should.equal('/baz')
+        rows[2].getElementsByTagName('a')[0].textContent.should.equal('/foo')
+      })
+    })
+
+    it('shows a network error message', function() {
+      cl.xhr.withArgs('GET', '/api/user/' + userId).returns(
+        Promise.reject(new Error('simulated network error')))
+
+      return cl.linksView().then(function(view) {
+        var errorMsg = view.element.getElementsByClassName('result failure')[0],
+            expected = 'Request for user info failed: simulated network error'
+
+        expect(errorMsg).to.not.be.undefined
+        errorMsg.textContent.should.equal(expected)
+        errorLog.args[0][0].message.should.equal(expected)
+      })
+    })
+
+    it('shows an XmlHttpRequest error status message', function() {
+      cl.xhr.withArgs('GET', '/api/user/' + userId).returns(
+        Promise.reject({ statusText: 'simulated response failure' }))
+
+      return cl.linksView().then(function(view) {
+        var errorMsg = view.element.getElementsByClassName('result failure')[0],
+            expected = 'Request for user info failed: ' +
+              'simulated response failure'
+
+        expect(errorMsg).to.not.be.undefined
+        errorMsg.textContent.should.equal(expected)
+        errorLog.args[0][0].message.should.equal(expected)
+      })
+    })
+
+    it('shows a JSON parsing error message from the API response', function() {
+      var badResponse = JSON.stringify({ urls: [] }) + 'foobar'
+
+      cl.xhr.withArgs('GET', '/api/user/' + userId).returns(
+        Promise.resolve({ response: badResponse }))
+
+      return cl.linksView().then(function(view) {
+        var errorMsg = view.element.getElementsByClassName('result failure')[0],
+            expected = /Failed to parse user info response:/
+
+        expect(errorMsg).to.not.be.undefined
+        errorMsg.textContent.should.match(expected)
+        errorLog.args[0][0].should.equal('Bad user info response:')
+        errorLog.args[0][1].should.equal(badResponse)
+        errorLog.args[1][0].message.should.match(expected)
       })
     })
   })
