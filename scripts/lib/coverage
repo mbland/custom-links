@@ -2,10 +2,10 @@
 #
 # Coverage report generator
 
-export URLP_COVERAGE_DATADIR="${URLP_COVERAGE_DATADIR:-$_GO_ROOTDIR/.coverage}"
+export CL_COVERAGE_DATADIR="${CL_COVERAGE_DATADIR:-$_GO_ROOTDIR/.coverage}"
 export CC_TEST_REPORTER="${_GO_ROOTDIR}/cc-test-reporter"
 
-urlp.init_code_climate() {
+cl.init_code_climate() {
   if [[ -n "$CC_TEST_REPORTER_ID" && -x "$CC_TEST_REPORTER" ]]; then
     if ! "$CC_TEST_REPORTER" before-build; then
       echo 'Failed to initiate Code Climate coverage report.' >&2
@@ -15,21 +15,21 @@ urlp.init_code_climate() {
   fi
 }
 
-urlp.generate_coverage_report() {
+cl.generate_coverage_report() {
   local test_result="$1"
   local report_dir="${_GO_ROOTDIR}/coverage/lcov-report"
   local report_path="$report_dir/index.html"
 
   rm -rf "$report_dir"
 
-  if ! istanbul report --root "$URLP_COVERAGE_DATADIR" --include '*.json'; then
+  if ! istanbul report --root "$CL_COVERAGE_DATADIR" --include '*.json'; then
     @go.printf 'Failed to generate coverage report.\n' >&2
     return 1
   fi
   @go.printf 'Coverage report saved as: file://%s\n' "$report_path"
 
   if [[ -n "$CI" ]]; then
-    urlp.send_coverage_report "$test_result"
+    cl.send_coverage_report "$test_result"
   elif [[ "$COVERAGE_REPORT_SERVER" == 'false' ]]; then
     return
   elif [[ "$COVERAGE_REPORT_SERVER" == 'true' ]]; then
@@ -44,7 +44,7 @@ urlp.generate_coverage_report() {
   fi
 }
 
-urlp.send_coverage_report() {
+cl.send_coverage_report() {
   local test_result="$1"
   local lcov_info_path="${_GO_ROOTDIR}/coverage/lcov.info"
   local github_repo="$(git config remote.origin.url)"

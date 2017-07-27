@@ -10,7 +10,7 @@
 #
 # There must be a redis-server already running.
 
-urlp.serve_tab_completion() {
+cl.serve_tab_completion() {
   local word_index="$1"
   shift
   local args=("$@")
@@ -21,14 +21,14 @@ urlp.serve_tab_completion() {
   fi
 }
 
-urlp.serve() {
+cl.serve() {
   local server_config="${1:-$_GO_ROOTDIR/test-config.json}"
 
   case "$1" in
   --complete)
     # Tab completions
     shift
-    urlp.serve_tab_completion "$@"
+    cl.serve_tab_completion "$@"
     return
     ;;
   esac
@@ -36,4 +36,4 @@ urlp.serve() {
   node "$_GO_ROOTDIR/index.js" "$server_config"
 }
 
-urlp.serve "$@"
+cl.serve "$@"
