@@ -76,15 +76,16 @@ describe('Custom Links', function() {
 
     it('calls the done() callback if present', function() {
       var landingView = cl.landingView,
-          view
+          doneSpy
 
       stubOut('landingView').callsFake(function() {
-        view = landingView()
-        sinon.spy(view, 'done')
-        return view
+        return landingView().then(function(view) {
+          doneSpy = sinon.spy(view, 'done')
+          return view
+        })
       })
       return cl.showView('#').then(function() {
-        expect(view.done.calledOnce).to.be.true
+        expect(doneSpy.calledOnce).to.be.true
       })
     })
 
@@ -183,22 +184,23 @@ describe('Custom Links', function() {
 
   describe('landingView', function() {
     it('shows a form to create a URL redirection', function() {
-      var view = cl.landingView(),
-          form = view.element.getElementsByTagName('form').item(0),
-          labels = form.getElementsByTagName('label'),
-          inputs = form.getElementsByTagName('input'),
-          button = form.getElementsByTagName('button')[0],
-          inputFocus
+      return cl.landingView().then(function(view) {
+        var form = view.element.getElementsByTagName('form').item(0),
+            labels = form.getElementsByTagName('label'),
+            inputs = form.getElementsByTagName('input'),
+            button = form.getElementsByTagName('button')[0],
+            inputFocus
 
-      expect(labels[0].textContent).to.eql('Custom link:')
-      expect(inputs[0]).not.to.eql(null)
-      expect(labels[1].textContent).to.eql('Redirect to:')
-      expect(inputs[1]).not.to.eql(null)
-      expect(button.textContent).to.contain('Create URL')
+        expect(labels[0].textContent).to.eql('Custom link:')
+        expect(inputs[0]).not.to.eql(null)
+        expect(labels[1].textContent).to.eql('Redirect to:')
+        expect(inputs[1]).not.to.eql(null)
+        expect(button.textContent).to.contain('Create URL')
 
-      inputFocus = sinon.stub(inputs[0], 'focus')
-      view.done()
-      expect(inputFocus.calledOnce).to.be.true
+        inputFocus = sinon.stub(inputs[0], 'focus')
+        view.done()
+        expect(inputFocus.calledOnce).to.be.true
+      })
     })
   })
 

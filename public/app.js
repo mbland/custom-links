@@ -54,12 +54,10 @@
     var viewId = hashId.split('-', 1),
         viewParam = hashId.slice(viewId.length + 1),
         container = document.getElementsByClassName('view-container')[0],
-        replacement = container.cloneNode(false),
         routes = {
           '#': cl.landingView
         },
-        renderView = routes[viewId],
-        view
+        renderView = routes[viewId]
 
     if (!renderView) {
       if (hashId !== '' && container.children.length !== 0) {
@@ -67,14 +65,16 @@
       }
       renderView = routes['#']
     }
-    view = renderView(viewParam)
-    replacement.appendChild(view.element)
-    container.parentNode.replaceChild(replacement, container)
+    return renderView(viewParam).then(function(view) {
+      var replacement = container.cloneNode(false)
 
-    if (view.done) {
-      view.done()
-    }
-    return Promise.resolve()
+      replacement.appendChild(view.element)
+      container.parentNode.replaceChild(replacement, container)
+
+      if (view.done) {
+        return view.done()
+      }
+    })
   }
 
   cl.getTemplate = function(templateName) {
@@ -112,12 +112,12 @@
 
     button.onclick = cl.createLinkClick
     view.appendChild(cl.applyData({ submit: 'Create URL' }, editForm))
-    return {
+    return Promise.resolve({
       element: view,
       done: function() {
         cl.focusFirstElement(view, 'input')
       }
-    }
+    })
   }
 
   cl.fade = function(element, increment, deadline) {
