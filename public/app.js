@@ -46,7 +46,7 @@
 
     return cl.userId.then(function(id) {
       document.getElementById('userid').textContent = id
-      cl.showView(window.location.hash)
+      return cl.showView(window.location.hash)
     })
   }
 
@@ -74,6 +74,7 @@
     if (view.done) {
       view.done()
     }
+    return Promise.resolve()
   }
 
   cl.getTemplate = function(templateName) {
