@@ -215,10 +215,7 @@ describe('Custom Links', function() {
     var element, setTimeoutStub
 
     beforeEach(function() {
-      element = document.createElement('div')
-      // Append directly to the body so the computed style isn't influenced by
-      // clTest.fixture's "display: none" style.
-      document.body.appendChild(element)
+      element = clTest.createVisibleElement('div')
       setTimeoutStub = sinon.stub(window, 'setTimeout')
       setTimeoutStub.callsFake(function(func) {
         func()
@@ -227,7 +224,7 @@ describe('Custom Links', function() {
 
     afterEach(function() {
       setTimeoutStub.restore()
-      element.parentNode.removeChild(element)
+      clTest.removeElement(element)
     })
 
     it('fades out an element', function() {
@@ -291,15 +288,12 @@ describe('Custom Links', function() {
     var element
 
     beforeEach(function() {
-      element = document.createElement('div')
-      // Append directly to the body so the computed style isn't influenced by
-      // clTest.fixture's "display: none" style.
-      document.body.appendChild(element)
+      element = clTest.createVisibleElement('div')
       element.style.opacity = 1
     })
 
     afterEach(function() {
-      element.parentNode.removeChild(element)
+      clTest.removeElement(element)
     })
 
     it('fades an element out, updates its text, and fades it back', function() {
@@ -318,6 +312,50 @@ describe('Custom Links', function() {
           expect(parseInt(elem.style.opacity)).to.equal(1)
           expect(elem.innerHTML).to.equal(replacement)
         })
+    })
+  })
+
+  describe('createAnchor', function() {
+    it('creates a new anchor using the URL as the anchor text', function() {
+      var anchor = cl.createAnchor('https://example.com')
+      anchor.href.should.equal('https://example.com/')
+      anchor.textContent.should.equal('https://example.com')
+    })
+
+    it('creates a new anchor using the supplied anchor text', function() {
+      var anchor = cl.createAnchor('https://example.com', 'test link')
+      anchor.href.should.equal('https://example.com/')
+      anchor.textContent.should.equal('test link')
+    })
+  })
+
+  describe('focusFirstElement', function() {
+    var element,
+        firstAnchor,
+        secondAnchor
+
+    beforeEach(function() {
+      element = clTest.createVisibleElement('div')
+      firstAnchor = cl.createAnchor('https://example.com/', 'first')
+      element.appendChild(firstAnchor)
+      secondAnchor = cl.createAnchor('https://example.com/', 'second')
+      element.appendChild(secondAnchor)
+    })
+
+    afterEach(function() {
+      clTest.removeElement(element)
+    })
+
+    it('does nothing if no matching tag exists', function() {
+      cl.focusFirstElement(element, 'input')
+      document.activeElement.should.not.equal(firstAnchor)
+      document.activeElement.should.not.equal(secondAnchor)
+    })
+
+    it('matches first anchor', function() {
+      cl.focusFirstElement(element, 'a')
+      document.activeElement.should.equal(firstAnchor)
+      document.activeElement.should.not.equal(secondAnchor)
     })
   })
 

@@ -114,7 +114,7 @@
     return {
       element: view,
       done: function() {
-        view.getElementsByTagName('input')[0].focus()
+        cl.focusFirstElement(view, 'input')
       }
     }
   }
@@ -217,12 +217,24 @@
         result.innerHTML = resultData.message
         return cl.flashElement(resultFlash, result.outerHTML)
           .then(function() {
-            var link = resultFlash.getElementsByTagName('A')[0]
-            if (link) {
-              link.focus()
-            }
+            cl.focusFirstElement(resultFlash, 'a')
           })
       })
     return false
+  }
+
+  cl.createAnchor = function(url, text) {
+    var anchor = document.createElement('a')
+
+    anchor.appendChild(document.createTextNode(text || url))
+    anchor.href = url
+    return anchor
+  }
+
+  cl.focusFirstElement = function(parent, tag) {
+    var first = parent.getElementsByTagName(tag)[0]
+    if (first !== undefined) {
+      first.focus()
+    }
   }
 })
