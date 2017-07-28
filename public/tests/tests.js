@@ -563,7 +563,7 @@ describe('Custom Links', function() {
           header = table.children[0]
 
       table.children.length.should.equal(1)
-      header.className.split(' ').indexOf('header').should.not.equal(-1)
+      header.className.split(' ').indexOf('links-header').should.not.equal(-1)
     })
 
     it('returns a table with a single element', function() {
@@ -572,6 +572,7 @@ describe('Custom Links', function() {
           ]),
           linkRow = table.children[1],
           anchors,
+          buttons,
           linkTarget,
           clicksAction
 
@@ -587,14 +588,12 @@ describe('Custom Links', function() {
       clicksAction = linkRow.children[1]
       clicksAction.children.length.should.equal(2)
       clicksAction.children[0].textContent.should.equal('3')
-      anchors = clicksAction.children[1].getElementsByTagName('a')
-      anchors.length.should.equal(2)
+      buttons = clicksAction.children[1].getElementsByTagName('button')
+      buttons.length.should.equal(2)
 
       // Note that as yet, the Edit and Delete links have yet to be implemented.
-      anchors[0].textContent.should.equal('Edit')
-      anchors[0].href.should.equal(window.location.href)
-      anchors[1].textContent.should.equal('Delete')
-      anchors[1].href.should.equal(window.location.href)
+      buttons[0].textContent.should.equal('Edit')
+      buttons[1].textContent.should.equal('Delete')
     })
 
     it('returns a table of multiple elements sorted by link', function() {
