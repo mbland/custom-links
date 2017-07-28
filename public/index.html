@@ -5,7 +5,34 @@
   <link rel='stylesheet' href='css/vendor/normalize.css'>
   <link rel='stylesheet' href='css/vendor/skeleton-2.0.4.min.css'>
   <script src='app.js'></script>
-  <style type="text/css" media="all">body{margin-top:30px;}.templates{display:none;}.nav{text-align:right;}.result{padding:5px;border-radius:5px;}.result.success{background-color:whitesmoke;}.result.failure{background-color:lavenderblush;}.links .header,.link{display:flex;justify-content:space-between}.links .header{font-weight:bold;background-color:whitesmoke;border-radius:5px;}.links .link{border-bottom: 2px solid whitesmoke}.links .cell{padding:2px}.link-target{overflow:hidden;}.link-target .cell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}.clicks-action{text-align:right;}@media (min-width:551px){.link-target{display:flex;flex:1;}.clicks-action{display:flex;flex:0.5;justify-content:flex-end;}.links .cell{flex:0 0 100px;}.links .cell.target{flex:1;}}@media (max-width:550px){.links .link{display:flex;}.clicks-action{flex:0 0;}}</style>
+  <style type="text/css" media="all">
+body{margin-top:30px;}
+.templates{display:none;}
+.nav{text-align:right;}
+.result{padding:5px;border-radius:5px;}
+.result.success{background-color:whitesmoke;}
+.result.failure{background-color:lavenderblush;}
+.links-row{display:flex;justify-content:space-between}
+.links-header{font-weight:bold;background-color:whitesmoke;border-radius:5px;}
+.links-data{border-bottom: 2px solid whitesmoke}
+.links .cell{padding:2px}
+.link-target{overflow:hidden;}
+.link-target .cell{word-break:break-all;}
+.clicks-action{text-align:right;}
+.clicks-action button{width:100%;}
+@media (max-width:749px){
+.clicks-action{flex:0 0;}
+}
+@media (min-width:750px){
+.link-target{display:flex;flex:1;}
+.clicks-action{display:flex;flex:0.5;justify-content:flex-end;}
+.links .cell{flex:0 0 100px;}
+.links button{margin:2px;}
+.links-header .action{text-align:center;flex:0 0 215px;}
+.links-data .action{display:flex;flex:0 0 215px;}
+.links-row .target{flex:1;}
+}
+</style>
 </head>
 <body>
   <div class='markup'>
@@ -38,25 +65,28 @@
       <div class='link-view'>
       </div>
       <div class='links'>
-        <div class='header'>
+        <div class='links-row links-header'>
           <div class='wrapper link-target'>
             <div class='label cell'>Link</div>
             <div class='label cell target'>Target</div>
           </div>
           <div class='wrapper clicks-action'>
-            <div class='label cell'>Clicks</div>
-            <div class='label cell'>Action</div>
+            <div class='label cell clicks'>Clicks</div>
+            <div class='label cell action'>Action</div>
           </div>
         </div>
       </div>
-      <div class='link'>
+      <div class='link links-row links-data'>
         <div class='wrapper link-target'>
           <div class='cell'></div>
           <div class='cell target'></div>
         </div>
         <div class='wrapper clicks-action'>
-          <div class='cell'></div>
-          <div class='cell'><a href=''>Edit</a>&nbsp;|&nbsp;<a href=''>Delete</a></div>
+          <div class='cell clicks'></div>
+          <div class='cell action'>
+            <button class='button'>Edit</button>
+            <button class='button'>Delete</button>
+          </div>
         </div>
       </div>
       <div class='no-links'>

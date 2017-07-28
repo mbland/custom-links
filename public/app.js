@@ -174,8 +174,7 @@
     var linkTable = cl.getTemplate('links'),
         linkEntry = cl.getTemplate('link'),
         sortKey,
-        order,
-        cells
+        order
 
     options = options || {}
     sortKey = options.sortKey || 'url'
@@ -198,8 +197,9 @@
       return lhs < rhs ? -order : (lhs > rhs ? order : 0)
     })
     links.forEach(function(link) {
-      var current = linkEntry.cloneNode(true)
-      cells = current.getElementsByClassName('cell')
+      var current = linkEntry.cloneNode(true),
+          cells = current.getElementsByClassName('cell')
+
       cells[0].appendChild(cl.createAnchor(link.url))
       cells[1].appendChild(cl.createAnchor(link.location))
       cells[2].textContent = link.count
