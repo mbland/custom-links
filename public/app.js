@@ -290,12 +290,12 @@
       })
   }
 
-  cl.createLinkClick = function() {
+  cl.createLinkClick = function(e) {
     var linkForm = this.parentNode,
         resultFlash = linkForm.getElementsByClassName('result')[0]
 
     resultFlash.done = cl.flashResult(resultFlash, cl.createLink(linkForm))
-    return false
+    e.preventDefault()
   }
 
   cl.flashResult = function(element, action) {
