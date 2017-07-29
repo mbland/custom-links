@@ -347,6 +347,62 @@ describe('Custom Links', function() {
     })
   })
 
+  describe('createLinkInfo', function() {
+    it('returns an object with the relative URL, full URL, anchor', function() {
+      var full = window.location.origin + '/foo'
+      cl.createLinkInfo('foo').should.eql({
+        relative: '/foo',
+        full: full,
+        anchor: '<a href=\'/foo\'>' + full + '</a>'
+      })
+    })
+  })
+
+  describe('apiErrorMessage', function() {
+    var xhr, linkInfo, prefix
+
+    beforeEach(function() {
+      xhr = {
+        status: 403,
+        statusText: 'Permission denied'
+      }
+      linkInfo = cl.createLinkInfo('foo')
+      prefix = 'The operation failed'
+    })
+
+    it('uses the Error message', function() {
+      delete xhr.status
+      expect(cl.apiErrorMessage(new Error('Error!'), linkInfo, prefix))
+        .to.equal('The operation failed: Error!')
+    })
+
+    it('returns the error string as-is', function() {
+      delete xhr.status
+      expect(cl.apiErrorMessage('plain string', linkInfo, prefix))
+        .to.equal('The operation failed: plain string')
+    })
+
+    it('returns a server error message', function() {
+      xhr.status = 500
+      expect(cl.apiErrorMessage(xhr, linkInfo, prefix))
+        .to.match(/The operation failed: A server error occurred\./)
+    })
+
+    it('returns response text with the link replaced by an anchor', function() {
+      xhr.response = {
+        err: 'Could not do stuff with /foo.'
+      }
+      expect(cl.apiErrorMessage(xhr, linkInfo, prefix))
+        .to.equal('The operation failed: ' +
+          'Could not do stuff with ' + linkInfo.anchor + '.')
+    })
+
+    it('returns the failure message and the statusText', function() {
+      expect(cl.apiErrorMessage(xhr, linkInfo, prefix))
+        .to.equal('The operation failed: Permission denied')
+    })
+  })
+
   describe('createAnchor', function() {
     it('creates a new anchor using the URL as the anchor text', function() {
       var anchor = cl.createAnchor('https://example.com')
@@ -392,14 +448,13 @@ describe('Custom Links', function() {
   })
 
   describe('createLink', function() {
-    var linkForm, expectXhr,
-        resultUrl = window.location.origin + '/foo',
-        resultAnchor = '<a href=\'/foo\'>' + resultUrl + '</a>'
+    var linkForm, expectXhr, linkInfo
 
     beforeEach(function() {
       linkForm = cl.getTemplate('edit-link')
       linkForm.querySelector('[data-name=url]').value = 'foo'
       linkForm.querySelector('[data-name=location]').value = REDIRECT_LOCATION
+      linkInfo = cl.createLinkInfo('foo')
     })
 
     expectXhr = function() {
@@ -410,7 +465,7 @@ describe('Custom Links', function() {
     it('creates a link that doesn\'t already exist', function() {
       expectXhr().returns(Promise.resolve())
       return cl.createLink(linkForm).should.become(
-        resultAnchor + ' now redirects to ' + REDIRECT_LOCATION)
+        linkInfo.anchor + ' now redirects to ' + REDIRECT_LOCATION)
     })
 
     it('fails to create a link that already exists', function() {
@@ -420,9 +475,8 @@ describe('Custom Links', function() {
           response: { err: '/foo already exists' }
         })
       })
-
       return cl.createLink(linkForm)
-        .should.be.rejectedWith(new RegExp(resultAnchor + ' already exists'))
+        .should.be.rejectedWith(new RegExp(linkInfo.anchor + ' already exists'))
     })
 
     it('strips leading slashes from the link name', function() {
@@ -432,7 +486,7 @@ describe('Custom Links', function() {
 
       linkForm.querySelector('[data-name=url]').value = '///foo'
       return cl.createLink(linkForm).should.become(
-        resultAnchor + ' now redirects to ' + REDIRECT_LOCATION)
+        linkInfo.anchor + ' now redirects to ' + REDIRECT_LOCATION)
     })
 
     it('throws an error if the custom link field is missing', function() {
@@ -465,44 +519,6 @@ describe('Custom Links', function() {
       linkForm.querySelector('[data-name=location]').value = 'gopher://bar'
       return cl.createLink(linkForm).should.be.rejectedWith(
         'Redirect location protocol must be http:// or https://.')
-    })
-
-    it('rejects if the request returns a server error', function() {
-      expectXhr().callsFake(function() {
-        return Promise.reject({ status: 500 })
-      })
-      return cl.createLink(linkForm).should.be.rejectedWith(
-        new RegExp('server error .* ' + resultUrl.replace('/', '\\/') +
-          ' wasn\'t created'))
-    })
-
-    it('rejects if the request raises a network error', function() {
-      expectXhr().callsFake(function() {
-        return Promise.reject(new Error('A network error occurred.'))
-      })
-      return cl.createLink(linkForm)
-        .should.be.rejectedWith('A network error occurred.')
-    })
-
-    it('rejects if the request raises another error', function() {
-      expectXhr().callsFake(function() {
-        return Promise.reject('forced error')
-      })
-      return cl.createLink(linkForm).should.be.rejectedWith('forced error')
-    })
-
-    it('rejects when the server response doesn\'t contain JSON', function() {
-      // This models what happens when trying to POST to the local test server
-      // instead of the actual application backend.
-      expectXhr().callsFake(function() {
-        return Promise.reject({
-          status: 405,
-          statusText: 'Method not allowed'
-        })
-      })
-      return cl.createLink(linkForm)
-        .should.be.rejectedWith('Could not create ' + resultUrl +
-          ': Method not allowed')
     })
   })
 
