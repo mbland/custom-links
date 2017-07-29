@@ -349,12 +349,19 @@ describe('Custom Links', function() {
 
   describe('createLinkInfo', function() {
     it('returns an object with the relative URL, full URL, anchor', function() {
-      var full = window.location.origin + '/foo'
-      cl.createLinkInfo('foo').should.eql({
-        relative: '/foo',
-        full: full,
-        anchor: '<a href=\'/foo\'>' + full + '</a>'
-      })
+      var full = window.location.origin + '/foo',
+          result = cl.createLinkInfo('foo')
+      result.relative.should.equal('/foo')
+      result.full.should.equal(full)
+      result.anchor.should.equal('<a href=\'/foo\'>' + full + '</a>')
+    })
+
+    it('handles a link that already has a leading slash', function() {
+      var full = window.location.origin + '/foo',
+          result = cl.createLinkInfo('/foo')
+      result.relative.should.equal('/foo')
+      result.full.should.equal(full)
+      result.anchor.should.equal('<a href=\'/foo\'>' + full + '</a>')
     })
   })
 

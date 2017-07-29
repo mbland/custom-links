@@ -31,11 +31,13 @@
   }
 
   cl.createLinkInfo = function(link) {
-    var url = window.location.origin + '/' + link
+    var trimmed = link.replace(/^\/+/, ''),
+        url = window.location.origin + '/' + trimmed
+
     return {
-      relative: '/' + link,
+      relative: '/' + trimmed,
       full: url,
-      anchor: '<a href=\'/' + link + '\'>' + url + '</a>'
+      anchor: '<a href=\'/' + trimmed + '\'>' + url + '</a>'
     }
   }
 
