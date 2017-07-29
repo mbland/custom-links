@@ -294,7 +294,12 @@
     var linkForm = this.parentNode,
         resultFlash = linkForm.getElementsByClassName('result')[0]
 
-    resultFlash.done = cl.createLink(linkForm)
+    resultFlash.done = cl.flashResult(resultFlash, cl.createLink(linkForm))
+    return false
+  }
+
+  cl.flashResult = function(element, action) {
+    return action
       .then(function(message) {
         return { template: 'result success', message: message }
       })
@@ -304,12 +309,11 @@
       .then(function(resultData) {
         var result = cl.getTemplate(resultData.template)
         result.innerHTML = resultData.message
-        return cl.flashElement(resultFlash, result.outerHTML)
+        return cl.flashElement(element, result.outerHTML)
           .then(function() {
-            cl.focusFirstElement(resultFlash, 'a')
+            cl.focusFirstElement(element, 'a')
           })
       })
-    return false
   }
 
   cl.createAnchor = function(url, text) {
