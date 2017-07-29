@@ -9,6 +9,7 @@ describe('Custom Links', function() {
       stubOut,
       doubles = [],
       viewElementReceivesFocus,
+      prepareFlashingElement,
       HOST_PREFIX = window.location.protocol + '//' + window.location.host,
       REDIRECT_LOCATION = 'https://mike-bland.com/'
 
@@ -28,16 +29,30 @@ describe('Custom Links', function() {
     return spy
   }
 
+  stubOut = function(functionName) {
+    var stub = sinon.stub(cl, functionName)
+    doubles.push(stub)
+    return stub
+  }
+
   viewElementReceivesFocus = function(view, element) {
     var inputFocus = sinon.stub(element, 'focus')
     view.done()
     return inputFocus.calledOnce
   }
 
-  stubOut = function(functionName) {
-    var stub = sinon.stub(cl, functionName)
-    doubles.push(stub)
-    return stub
+  prepareFlashingElement = function(element) {
+    // Attach the element to the body to make it visible; needed to test
+    // focus/document.activeElement.
+    document.body.appendChild(element)
+
+    // Stub cl.fade() instead of cl.flashElement() because we depend upon
+    // the result's innerHTML to be set by the latter.
+    stubOut('fade').callsFake(function(element, increment) {
+      element.style.opacity = increment < 0.0 ? 0 : 1
+      return Promise.resolve(element)
+    })
+    return element
   }
 
   describe('showView', function() {
@@ -491,25 +506,65 @@ describe('Custom Links', function() {
     })
   })
 
+  describe('flashResult', function() {
+    var element
+
+    beforeEach(function() {
+      element = prepareFlashingElement(document.createElement('div'))
+    })
+
+    afterEach(function() {
+      clTest.removeElement(element)
+    })
+
+    it('flashes a success message', function() {
+      return cl.flashResult(element, Promise.resolve('Success!'))
+        .then(function() {
+          element.textContent.should.equal('Success!')
+          expect(element.children[0]).to.not.be.undefined
+          element.children[0].className.should.equal('result success')
+        })
+    })
+
+    it('flashes a failure message', function() {
+      return cl.flashResult(element, Promise.reject('Failure!'))
+        .then(function() {
+          element.textContent.should.equal('Failure!')
+          expect(element.children[0]).to.not.be.undefined
+          element.children[0].className.should.equal('result failure')
+        })
+    })
+
+    it('flashes a failure message on Error', function() {
+      return cl.flashResult(element, Promise.reject(new Error('Error!')))
+        .then(function() {
+          element.textContent.should.equal('Error!')
+          expect(element.children[0]).to.not.be.undefined
+          element.children[0].className.should.equal('result failure')
+        })
+    })
+
+    it('focuses the first anchor if present', function() {
+      var anchor = '<a href="#">Click me!</a>'
+      return cl.flashResult(element, Promise.resolve(anchor))
+        .then(function() {
+          element.textContent.should.equal('Click me!')
+          expect(element.children[0]).to.not.be.undefined
+          element.children[0].className.should.equal('result success')
+          expect(element.children[0].getElementsByTagName('a')[0])
+            .to.equal(document.activeElement)
+        })
+    })
+  })
+
   describe('createLinkClick', function() {
     var view, button, result
 
     beforeEach(function() {
       return cl.showView('#').then(function() {
-        view = clTest.getView('landing-view')[0]
+        view = prepareFlashingElement(clTest.getView('landing-view')[0])
         button = view.getElementsByTagName('button')[0]
         result = view.getElementsByClassName('result')[0]
-
-        // Attach the view to the body to make it visible; needed to test
-        // focus/document.activeElement.
-        document.body.appendChild(view)
-
-        // Stub cl.fade() instead of cl.flashElement() because we depend upon
-        // the result's innerHTML to be set by the latter.
-        stubOut('fade').callsFake(function(element, increment) {
-          element.style.opacity = increment < 0.0 ? 0 : 1
-          return Promise.resolve(element)
-        })
       })
     })
 
@@ -517,42 +572,16 @@ describe('Custom Links', function() {
       view.parentNode.removeChild(view)
     })
 
-    it('flashes on success', function() {
+    it('flashes result after API call', function() {
       stubOut('createLink')
         .returns(Promise.resolve('<a href="/foo">success</a>'))
       button.click()
       return result.done.should.be.fulfilled.then(function() {
-        var successDiv = result.getElementsByClassName('success')[0],
-            anchor
+        var successDiv = result.getElementsByClassName('success')[0]
         expect(successDiv).to.not.be.undefined
         successDiv.textContent.should.equal('success')
-        anchor = successDiv.getElementsByTagName('A')[0]
-        expect(anchor).to.not.be.undefined
-        anchor.should.equal(document.activeElement)
-      })
-    })
-
-    it('flashes on failure', function() {
-      stubOut('createLink').callsFake(function() {
-        return Promise.reject('forced failure')
-      })
-      button.click()
-      return result.done.should.be.fulfilled.then(function() {
-        var failureDiv = result.getElementsByClassName('failure')[0]
-        expect(failureDiv).to.not.be.undefined
-        failureDiv.textContent.should.equal('forced failure')
-      })
-    })
-
-    it('flashes on error', function() {
-      stubOut('createLink').callsFake(function() {
-        return Promise.reject(new Error('forced error'))
-      })
-      button.click()
-      return result.done.should.be.fulfilled.then(function() {
-        var failureDiv = result.getElementsByClassName('failure')[0]
-        expect(failureDiv).to.not.be.undefined
-        failureDiv.textContent.should.equal('forced error')
+        expect(successDiv.getElementsByTagName('A')[0])
+          .to.equal(document.activeElement)
       })
     })
   })
