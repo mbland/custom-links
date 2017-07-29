@@ -74,7 +74,7 @@ test.describe('End-to-end test', function() {
     activeElement().sendKeys(Key.ENTER)
     driver.wait(() => {
       return activeElement().getText().then(text => text === url + link)
-    }, 1250, 'timed out waiting for link: ' + link + ' => ' + target)
+    }, 2000, 'timed out waiting for link: ' + link + ' => ' + target)
   }
 
   test.it('creates a new short link', function() {
@@ -84,7 +84,7 @@ test.describe('End-to-end test', function() {
     activeElement().sendKeys(Key.ENTER)
     driver.wait(() => {
       return activeElement().getText().then(text => text === url + 'foo')
-    }, 1250)
+    }, 2000)
     activeElement().click()
     driver.getCurrentUrl().should.become(targetLocation)
   })
@@ -111,7 +111,7 @@ test.describe('End-to-end test', function() {
     driver.wait(() => {
       return activeElement().getText()
         .then(text => text === 'Create a new custom link')
-    }, 250)
+    }, 1000)
     activeElement().click()
     driver.getCurrentUrl().should.become(url)
   })
@@ -126,7 +126,7 @@ test.describe('End-to-end test', function() {
     driver.getCurrentUrl().should.become(url + '#links')
     driver.wait(() => {
       return activeElement().getText().then(text => text === '/bar')
-    }, 1250)
+    }, 2000)
     driver.findElement(By.linkText('/baz'))
     driver.findElement(By.linkText('/foo'))
   })
