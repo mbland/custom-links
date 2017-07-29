@@ -111,7 +111,7 @@
   cl.landingView = function() {
     var view = cl.getTemplate('landing-view'),
         editForm = cl.getTemplate('edit-link'),
-        button = editForm.getElementsByClassName('button')[0]
+        button = editForm.getElementsByTagName('button')[0]
 
     button.onclick = cl.createLinkClick
     view.appendChild(cl.applyData({ submit: 'Create URL' }, editForm))
