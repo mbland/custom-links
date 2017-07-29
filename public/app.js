@@ -19,7 +19,13 @@
 
       r.onreadystatechange = function() {
         if (this.readyState === 4) {
-          this.status >= 200 && this.status < 300 ? resolve(r) : reject(r)
+          if (this.status === 0) {
+            this.onerror()
+          } else if (this.status >= 200 && this.status < 300) {
+            resolve(r)
+          } else {
+            reject(r)
+          }
         }
       }
       r.onerror = function() {
