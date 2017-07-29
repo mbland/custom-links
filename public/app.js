@@ -30,6 +30,32 @@
     })
   }
 
+  cl.createLinkInfo = function(link) {
+    var url = window.location.origin + '/' + link
+    return {
+      relative: '/' + link,
+      full: url,
+      anchor: '<a href=\'/' + link + '\'>' + url + '</a>'
+    }
+  }
+
+  cl.apiErrorMessage = function(xhrOrErr, linkInfo, prefix) {
+    prefix += ': '
+
+    if (xhrOrErr.status === undefined) {
+      return prefix + (xhrOrErr.message || xhrOrErr)
+    }
+    if (xhrOrErr.status >= 500) {
+      return prefix + 'A server error occurred. ' +
+        'Please contact the system administrator or try again later.'
+    }
+    if (xhrOrErr.response) {
+      return prefix +
+        xhrOrErr.response.err.replace(linkInfo.relative, linkInfo.anchor)
+    }
+    return prefix + xhrOrErr.statusText
+  }
+
   cl.loadApp = function() {
     window.onhashchange = function() {
       cl.showView(window.location.hash)
@@ -248,16 +274,13 @@
   cl.createLink = function(linkForm) {
     var url = linkForm.querySelector('[data-name=url]'),
         location = linkForm.querySelector('[data-name=location]'),
-        resultUrl,
-        resultAnchor
+        linkInfo
 
     if (!url || !location) {
       throw new Error('fields missing from link form: ' + linkForm.outerHTML)
     }
     url = url.value.replace(/^\/+/, '')
     location = location.value
-    resultUrl = window.location.origin + '/' + url
-    resultAnchor = '<a href=\'/' + url + '\'>' + resultUrl + '</a>'
 
     if (url.length === 0) {
       return Promise.reject('Custom link field must not be empty.')
@@ -268,34 +291,23 @@
         'http:// or https://.')
     }
 
+    linkInfo = cl.createLinkInfo(url)
     return cl.xhr('POST', '/api/create/' + url, { location: location })
       .then(function() {
-        return resultAnchor + ' now redirects to ' + location
+        return linkInfo.anchor + ' now redirects to ' + location
       })
-      .catch(function(err) {
-        if (err.status === undefined) {
-          return Promise.reject(err.message || err)
-        }
-        if (err.status >= 500) {
-          return Promise.reject('A server error occurred and ' +
-            resultUrl + ' wasn\'t created. Please contact the system ' +
-            'administrator or try again later.')
-        }
-        if (err.response) {
-          return Promise.reject(err.response.err.replace(
-            '/' + url, resultAnchor))
-        }
-        return Promise.reject('Could not create ' + resultUrl + ': ' +
-          err.statusText)
+      .catch(function(xhrOrErr) {
+        return Promise.reject(cl.apiErrorMessage(xhrOrErr, linkInfo,
+          linkInfo.full + ' wasn\'t created'))
       })
   }
 
-  cl.createLinkClick = function() {
+  cl.createLinkClick = function(e) {
     var linkForm = this.parentNode,
         resultFlash = linkForm.getElementsByClassName('result')[0]
 
     resultFlash.done = cl.flashResult(resultFlash, cl.createLink(linkForm))
-    return false
+    e.preventDefault()
   }
 
   cl.flashResult = function(element, action) {
