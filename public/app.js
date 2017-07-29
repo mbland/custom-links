@@ -298,7 +298,7 @@
       })
       .catch(function(xhrOrErr) {
         return Promise.reject(cl.apiErrorMessage(xhrOrErr, linkInfo,
-          linkInfo.full + ' wasn\'t created'))
+          'The link wasn\'t created'))
       })
   }
 
