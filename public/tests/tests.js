@@ -799,4 +799,174 @@ describe('Custom Links', function() {
       })
     })
   })
+
+  describe('Dialog', function() {
+    var dialog, errorLog, errPrefix, addTemplate, testTemplate, event
+
+    beforeEach(function() {
+      errorLog = sinon.stub(console, 'error')
+      doubles.push(errorLog)
+      errPrefix = 'The "test-template" dialog box template '
+      testTemplate = addTemplate('test-template', [
+        '<div class=\'test-dialog dialog\'>',
+        '  <h3 class=\'title\'>Test dialog</h3>',
+        '  <p class=\'description\'>Dialog box for testing.</p>',
+        '  <button class=\'focused\'>OK</button>',
+        '  <button class=\'cancel\'>Cancel</button>',
+        '</div>'
+      ].join('\n'))
+
+      dialog = new cl.Dialog('test-template')
+      event = {
+        keyCode: null,
+        shiftKey: false,
+        preventDefault: function() { }
+      }
+      sinon.stub(event, 'preventDefault')
+    })
+
+    afterEach(function() {
+      clTest.removeElement(testTemplate)
+
+      if (dialog !== undefined) {
+        // This also demonstrates that dialog.close() is idempotent, since this
+        // call won't crash after other test cases that also call it.
+        dialog.close()
+      }
+    })
+
+    addTemplate = function(name, innerHTML) {
+      var template = document.createElement('div')
+
+      template.className = name + ' dialog'
+      template.innerHTML = innerHTML
+      document.getElementsByClassName('templates')[0].appendChild(template)
+      cl.templates = null
+      return template
+    }
+
+    it('creates an object from a valid dialog box template', function() {
+      expect(dialog.element).to.not.be.undefined
+      expect(dialog.element.parentNode).to.be.null
+      expect(dialog.previousFocus).to.equal(document.activeElement)
+    })
+
+    it('throws if the template doesn\'t contain a title', function() {
+      var title = testTemplate.getElementsByClassName('title')[0]
+
+      clTest.removeElement(title)
+      expect(function() { return new cl.Dialog('test-template') })
+        .to.throw(errPrefix + 'doesn\'t define a title element.')
+    })
+
+    it('throws if the template doesn\'t contain a description', function() {
+      var description = testTemplate.getElementsByClassName('description')[0]
+
+      clTest.removeElement(description)
+      expect(function() { return new cl.Dialog('test-template') })
+        .to.throw(errPrefix + 'doesn\'t define a description element.')
+    })
+
+    it('throws if the given template doesn\'t contain buttons', function() {
+      var buttons = testTemplate.getElementsByTagName('button')
+
+      while (buttons[0]) {
+        clTest.removeElement(buttons[0])
+      }
+      expect(function() { return new cl.Dialog('test-template') })
+        .to.throw(errPrefix + 'doesn\'t contain buttons.')
+    })
+
+    it('throws if no focused element defined', function() {
+      var focused = testTemplate.getElementsByClassName('focused')[0]
+
+      clTest.removeElement(focused)
+      expect(function() { return new cl.Dialog('test-template') })
+        .to.throw(errPrefix + 'doesn\'t define a focused element.')
+    })
+
+    it('throws if no cancel button is defined', function() {
+      var cancel = testTemplate.getElementsByClassName('cancel')[0]
+
+      clTest.removeElement(cancel)
+      expect(function() { return new cl.Dialog('test-template') })
+        .to.throw(errPrefix + 'doesn\'t define a cancel button.')
+    })
+
+    it('sets role and ARIA attributes on open', function() {
+      expect(dialog.box.getAttribute('role')).to.be.null
+      expect(dialog.box.getAttribute('aria-labelledby')).to.be.null
+      expect(dialog.box.getAttribute('aria-describedby')).to.be.null
+      expect(dialog.title.getAttribute('id')).to.be.null
+      expect(dialog.description.getAttribute('id')).to.be.null
+
+      dialog.open()
+      expect(dialog.box.getAttribute('role')).to.equal('dialog')
+      expect(dialog.box.getAttribute('aria-labelledby'))
+        .to.equal('test-template-title')
+      expect(dialog.box.getAttribute('aria-describedby'))
+        .to.equal('test-template-description')
+      expect(dialog.title.getAttribute('id'))
+        .to.equal('test-template-title')
+      expect(dialog.description.getAttribute('id'))
+        .to.equal('test-template-description')
+    })
+
+    it('sets focus on open and restores focus on close', function() {
+      dialog.open()
+      expect(document.activeElement).to.equal(dialog.focused)
+      expect(dialog.element.parentNode).to.equal(document.body)
+
+      dialog.close()
+      expect(document.activeElement).to.equal(dialog.previousFocus)
+      expect(dialog.element.parentNode).to.be.null
+    })
+
+    it('closes the dialog when the cancel button is clicked', function() {
+      dialog.open()
+      expect(dialog.element.parentNode).to.equal(document.body)
+      dialog.cancel.click()
+      expect(dialog.element.parentNode).to.be.null
+    })
+
+    it('closes the dialog when the Escape key is pressed', function() {
+      dialog.open()
+      expect(dialog.element.parentNode).to.equal(document.body)
+      event.keyCode = cl.KEY_ESC
+      dialog.element.onkeydown(event)
+      expect(dialog.element.parentNode).to.be.null
+    })
+
+    it('advances to the next button when Tab key is pressed', function() {
+      dialog.open()
+      expect(document.activeElement).to.equal(dialog.first)
+
+      // Note that since KeyboardEvent isn't well-supported in most browsers, we
+      // rely on checking that event.preventDefault() wasn't called, implying
+      // that the keyboard focus proceeds normally.
+      event.keyCode = cl.KEY_TAB
+      dialog.element.onkeydown(event)
+      event.preventDefault.called.should.be.false
+    })
+
+    it('shifts focus from first to last button on Shift+Tab', function() {
+      dialog.open()
+      expect(document.activeElement).to.equal(dialog.first)
+      event.keyCode = cl.KEY_TAB
+      event.shiftKey = true
+      dialog.element.onkeydown(event)
+      event.preventDefault.called.should.be.true
+      expect(document.activeElement).to.equal(dialog.last)
+    })
+
+    it('shifts focus from last to first button on Tab', function() {
+      dialog.open()
+      dialog.last.focus()
+      expect(document.activeElement).to.equal(dialog.last)
+      event.keyCode = cl.KEY_TAB
+      dialog.element.onkeydown(event)
+      event.preventDefault.called.should.be.true
+      expect(document.activeElement).to.equal(dialog.first)
+    })
+  })
 })

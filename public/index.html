@@ -7,6 +7,7 @@
   <script src='app.js'></script>
   <style type="text/css" media="all">
 body{margin-top:30px;}
+.markup{z-index:1;}
 .templates{display:none;}
 .nav{text-align:right;}
 .result{padding:5px;border-radius:5px;}
@@ -20,6 +21,9 @@ body{margin-top:30px;}
 .link-target .cell{word-break:break-all;}
 .clicks-action{text-align:right;}
 .clicks-action button{width:100%;}
+.dialog-overlay{position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(0,0,0,0.3);z-index:2;}
+.dialog {width:375px;position:relative;background:whitesmoke;border-radius:5px;margin:20% auto;padding:10px 0;text-align:center;font-weight:bold;border:medium solid black;z-index:3;}
+.dialog .confirm{background:lavenderblush;}
 @media (max-width:749px){
 .clicks-action{flex:0 0;}
 }
@@ -92,6 +96,8 @@ body{margin-top:30px;}
       <div class='no-links'>
         <p>You do not own any custom links.</p>
         <p><a href='/'>Create a new custom link</a> now.</p>
+      </div>
+      <div class='dialog-overlay' tabindex='-1'>
       </div>
     </div>
   </div>
