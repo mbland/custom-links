@@ -5,6 +5,8 @@
   var cl = window.cl = {}
 
   cl.UNKNOWN_USER = '<unknown user>'
+  cl.KEY_TAB = 9
+  cl.KEY_ESC = 27
 
   cl.xhr = function(method, url, body) {
     return new Promise(function(resolve, reject) {
@@ -334,6 +336,84 @@
             cl.focusFirstElement(element, 'a')
           })
       })
+  }
+
+  cl.Dialog = function(templateName) {
+    var dialog = this,
+        errPrefix = 'The "' + templateName + '" dialog box template '
+
+    this.name = templateName
+    this.box = cl.getTemplate(this.name)
+    this.title = this.box.getElementsByClassName('title')[0]
+    this.description = this.box.getElementsByClassName('description')[0]
+    this.buttons = this.box.getElementsByTagName('button')
+    this.focused = this.box.getElementsByClassName('focused')[0]
+    this.cancel = this.box.getElementsByClassName('cancel')[0]
+
+    if (this.title === undefined) {
+      throw new Error(errPrefix + 'doesn\'t define a title element.')
+    } else if (this.description === undefined) {
+      throw new Error(errPrefix + 'doesn\'t define a description element.')
+    } else if (this.buttons.length === 0) {
+      throw new Error(errPrefix + 'doesn\'t contain buttons.')
+    } else if (this.focused === undefined) {
+      throw new Error(errPrefix + 'doesn\'t define a focused element.')
+    } else if (this.cancel === undefined) {
+      throw new Error(errPrefix + 'doesn\'t define a cancel button.')
+    }
+
+    this.first = this.buttons[0]
+    this.last = this.buttons[this.buttons.length - 1]
+    this.element = cl.getTemplate('dialog-overlay')
+    this.element.appendChild(this.box)
+    this.previousFocus = document.activeElement
+
+    this.element.onkeydown = function(e) {
+      dialog.handleKeyDown(e)
+    }
+    this.cancel.onclick = function() {
+      dialog.close()
+    }
+  }
+
+  cl.Dialog.prototype.open = function() {
+    var titleId = this.name + '-title',
+        descriptionId = this.name + '-description'
+
+    this.box.setAttribute('role', 'dialog')
+    this.box.setAttribute('aria-labelledby', titleId)
+    this.title.setAttribute('id', titleId)
+    this.box.setAttribute('aria-describedby', descriptionId)
+    this.description.setAttribute('id', descriptionId)
+
+    document.body.appendChild(this.element)
+    this.focused.focus()
+  }
+
+  cl.Dialog.prototype.close = function() {
+    if (this.element.parentNode) {
+      this.element.parentNode.removeChild(this.element)
+      this.previousFocus.focus()
+    }
+  }
+
+  cl.Dialog.prototype.handleKeyDown = function(e) {
+    switch (e.keyCode) {
+    case cl.KEY_TAB:
+      if (e.shiftKey && document.activeElement === this.first) {
+        e.preventDefault()
+        this.last.focus()
+      } else if (document.activeElement === this.last) {
+        e.preventDefault()
+        this.first.focus()
+      }
+      break
+    case cl.KEY_ESC:
+      this.close()
+      break
+    default:
+      break
+    }
   }
 
   cl.createAnchor = function(url, text) {
