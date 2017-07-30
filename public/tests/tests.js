@@ -215,9 +215,9 @@ describe('Custom Links', function() {
 
         expect(labels[0].textContent).to.eql('Custom link:')
         expect(inputs[0]).not.to.eql(null)
-        expect(labels[1].textContent).to.eql('Redirect to:')
+        expect(labels[1].textContent).to.eql('Target URL:')
         expect(inputs[1]).not.to.eql(null)
-        expect(button.textContent).to.contain('Create URL')
+        expect(button.textContent).to.contain('Create link')
         expect(viewElementReceivesFocus(view, inputs[0])).to.equal(true)
       })
     })

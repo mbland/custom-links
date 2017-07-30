@@ -142,7 +142,7 @@
         button = editForm.getElementsByTagName('button')[0]
 
     button.onclick = cl.createLinkClick
-    view.appendChild(cl.applyData({ submit: 'Create URL' }, editForm))
+    view.appendChild(cl.applyData({ submit: 'Create link' }, editForm))
     return Promise.resolve({
       element: view,
       done: function() {
