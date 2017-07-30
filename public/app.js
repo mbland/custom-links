@@ -416,6 +416,22 @@
     }
   }
 
+  cl.Dialog.prototype.doOperation = function(op, result, linkInfo, messages) {
+    var dialog = this
+
+    return cl.flashResult(result,
+      op.then(function() {
+        dialog.close()
+        return messages.success
+      })
+      .catch(function(xhrOrErr) {
+        dialog.close()
+        return Promise.reject(cl.apiErrorMessage(xhrOrErr, linkInfo,
+          messages.failure))
+      })
+    )
+  }
+
   cl.createAnchor = function(url, text) {
     var anchor = document.createElement('a')
 

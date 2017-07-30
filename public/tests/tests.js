@@ -968,5 +968,44 @@ describe('Custom Links', function() {
       event.preventDefault.called.should.be.true
       expect(document.activeElement).to.equal(dialog.first)
     })
+
+    describe('doOperation', function() {
+      var element
+
+      beforeEach(function() {
+        element = prepareFlashingElement(document.createElement('div'))
+        dialog.open()
+      })
+
+      afterEach(function() {
+        clTest.removeElement(element)
+      })
+
+      it('closes the dialog and flashes the result on success', function() {
+        return dialog
+          .doOperation(Promise.resolve('Success!'), element,
+            cl.createLinkInfo('foo'),
+            { success: 'All good!', failure: 'Uh-oh...' })
+          .then(function() {
+            element.textContent.should.equal('All good!')
+            expect(element.children[0]).to.not.be.undefined
+            element.children[0].className.should.equal('result success')
+            expect(dialog.element.parentNode).to.be.null
+          })
+      })
+
+      it('closes the dialog and flashes the result on failure', function() {
+        return dialog
+          .doOperation(Promise.reject('Failure!'), element,
+            cl.createLinkInfo('foo'),
+            { success: 'All good!', failure: 'Uh-oh' })
+          .then(function() {
+            element.textContent.should.equal('Uh-oh: Failure!')
+            expect(element.children[0]).to.not.be.undefined
+            element.children[0].className.should.equal('result failure')
+            expect(dialog.element.parentNode).to.be.null
+          })
+      })
+    })
   })
 })
