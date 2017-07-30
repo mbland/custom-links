@@ -215,9 +215,9 @@ describe('Custom Links', function() {
 
         expect(labels[0].textContent).to.eql('Custom link:')
         expect(inputs[0]).not.to.eql(null)
-        expect(labels[1].textContent).to.eql('Redirect to:')
+        expect(labels[1].textContent).to.eql('Target URL:')
         expect(inputs[1]).not.to.eql(null)
-        expect(button.textContent).to.contain('Create URL')
+        expect(button.textContent).to.contain('Create link')
         expect(viewElementReceivesFocus(view, inputs[0])).to.equal(true)
       })
     })
@@ -349,12 +349,19 @@ describe('Custom Links', function() {
 
   describe('createLinkInfo', function() {
     it('returns an object with the relative URL, full URL, anchor', function() {
-      var full = window.location.origin + '/foo'
-      cl.createLinkInfo('foo').should.eql({
-        relative: '/foo',
-        full: full,
-        anchor: '<a href=\'/foo\'>' + full + '</a>'
-      })
+      var full = window.location.origin + '/foo',
+          result = cl.createLinkInfo('foo')
+      result.relative.should.equal('/foo')
+      result.full.should.equal(full)
+      result.anchor.should.equal('<a href=\'/foo\'>' + full + '</a>')
+    })
+
+    it('handles a link that already has a leading slash', function() {
+      var full = window.location.origin + '/foo',
+          result = cl.createLinkInfo('/foo')
+      result.relative.should.equal('/foo')
+      result.full.should.equal(full)
+      result.anchor.should.equal('<a href=\'/foo\'>' + full + '</a>')
     })
   })
 

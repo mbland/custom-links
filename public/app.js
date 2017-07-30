@@ -19,23 +19,31 @@
 
       r.onreadystatechange = function() {
         if (this.readyState === 4) {
-          this.status >= 200 && this.status < 300 ? resolve(r) : reject(r)
+          if (this.status === 0) {
+            this.onerror()
+          } else if (this.status >= 200 && this.status < 300) {
+            resolve(r)
+          } else {
+            reject(r)
+          }
         }
       }
       r.onerror = function() {
         reject(new Error('A network error occurred. Please check your ' +
-          'connection or contact the system administator, then try again.'))
+          'connection or contact the system administrator, then try again.'))
       }
       r.send(body)
     })
   }
 
   cl.createLinkInfo = function(link) {
-    var url = window.location.origin + '/' + link
+    var trimmed = link.replace(/^\/+/, ''),
+        url = window.location.origin + '/' + trimmed
+
     return {
-      relative: '/' + link,
+      relative: '/' + trimmed,
       full: url,
-      anchor: '<a href=\'/' + link + '\'>' + url + '</a>'
+      anchor: '<a href=\'/' + trimmed + '\'>' + url + '</a>'
     }
   }
 
@@ -140,7 +148,7 @@
         button = editForm.getElementsByTagName('button')[0]
 
     button.onclick = cl.createLinkClick
-    view.appendChild(cl.applyData({ submit: 'Create URL' }, editForm))
+    view.appendChild(cl.applyData({ submit: 'Create link' }, editForm))
     return Promise.resolve({
       element: view,
       done: function() {
@@ -298,7 +306,7 @@
       })
       .catch(function(xhrOrErr) {
         return Promise.reject(cl.apiErrorMessage(xhrOrErr, linkInfo,
-          linkInfo.full + ' wasn\'t created'))
+          'The link wasn\'t created'))
       })
   }
 
