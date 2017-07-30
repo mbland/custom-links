@@ -24,7 +24,7 @@
       }
       r.onerror = function() {
         reject(new Error('A network error occurred. Please check your ' +
-          'connection or contact the system administator, then try again.'))
+          'connection or contact the system administrator, then try again.'))
       }
       r.send(body)
     })
