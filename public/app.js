@@ -347,7 +347,7 @@
       })
   }
 
-  cl.Dialog = function(templateName) {
+  cl.Dialog = function(templateName, resultElement, startOperation) {
     var dialog = this,
         errPrefix = 'The "' + templateName + '" dialog box template '
 
@@ -357,6 +357,7 @@
     this.description = this.box.getElementsByClassName('description')[0]
     this.buttons = this.box.getElementsByTagName('button')
     this.focused = this.box.getElementsByClassName('focused')[0]
+    this.confirm = this.box.getElementsByClassName('confirm')[0]
     this.cancel = this.box.getElementsByClassName('cancel')[0]
 
     if (this.title === undefined) {
@@ -367,6 +368,8 @@
       throw new Error(errPrefix + 'doesn\'t contain buttons.')
     } else if (this.focused === undefined) {
       throw new Error(errPrefix + 'doesn\'t define a focused element.')
+    } else if (this.confirm === undefined) {
+      throw new Error(errPrefix + 'doesn\'t define a confirm button.')
     } else if (this.cancel === undefined) {
       throw new Error(errPrefix + 'doesn\'t define a cancel button.')
     }
@@ -380,7 +383,12 @@
     this.element.onkeydown = function(e) {
       dialog.handleKeyDown(e)
     }
-    this.cancel.onclick = function() {
+    this.confirm.onclick = function(e) {
+      e.preventDefault()
+      dialog.operation = dialog.doOperation(startOperation(), resultElement)
+    }
+    this.cancel.onclick = function(e) {
+      e.preventDefault()
       dialog.close()
     }
   }
