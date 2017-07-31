@@ -66,6 +66,50 @@
     return prefix + xhrOrErr.statusText
   }
 
+  cl.Backend = function(xhr) {
+    this.xhr = xhr
+  }
+
+  cl.Backend.prototype.getLoggedInUserId = function() {
+    return this.xhr('GET', '/id')
+      .then(function(xhr) { return xhr.response })
+      .catch(function() { return cl.UNKNOWN_USER })
+  }
+
+  cl.Backend.prototype.getUserInfo = function(userId) {
+    if (userId === cl.UNKNOWN_USER) {
+      return Promise.resolve({})
+    }
+    return this.xhr('GET', '/api/user/' + userId)
+      .catch(function(err) {
+        throw new Error('Request for user info failed: ' +
+          (err.message || err.statusText))
+      })
+      .then(function(xhr) {
+        try {
+          return JSON.parse(xhr.response)
+        } catch (err) {
+          console.error('Bad user info response:', xhr.response)
+          throw new Error('Failed to parse user info response: ' +
+            err.message + '<br/>See console messages for details.')
+        }
+      })
+  }
+
+  cl.Backend.prototype.createLink = function(link, target) {
+    var linkInfo = cl.createLinkInfo(link)
+    return this.xhr('POST', '/api/create/' + link, { location: target })
+      .then(function() {
+        return linkInfo.anchor + ' now redirects to ' + target
+      })
+      .catch(function(xhrOrErr) {
+        return Promise.reject(cl.apiErrorMessage(xhrOrErr, linkInfo,
+          'The link wasn\'t created'))
+      })
+  }
+
+  cl.backend = new cl.Backend(cl.xhr)
+
   cl.loadApp = function() {
     window.onhashchange = function() {
       cl.showView(window.location.hash)
@@ -78,11 +122,8 @@
       js.src = 'vendor/es6-promise.auto.min.js'
       head.appendChild(js)
     }
-    cl.userId = cl.xhr('GET', '/id')
-      .then(function(xhr) { return xhr.response })
-      .catch(function() { return cl.UNKNOWN_USER })
-
-    return cl.userId.then(function(id) {
+    return cl.backend.getLoggedInUserId().then(function(id) {
+      cl.userId = id
       document.getElementById('userid').textContent = id
       return cl.showView(window.location.hash)
     })
@@ -109,11 +150,13 @@
 
       replacement.appendChild(view.element)
       container.parentNode.replaceChild(replacement, container)
-
-      if (view.done) {
-        return view.done()
-      }
+      view.done()
     })
+  }
+
+  cl.View = function(element, done) {
+    this.element = element
+    this.done = done || function() { }
   }
 
   cl.getTemplate = function(templateName) {
@@ -151,42 +194,18 @@
 
     button.onclick = cl.createLinkClick
     view.appendChild(cl.applyData({ submit: 'Create link' }, editForm))
-    return Promise.resolve({
-      element: view,
-      done: function() {
-        cl.focusFirstElement(view, 'input')
-      }
-    })
+    return Promise.resolve(new cl.View(view, function() {
+      cl.focusFirstElement(view, 'input')
+    }))
   }
 
   cl.linksView = function() {
-    var linksView = cl.getTemplate('link-view')
-
-    return cl.userId
-      .then(function(uid) {
-        if (uid === cl.UNKNOWN_USER) {
-          return { response: '{}' }
-        }
-        return cl.xhr('GET', '/api/user/' + uid).catch(function(err) {
-          throw new Error('Request for user info failed: ' +
-            (err.message || err.statusText))
-        })
-      })
-      .then(function(result) {
-        var response
-
-        try {
-          response = JSON.parse(result.response)
-        } catch (err) {
-          console.error('Bad user info response:', result.response)
-          throw new Error('Failed to parse user info response: ' +
-            err.message + '<br/>See console messages for details.')
-        }
-
+    return cl.backend.getUserInfo(cl.userId)
+      .then(function(response) {
         if (response.urls === undefined || response.urls.length === 0) {
-          linksView.appendChild(cl.getTemplate('no-links'))
+          return cl.getTemplate('no-links')
         } else {
-          linksView.appendChild(cl.createLinksTable(response.urls))
+          return cl.createLinksTable(response.urls)
         }
       })
       .catch(function(err) {
@@ -194,15 +213,15 @@
 
         console.error(err)
         errMessage.innerHTML = err.message
-        linksView.appendChild(errMessage)
+        return errMessage
       })
-      .then(function() {
-        return {
-          element: linksView,
-          done: function() {
-            cl.focusFirstElement(linksView, 'a')
-          }
-        }
+      .then(function(resultElement) {
+        var linksView = cl.getTemplate('link-view')
+
+        linksView.appendChild(resultElement)
+        return new cl.View(linksView, function() {
+          cl.focusFirstElement(linksView, 'a')
+        })
       })
   }
 
@@ -283,8 +302,7 @@
 
   cl.createLink = function(linkForm) {
     var url = linkForm.querySelector('[data-name=url]'),
-        location = linkForm.querySelector('[data-name=location]'),
-        linkInfo
+        location = linkForm.querySelector('[data-name=location]')
 
     if (!url || !location) {
       throw new Error('fields missing from link form: ' + linkForm.outerHTML)
@@ -300,16 +318,7 @@
       return Promise.reject('Redirect location protocol must be ' +
         'http:// or https://.')
     }
-
-    linkInfo = cl.createLinkInfo(url)
-    return cl.xhr('POST', '/api/create/' + url, { location: location })
-      .then(function() {
-        return linkInfo.anchor + ' now redirects to ' + location
-      })
-      .catch(function(xhrOrErr) {
-        return Promise.reject(cl.apiErrorMessage(xhrOrErr, linkInfo,
-          'The link wasn\'t created'))
-      })
+    return cl.backend.createLink(url, location)
   }
 
   cl.createLinkClick = function(e) {

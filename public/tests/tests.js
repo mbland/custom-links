@@ -13,10 +13,6 @@ describe('Custom Links', function() {
       HOST_PREFIX = window.location.protocol + '//' + window.location.host,
       REDIRECT_LOCATION = 'https://mike-bland.com/'
 
-  beforeEach(function() {
-    stubOut('xhr')
-  })
-
   afterEach(function() {
     doubles.forEach(function(double) {
       double.restore()
@@ -29,8 +25,8 @@ describe('Custom Links', function() {
     return spy
   }
 
-  stubOut = function(functionName) {
-    var stub = sinon.stub(cl, functionName)
+  stubOut = function(obj, functionName) {
+    var stub = sinon.stub(obj, functionName)
     doubles.push(stub)
     return stub
   }
@@ -48,7 +44,7 @@ describe('Custom Links', function() {
 
     // Stub cl.fade() instead of cl.flashElement() because we depend upon
     // the result's innerHTML to be set by the latter.
-    stubOut('fade').callsFake(function(element, increment) {
+    stubOut(cl, 'fade').callsFake(function(element, increment) {
       element.style.opacity = increment < 0.0 ? 0 : 1
       return Promise.resolve(element)
     })
@@ -101,7 +97,7 @@ describe('Custom Links', function() {
       var landingView = cl.landingView,
           doneSpy
 
-      stubOut('landingView').callsFake(function() {
+      stubOut(cl, 'landingView').callsFake(function() {
         return landingView().then(function(view) {
           doneSpy = sinon.spy(view, 'done')
           return view
@@ -125,12 +121,102 @@ describe('Custom Links', function() {
     })
   })
 
+  describe('Backend', function() {
+    var backend, xhr
+
+    beforeEach(function() {
+      xhr = sinon.stub()
+      backend = new cl.Backend(xhr)
+    })
+
+    describe('getLoggedInUserId', function() {
+      it('returns the user ID from a successful response', function() {
+        xhr.withArgs('GET', '/id').returns(
+          Promise.resolve({ response: 'mbland@acm.org' }))
+        return backend.getLoggedInUserId().should.become('mbland@acm.org')
+      })
+
+      it('returns cl.UNKNOWN_USER if the request fails', function() {
+        xhr.withArgs('GET', '/id').returns(Promise.reject())
+        return backend.getLoggedInUserId().should.become(cl.UNKNOWN_USER)
+      })
+    })
+
+    describe('getUserInfo', function() {
+      beforeEach(function() {
+        stubOut(console, 'error')
+      })
+
+      it('returns user info from a successful response', function() {
+        var usersUrls = [
+            { url: '/foo', location: 'https://foo.com/', count: 1 },
+            { url: '/bar', location: 'https://bar.com/', count: 2 },
+            { url: '/baz', location: 'https://baz.com/', count: 3 }
+        ]
+
+        xhr.withArgs('GET', '/api/user/mbland@acm.org').returns(
+          Promise.resolve({ response: JSON.stringify({ urls: usersUrls }) }))
+        return backend.getUserInfo('mbland@acm.org')
+          .should.become({ urls: usersUrls })
+      })
+
+      it('returns an empty response for cl.UNKNOWN_USER', function() {
+        return backend.getUserInfo(cl.UNKNOWN_USER).should.become({})
+      })
+
+      it('rejects with an error message', function() {
+        xhr.withArgs('GET', '/api/user/mbland@acm.org').returns(
+          Promise.reject(new Error('simulated error')))
+        return backend.getUserInfo('mbland@acm.org').should.be.rejectedWith(
+          'Request for user info failed: simulated error')
+      })
+
+      it('rejects with status text', function() {
+        xhr.withArgs('GET', '/api/user/mbland@acm.org').returns(
+          Promise.reject({ statusText: 'Forbidden' }))
+        return backend.getUserInfo('mbland@acm.org').should.be.rejectedWith(
+          'Request for user info failed: Forbidden')
+      })
+
+      it('rejects with a parse error from invalid response text', function() {
+        xhr.withArgs('GET', '/api/user/mbland@acm.org').returns(
+          Promise.resolve({ response: 'foobar' }))
+        return backend.getUserInfo('mbland@acm.org')
+          .should.be.rejectedWith('Failed to parse user info response: ')
+          .then(function() {
+            console.error.args[0].should.eql(
+              ['Bad user info response:', 'foobar'])
+          })
+      })
+    })
+
+    describe('createLink', function() {
+      it('returns a success message after a link is created', function() {
+        xhr
+          .withArgs('POST', '/api/create/foo', { location: 'https://foo.com/' })
+          .returns(Promise.resolve())
+        return backend.createLink('foo', 'https://foo.com/')
+          .should.become('<a href=\'/foo\'>' +
+            window.location.protocol + '//' + window.location.host +
+            '/foo</a> now redirects to https://foo.com/')
+      })
+
+      it('rejects with an error message if a link isn\'t created', function() {
+        xhr
+          .withArgs('POST', '/api/create/foo', { location: 'https://foo.com/' })
+          .returns(Promise.reject('simulated error'))
+        return backend.createLink('foo', 'https://foo.com/')
+          .should.be.rejectedWith('The link wasn\'t created: simulated error')
+      })
+    })
+  })
+
   describe('loadApp', function() {
     var invokeLoadApp
 
     beforeEach(function() {
-      cl.xhr.withArgs('GET', '/id').returns(
-        Promise.resolve({ response: 'mbland@acm.org' }))
+      stubOut(cl.backend, 'getLoggedInUserId')
+      cl.backend.getLoggedInUserId.returns(Promise.resolve('mbland@acm.org'))
     })
 
     invokeLoadApp = function() {
@@ -159,6 +245,12 @@ describe('Custom Links', function() {
       })
     })
 
+    it('sets the logged in user ID', function() {
+      return invokeLoadApp().then(function() {
+        cl.userId.should.equal('mbland@acm.org')
+      })
+    })
+
     it('shows the nav bar', function() {
       return invokeLoadApp().then(function() {
         var navBar,
@@ -177,15 +269,6 @@ describe('Custom Links', function() {
         navLinks[0].href.should.equal(HOST_PREFIX + '/#')
         navLinks[1].href.should.equal(HOST_PREFIX + '/#links')
         navLinks[2].href.should.equal(HOST_PREFIX + '/logout')
-      })
-    })
-
-    it('shows an unknown user marker on /id error', function() {
-      cl.xhr.withArgs('GET', '/id').returns(
-        Promise.reject({ status: 404, response: 'forced error' }))
-      return invokeLoadApp().then(function() {
-        document.getElementById('userid').textContent
-          .should.equal(cl.UNKNOWN_USER)
       })
     })
   })
@@ -331,7 +414,7 @@ describe('Custom Links', function() {
     it('fades an element out, updates its text, and fades it back', function() {
       var replacement = '<p>Goodbye, World!</p>'
 
-      stubOut('fade')
+      stubOut(cl, 'fade')
       cl.fade.callsFake(function(element) {
         return Promise.resolve(element)
       })
@@ -455,45 +538,34 @@ describe('Custom Links', function() {
   })
 
   describe('createLink', function() {
-    var linkForm, expectXhr, linkInfo
+    var linkForm, expectBackendCall
 
     beforeEach(function() {
+      stubOut(cl.backend, 'createLink')
       linkForm = cl.getTemplate('edit-link')
       linkForm.querySelector('[data-name=url]').value = 'foo'
       linkForm.querySelector('[data-name=location]').value = REDIRECT_LOCATION
-      linkInfo = cl.createLinkInfo('foo')
     })
 
-    expectXhr = function() {
-      var payload = { location: REDIRECT_LOCATION }
-      return cl.xhr.withArgs('POST', '/api/create/foo', payload)
+    expectBackendCall = function() {
+      return cl.backend.createLink.withArgs('foo', REDIRECT_LOCATION)
     }
 
-    it('creates a link that doesn\'t already exist', function() {
-      expectXhr().returns(Promise.resolve())
-      return cl.createLink(linkForm).should.become(
-        linkInfo.anchor + ' now redirects to ' + REDIRECT_LOCATION)
+    it('creates a link from valid form data', function() {
+      expectBackendCall().returns(Promise.resolve('backend call succeeded'))
+      return cl.createLink(linkForm).should.become('backend call succeeded')
     })
 
-    it('fails to create a link that already exists', function() {
-      expectXhr().callsFake(function() {
-        return Promise.reject({
-          status: 403,
-          response: { err: '/foo already exists' }
-        })
-      })
+    it('fails to create a link from valid form data', function() {
+      expectBackendCall().returns(Promise.reject('backend call failed'))
       return cl.createLink(linkForm)
-        .should.be.rejectedWith(new RegExp(linkInfo.anchor + ' already exists'))
+        .should.be.rejectedWith('backend call failed')
     })
 
     it('strips leading slashes from the link name', function() {
-      var payload = { location: REDIRECT_LOCATION }
-      cl.xhr.withArgs('POST', '/api/create/foo', payload)
-        .returns(Promise.resolve())
-
+      expectBackendCall().returns(Promise.resolve('backend call succeeded'))
       linkForm.querySelector('[data-name=url]').value = '///foo'
-      return cl.createLink(linkForm).should.become(
-        linkInfo.anchor + ' now redirects to ' + REDIRECT_LOCATION)
+      return cl.createLink(linkForm).should.become('backend call succeeded')
     })
 
     it('throws an error if the custom link field is missing', function() {
@@ -503,7 +575,7 @@ describe('Custom Links', function() {
         'fields missing from link form: ' + linkForm.outerHTML)
     })
 
-    it('throws an error if the redirect location field is missing', function() {
+    it('throws an error if the target URL field is missing', function() {
       var locationField = linkForm.querySelector('[data-name=location]')
       locationField.parentNode.removeChild(locationField)
       expect(function() { cl.createLink(linkForm) }).to.throw(Error,
@@ -516,13 +588,13 @@ describe('Custom Links', function() {
         'Custom link field must not be empty.')
     })
 
-    it('rejects if the redirect location value is missing', function() {
+    it('rejects if the target URL value is missing', function() {
       linkForm.querySelector('[data-name=location]').value = ''
       return cl.createLink(linkForm).should.be.rejectedWith(
         'Redirect location field must not be empty.')
     })
 
-    it('rejects if the location has an incorrect protocol', function() {
+    it('rejects if the target URL has an incorrect protocol', function() {
       linkForm.querySelector('[data-name=location]').value = 'gopher://bar'
       return cl.createLink(linkForm).should.be.rejectedWith(
         'Redirect location protocol must be http:// or https://.')
@@ -596,7 +668,7 @@ describe('Custom Links', function() {
     })
 
     it('flashes result after API call', function() {
-      stubOut('createLink')
+      stubOut(cl, 'createLink')
         .returns(Promise.resolve('<a href="/foo">success</a>'))
       button.click()
       return result.done.should.be.fulfilled.then(function() {
@@ -687,13 +759,12 @@ describe('Custom Links', function() {
   describe('linksView', function() {
     var origUserId = cl.userId,
         userId = 'mbland@acm.org',
-        errorLog,
         setApiResponseLinks
 
     beforeEach(function() {
-      cl.userId = Promise.resolve(userId)
-      errorLog = sinon.stub(console, 'error')
-      doubles.push(errorLog)
+      cl.userId = userId
+      stubOut(console, 'error')
+      stubOut(cl.backend, 'getUserInfo')
     })
 
     afterEach(function() {
@@ -701,8 +772,8 @@ describe('Custom Links', function() {
     })
 
     setApiResponseLinks = function(links) {
-      cl.xhr.withArgs('GET', '/api/user/' + userId).returns(
-        Promise.resolve({ response: JSON.stringify({ urls: links }) }))
+      cl.backend.getUserInfo.withArgs(userId)
+        .returns(Promise.resolve({ urls: links }))
     }
 
     it('shows no links for a valid user', function() {
@@ -719,8 +790,8 @@ describe('Custom Links', function() {
     })
 
     it('shows no links for cl.UNKNOWN_USER', function() {
-      setApiResponseLinks([{ url: 'bogus', location: 'should not appear' }])
-      cl.userId = Promise.resolve(cl.UNKNOWN_USER)
+      cl.userId = cl.UNKNOWN_USER
+      cl.backend.getUserInfo.callThrough()
       return cl.linksView().then(function(view) {
         expect(view.element.getElementsByClassName('no-links')[0])
           .to.not.be.undefined
@@ -752,60 +823,25 @@ describe('Custom Links', function() {
       })
     })
 
-    it('shows a network error message', function() {
-      cl.xhr.withArgs('GET', '/api/user/' + userId).returns(
+    it('shows an error message when the backend call fails', function() {
+      cl.backend.getUserInfo.withArgs(userId).returns(
         Promise.reject(new Error('simulated network error')))
 
       return cl.linksView().then(function(view) {
-        var errorMsg = view.element.getElementsByClassName('result failure')[0],
-            expected = 'Request for user info failed: simulated network error'
+        var errorMsg = view.element.getElementsByClassName('result failure')[0]
 
         expect(errorMsg).to.not.be.undefined
-        errorMsg.textContent.should.equal(expected)
-        errorLog.args[0][0].message.should.equal(expected)
-      })
-    })
-
-    it('shows an XmlHttpRequest error status message', function() {
-      cl.xhr.withArgs('GET', '/api/user/' + userId).returns(
-        Promise.reject({ statusText: 'simulated response failure' }))
-
-      return cl.linksView().then(function(view) {
-        var errorMsg = view.element.getElementsByClassName('result failure')[0],
-            expected = 'Request for user info failed: ' +
-              'simulated response failure'
-
-        expect(errorMsg).to.not.be.undefined
-        errorMsg.textContent.should.equal(expected)
-        errorLog.args[0][0].message.should.equal(expected)
-      })
-    })
-
-    it('shows a JSON parsing error message from the API response', function() {
-      var badResponse = JSON.stringify({ urls: [] }) + 'foobar'
-
-      cl.xhr.withArgs('GET', '/api/user/' + userId).returns(
-        Promise.resolve({ response: badResponse }))
-
-      return cl.linksView().then(function(view) {
-        var errorMsg = view.element.getElementsByClassName('result failure')[0],
-            expected = /Failed to parse user info response:/
-
-        expect(errorMsg).to.not.be.undefined
-        errorMsg.textContent.should.match(expected)
-        errorLog.args[0][0].should.equal('Bad user info response:')
-        errorLog.args[0][1].should.equal(badResponse)
-        errorLog.args[1][0].message.should.match(expected)
+        errorMsg.textContent.should.equal('simulated network error')
+        console.error.args[0][0].message.should.equal('simulated network error')
       })
     })
   })
 
   describe('Dialog', function() {
-    var dialog, errorLog, errPrefix, addTemplate, testTemplate, event
+    var dialog, errPrefix, addTemplate, testTemplate, event
 
     beforeEach(function() {
-      errorLog = sinon.stub(console, 'error')
-      doubles.push(errorLog)
+      stubOut(console, 'error')
       errPrefix = 'The "test-template" dialog box template '
       testTemplate = addTemplate('test-template', [
         '<div class=\'test-dialog dialog\'>',
