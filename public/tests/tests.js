@@ -1019,11 +1019,9 @@ describe('Custom Links', function() {
 
       it('closes the dialog and flashes the result on success', function() {
         return dialog
-          .doOperation(Promise.resolve('Success!'), element,
-            cl.createLinkInfo('foo'),
-            { success: 'All good!', failure: 'Uh-oh...' })
+          .doOperation(Promise.resolve('Success!'), element)
           .then(function() {
-            element.textContent.should.equal('All good!')
+            element.textContent.should.equal('Success!')
             expect(element.children[0]).to.not.be.undefined
             element.children[0].className.should.equal('result success')
             expect(dialog.element.parentNode).to.be.null
@@ -1032,11 +1030,9 @@ describe('Custom Links', function() {
 
       it('closes the dialog and flashes the result on failure', function() {
         return dialog
-          .doOperation(Promise.reject('Failure!'), element,
-            cl.createLinkInfo('foo'),
-            { success: 'All good!', failure: 'Uh-oh' })
+          .doOperation(Promise.reject('Failure!'), element)
           .then(function() {
-            element.textContent.should.equal('Uh-oh: Failure!')
+            element.textContent.should.equal('Failure!')
             expect(element.children[0]).to.not.be.undefined
             element.children[0].className.should.equal('result failure')
             expect(dialog.element.parentNode).to.be.null
