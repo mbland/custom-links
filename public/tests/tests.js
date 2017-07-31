@@ -125,6 +125,94 @@ describe('Custom Links', function() {
     })
   })
 
+  describe('Backend', function() {
+    var backend, xhr
+
+    beforeEach(function() {
+      xhr = sinon.stub()
+      backend = new cl.Backend(xhr)
+    })
+
+    describe('getLoggedInUserId', function() {
+      it('returns the user ID from a successful response', function() {
+        xhr.withArgs('GET', '/id').returns(
+          Promise.resolve({ response: 'mbland@acm.org' }))
+        return backend.getLoggedInUserId().should.become('mbland@acm.org')
+      })
+
+      it('returns cl.UNKNOWN_USER if the request fails', function() {
+        xhr.withArgs('GET', '/id').returns(Promise.reject())
+        return backend.getLoggedInUserId().should.become(cl.UNKNOWN_USER)
+      })
+    })
+
+    describe('getUserInfo', function() {
+      var errorLog
+
+      beforeEach(function() {
+        errorLog = sinon.stub(console, 'error')
+        doubles.push(errorLog)
+      })
+
+      it('returns user info from a successful response', function() {
+        var usersUrls = [
+            { url: '/foo', location: 'https://foo.com/', count: 1 },
+            { url: '/bar', location: 'https://bar.com/', count: 2 },
+            { url: '/baz', location: 'https://baz.com/', count: 3 }
+        ]
+
+        xhr.withArgs('GET', '/api/user/mbland@acm.org').returns(
+          Promise.resolve({ response: JSON.stringify({ urls: usersUrls }) }))
+        return backend.getUserInfo('mbland@acm.org')
+          .should.become({ urls: usersUrls })
+      })
+
+      it('rejects with an error message', function() {
+        xhr.withArgs('GET', '/api/user/mbland@acm.org').returns(
+          Promise.reject(new Error('simulated error')))
+        return backend.getUserInfo('mbland@acm.org').should.be.rejectedWith(
+          'Request for user info failed: simulated error')
+      })
+
+      it('rejects with status text', function() {
+        xhr.withArgs('GET', '/api/user/mbland@acm.org').returns(
+          Promise.reject({ statusText: 'Forbidden' }))
+        return backend.getUserInfo('mbland@acm.org').should.be.rejectedWith(
+          'Request for user info failed: Forbidden')
+      })
+
+      it('rejects with a parse error from invalid response text', function() {
+        xhr.withArgs('GET', '/api/user/mbland@acm.org').returns(
+          Promise.resolve({ response: 'foobar' }))
+        return backend.getUserInfo('mbland@acm.org')
+          .should.be.rejectedWith('Failed to parse user info response: ')
+          .then(function() {
+            errorLog.args[0].should.eql(['Bad user info response:', 'foobar'])
+          })
+      })
+    })
+
+    describe('createLink', function() {
+      it('returns a success message after a link is created', function() {
+        xhr
+          .withArgs('POST', '/api/create/foo', { location: 'https://foo.com/' })
+          .returns(Promise.resolve())
+        return backend.createLink('foo', 'https://foo.com/')
+          .should.become('<a href=\'/foo\'>' +
+            window.location.protocol + '//' + window.location.host +
+            '/foo</a> now redirects to https://foo.com/')
+      })
+
+      it('rejects with an error message if a link isn\'t created', function() {
+        xhr
+          .withArgs('POST', '/api/create/foo', { location: 'https://foo.com/' })
+          .returns(Promise.reject('simulated error'))
+        return backend.createLink('foo', 'https://foo.com/')
+          .should.be.rejectedWith('The link wasn\'t created: simulated error')
+      })
+    })
+  })
+
   describe('loadApp', function() {
     var invokeLoadApp
 

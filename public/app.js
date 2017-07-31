@@ -66,6 +66,47 @@
     return prefix + xhrOrErr.statusText
   }
 
+  cl.Backend = function(xhr) {
+    this.xhr = xhr
+  }
+
+  cl.Backend.prototype.getLoggedInUserId = function() {
+    return this.xhr('GET', '/id')
+      .then(function(xhr) { return xhr.response })
+      .catch(function() { return cl.UNKNOWN_USER })
+  }
+
+  cl.Backend.prototype.getUserInfo = function(userId) {
+    return this.xhr('GET', '/api/user/' + userId)
+      .catch(function(err) {
+        throw new Error('Request for user info failed: ' +
+          (err.message || err.statusText))
+      })
+      .then(function(xhr) {
+        try {
+          return JSON.parse(xhr.response)
+        } catch (err) {
+          console.error('Bad user info response:', xhr.response)
+          throw new Error('Failed to parse user info response: ' +
+            err.message + '<br/>See console messages for details.')
+        }
+      })
+  }
+
+  cl.Backend.prototype.createLink = function(link, target) {
+    var linkInfo = cl.createLinkInfo(link)
+    return this.xhr('POST', '/api/create/' + link, { location: target })
+      .then(function() {
+        return linkInfo.anchor + ' now redirects to ' + target
+      })
+      .catch(function(xhrOrErr) {
+        return Promise.reject(cl.apiErrorMessage(xhrOrErr, linkInfo,
+          'The link wasn\'t created'))
+      })
+  }
+
+  cl.backend = new cl.Backend(cl.xhr)
+
   cl.loadApp = function() {
     window.onhashchange = function() {
       cl.showView(window.location.hash)
