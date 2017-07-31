@@ -425,18 +425,17 @@
     }
   }
 
-  cl.Dialog.prototype.doOperation = function(op, result, linkInfo, messages) {
+  cl.Dialog.prototype.doOperation = function(op, result) {
     var dialog = this
 
     return cl.flashResult(result,
-      op.then(function() {
+      op.then(function(message) {
         dialog.close()
-        return messages.success
+        return message
       })
-      .catch(function(xhrOrErr) {
+      .catch(function(err) {
         dialog.close()
-        return Promise.reject(cl.apiErrorMessage(xhrOrErr, linkInfo,
-          messages.failure))
+        return Promise.reject(err)
       })
     )
   }
