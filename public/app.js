@@ -109,11 +109,13 @@
 
       replacement.appendChild(view.element)
       container.parentNode.replaceChild(replacement, container)
-
-      if (view.done) {
-        return view.done()
-      }
+      view.done()
     })
+  }
+
+  cl.View = function(element, done) {
+    this.element = element
+    this.done = done || function() { }
   }
 
   cl.getTemplate = function(templateName) {
@@ -151,12 +153,9 @@
 
     button.onclick = cl.createLinkClick
     view.appendChild(cl.applyData({ submit: 'Create link' }, editForm))
-    return Promise.resolve({
-      element: view,
-      done: function() {
-        cl.focusFirstElement(view, 'input')
-      }
-    })
+    return Promise.resolve(new cl.View(view, function() {
+      cl.focusFirstElement(view, 'input')
+    }))
   }
 
   cl.linksView = function() {
@@ -197,12 +196,9 @@
         linksView.appendChild(errMessage)
       })
       .then(function() {
-        return {
-          element: linksView,
-          done: function() {
-            cl.focusFirstElement(linksView, 'a')
-          }
-        }
+        return new cl.View(linksView, function() {
+          cl.focusFirstElement(linksView, 'a')
+        })
       })
   }
 
