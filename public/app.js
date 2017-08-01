@@ -66,6 +66,13 @@
     return prefix + xhrOrErr.statusText
   }
 
+  cl.rejectOnApiError = function(link, prefix) {
+    return function(xhrOrErr) {
+      var linkInfo = cl.createLinkInfo(link)
+      return Promise.reject(cl.apiErrorMessage(xhrOrErr, linkInfo, prefix))
+    }
+  }
+
   cl.Backend = function(xhr) {
     this.xhr = xhr
   }
@@ -97,15 +104,19 @@
   }
 
   cl.Backend.prototype.createLink = function(link, target) {
-    var linkInfo = cl.createLinkInfo(link)
     return this.xhr('POST', '/api/create/' + link, { location: target })
       .then(function() {
-        return linkInfo.anchor + ' now redirects to ' + target
+        return cl.createLinkInfo(link).anchor + ' now redirects to ' + target
       })
-      .catch(function(xhrOrErr) {
-        return Promise.reject(cl.apiErrorMessage(xhrOrErr, linkInfo,
-          'The link wasn\'t created'))
+      .catch(cl.rejectOnApiError(link, 'The link wasn\'t created'))
+  }
+
+  cl.Backend.prototype.deleteLink = function(link) {
+    return this.xhr('DELETE', '/api/delete' + link)
+      .then(function() {
+        return link + ' has been deleted'
       })
+      .catch(cl.rejectOnApiError(link, link + ' wasn\'t deleted'))
   }
 
   cl.backend = new cl.Backend(cl.xhr)
