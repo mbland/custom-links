@@ -838,21 +838,24 @@ describe('Custom Links', function() {
   })
 
   describe('Dialog', function() {
-    var dialog, errPrefix, addTemplate, testTemplate, event
+    var dialog, resultElement, errPrefix, addTemplate, testTemplate, event
 
     beforeEach(function() {
       stubOut(console, 'error')
+      resultElement = prepareFlashingElement(document.createElement('div'))
       errPrefix = 'The "test-template" dialog box template '
       testTemplate = addTemplate('test-template', [
         '<div class=\'test-dialog dialog\'>',
-        '  <h3 class=\'title\'>Test dialog</h3>',
-        '  <p class=\'description\'>Dialog box for testing.</p>',
-        '  <button class=\'focused\'>OK</button>',
+        '  <h3 class=\'title\'>Confirm update</h3>',
+        '  <p class=\'description\'>Update <span class=\'link\'></span>?</p>',
+        '  <button class=\'confirm focused\'>OK</button>',
         '  <button class=\'cancel\'>Cancel</button>',
         '</div>'
       ].join('\n'))
 
-      dialog = new cl.Dialog('test-template')
+      dialog = new cl.Dialog('test-template', resultElement, function() {
+        return Promise.resolve('operation done')
+      })
       event = {
         keyCode: null,
         shiftKey: false,
@@ -863,6 +866,7 @@ describe('Custom Links', function() {
 
     afterEach(function() {
       clTest.removeElement(testTemplate)
+      clTest.removeElement(resultElement)
 
       if (dialog !== undefined) {
         // This also demonstrates that dialog.close() is idempotent, since this
@@ -921,6 +925,15 @@ describe('Custom Links', function() {
         .to.throw(errPrefix + 'doesn\'t define a focused element.')
     })
 
+    it('throws if no confirm button is defined', function() {
+      var confirm = testTemplate.getElementsByClassName('confirm')[0]
+
+      // We only remove the 'confirm' class here.
+      confirm.className = 'focused'
+      expect(function() { return new cl.Dialog('test-template') })
+        .to.throw(errPrefix + 'doesn\'t define a confirm button.')
+    })
+
     it('throws if no cancel button is defined', function() {
       var cancel = testTemplate.getElementsByClassName('cancel')[0]
 
@@ -958,10 +971,21 @@ describe('Custom Links', function() {
       expect(dialog.element.parentNode).to.be.null
     })
 
+    it('performs the operation and closes the dialog on confirm', function() {
+      dialog.open()
+      expect(dialog.element.parentNode).to.equal(document.body)
+      dialog.confirm.click()
+      return dialog.operation.then(function() {
+        expect(resultElement.textContent).to.equal('operation done')
+        expect(dialog.element.parentNode).to.be.null
+      })
+    })
+
     it('closes the dialog when the cancel button is clicked', function() {
       dialog.open()
       expect(dialog.element.parentNode).to.equal(document.body)
       dialog.cancel.click()
+      expect(resultElement.textContent).to.equal('')
       expect(dialog.element.parentNode).to.be.null
     })
 
@@ -1006,35 +1030,28 @@ describe('Custom Links', function() {
     })
 
     describe('doOperation', function() {
-      var element
-
       beforeEach(function() {
-        element = prepareFlashingElement(document.createElement('div'))
         dialog.open()
-      })
-
-      afterEach(function() {
-        clTest.removeElement(element)
       })
 
       it('closes the dialog and flashes the result on success', function() {
         return dialog
-          .doOperation(Promise.resolve('Success!'), element)
+          .doOperation(Promise.resolve('Success!'), resultElement)
           .then(function() {
-            element.textContent.should.equal('Success!')
-            expect(element.children[0]).to.not.be.undefined
-            element.children[0].className.should.equal('result success')
+            resultElement.textContent.should.equal('Success!')
+            expect(resultElement.children[0]).to.not.be.undefined
+            resultElement.children[0].className.should.equal('result success')
             expect(dialog.element.parentNode).to.be.null
           })
       })
 
       it('closes the dialog and flashes the result on failure', function() {
         return dialog
-          .doOperation(Promise.reject('Failure!'), element)
+          .doOperation(Promise.reject('Failure!'), resultElement)
           .then(function() {
-            element.textContent.should.equal('Failure!')
-            expect(element.children[0]).to.not.be.undefined
-            element.children[0].className.should.equal('result failure')
+            resultElement.textContent.should.equal('Failure!')
+            expect(resultElement.children[0]).to.not.be.undefined
+            resultElement.children[0].className.should.equal('result failure')
             expect(dialog.element.parentNode).to.be.null
           })
       })
