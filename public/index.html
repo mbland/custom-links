@@ -19,6 +19,7 @@ body{margin-top:30px;}
 .links .cell{padding:2px}
 .link-target{overflow:hidden;}
 .link-target .cell{word-break:break-all;}
+.links .result{border-radius:0px;}
 .clicks-action{text-align:right;}
 .clicks-action button{width:100%;}
 .dialog-overlay{position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(0,0,0,0.3);z-index:2;}
@@ -98,6 +99,14 @@ body{margin-top:30px;}
         <p><a href='/'>Create a new custom link</a> now.</p>
       </div>
       <div class='dialog-overlay' tabindex='-1'>
+      </div>
+      <div class='confirm-delete dialog'>
+        <h3 class='title'>Confirm delete</h3>
+        <p class='description'>
+          Are you sure you wish to delete <span data-name='link'></span>?
+        </p>
+        <button class='confirm'>Yes</button>
+        <button class='focused cancel'>No</button>
       </div>
     </div>
   </div>

@@ -514,6 +514,32 @@ describe('Custom Links', function() {
     })
   })
 
+  describe('confirmDelete', function() {
+    var resultElement, dialog
+
+    beforeEach(function() {
+      stubOut(cl.backend, 'deleteLink')
+      resultElement = prepareFlashingElement(document.createElement('div'))
+      dialog = cl.confirmDelete('/foo', resultElement)
+      dialog.open()
+    })
+
+    afterEach(function() {
+      dialog.close()
+      clTest.removeElement(resultElement)
+    })
+
+    it('opens a dialog box to delete the specified link', function() {
+      dialog.element.parentNode.should.equal(document.body)
+      cl.backend.deleteLink.withArgs('/foo').returns(Promise.resolve('deleted'))
+      dialog.confirm.click()
+      return dialog.operation.then(function() {
+        cl.backend.deleteLink.called.should.be.true
+        resultElement.textContent.should.equal('deleted')
+      })
+    })
+  })
+
   describe('createAnchor', function() {
     it('creates a new anchor using the URL as the anchor text', function() {
       var anchor = cl.createAnchor('https://example.com')
@@ -736,9 +762,24 @@ describe('Custom Links', function() {
       buttons = clicksAction.children[1].getElementsByTagName('button')
       buttons.length.should.equal(2)
 
-      // Note that as yet, the Edit and Delete links have yet to be implemented.
+      // Note that as yet, the Edit button has yet to be implemented.
       buttons[0].textContent.should.equal('Edit')
       buttons[1].textContent.should.equal('Delete')
+    })
+
+    it('launches a dialog box to confirm deletion', function() {
+      var table = cl.createLinksTable([
+            { url: '/foo', location: 'https://foo.com/', count: 3 }
+          ]),
+          row = table.getElementsByClassName('link')[0],
+          deleteButton = row.getElementsByTagName('button')[1],
+          openSpy = sinon.spy()
+
+      stubOut(cl, 'confirmDelete')
+      cl.confirmDelete.withArgs('/foo').returns({ open: openSpy })
+      deleteButton.click()
+      cl.confirmDelete.called.should.be.true
+      openSpy.called.should.be.true
     })
 
     it('returns a table of multiple elements sorted by link', function() {

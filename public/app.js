@@ -264,11 +264,15 @@
     })
     links.forEach(function(link) {
       var current = linkEntry.cloneNode(true),
-          cells = current.getElementsByClassName('cell')
+          cells = current.getElementsByClassName('cell'),
+          actions = cells[3].getElementsByTagName('button')
 
       cells[0].appendChild(cl.createAnchor(link.url))
       cells[1].appendChild(cl.createAnchor(link.location))
       cells[2].textContent = link.count
+      actions[1].onclick = function() {
+        cl.confirmDelete(link.url, current).open()
+      }
       linkTable.appendChild(current)
     })
     return linkTable
@@ -458,6 +462,12 @@
         return Promise.reject(err)
       })
     )
+  }
+
+  cl.confirmDelete = function(link, resultElement) {
+    return new cl.Dialog('confirm-delete', { link: link }, function() {
+      return cl.backend.deleteLink(link)
+    }, resultElement)
   }
 
   cl.createAnchor = function(url, text) {
