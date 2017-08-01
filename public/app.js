@@ -212,13 +212,25 @@
   }
 
   cl.linksView = function() {
+    var element = cl.getTemplate('links-view'),
+        linksView = new cl.View(element, function() {
+          cl.focusFirstElement(element, 'a')
+        })
+
+    linksView.numLinks = 0
+    linksView.updateNumLinks = function(increment) {
+      var numLinks = (linksView.numLinks += increment),
+          result = numLinks + ' link' + (numLinks !== 1 ? 's' : '')
+      cl.applyData({ 'num-links': result }, element)
+    }
+
     return cl.backend.getUserInfo(cl.userId)
       .then(function(response) {
         if (response.urls === undefined || response.urls.length === 0) {
           return cl.getTemplate('no-links')
-        } else {
-          return cl.createLinksTable(response.urls)
         }
+        linksView.updateNumLinks(response.urls.length)
+        return cl.createLinksTable(response.urls, linksView)
       })
       .catch(function(err) {
         var errMessage = cl.getTemplate('result failure')
@@ -228,16 +240,12 @@
         return errMessage
       })
       .then(function(resultElement) {
-        var linksView = cl.getTemplate('link-view')
-
-        linksView.appendChild(resultElement)
-        return new cl.View(linksView, function() {
-          cl.focusFirstElement(linksView, 'a')
-        })
+        linksView.element.appendChild(resultElement)
+        return linksView
       })
   }
 
-  cl.createLinksTable = function(links, options) {
+  cl.createLinksTable = function(links, linksView, options) {
     var linkTable = cl.getTemplate('links'),
         linkEntry = cl.getTemplate('link'),
         sortKey,
@@ -272,7 +280,7 @@
       cells[1].appendChild(cl.createAnchor(link.location))
       cells[2].textContent = link.count
       actions[1].onclick = function() {
-        cl.confirmDelete(link.url, current).open()
+        cl.confirmDelete(link.url, current, linksView).open()
       }
       linkTable.appendChild(current)
     })
@@ -465,9 +473,12 @@
     )
   }
 
-  cl.confirmDelete = function(link, resultElement) {
+  cl.confirmDelete = function(link, resultElement, linksView) {
     return new cl.Dialog('confirm-delete', { link: link }, function() {
-      return cl.backend.deleteLink(link)
+      return cl.backend.deleteLink(link).then(function(result) {
+        linksView.updateNumLinks(-1)
+        return result
+      })
     }, resultElement)
   }
 

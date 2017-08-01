@@ -13,6 +13,7 @@ body{margin-top:30px;}
 .result{padding:5px;border-radius:5px;}
 .result.success{background-color:whitesmoke;width:100%;text-align:center;}
 .result.failure{background-color:lavenderblush;width:100%;text-align:center;}
+.links-view .total{font-size:x-large;padding-bottom:1em;}
 .links-row{display:flex;justify-content:space-between}
 .links-header{font-weight:bold;background-color:whitesmoke;border-radius:5px;}
 .links-data{border-bottom:2px solid whitesmoke}
@@ -67,7 +68,8 @@ body{margin-top:30px;}
       </div>
       <div class='result failure'>
       </div>
-      <div class='link-view'>
+      <div class='links-view'>
+        <div class='total' data-name='num-links'></div>
       </div>
       <div class='links'>
         <div class='links-row links-header'>

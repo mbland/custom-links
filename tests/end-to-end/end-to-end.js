@@ -130,6 +130,7 @@ test.describe('End-to-end test', function() {
     waitForActiveLink('/bar')
     driver.findElement(By.linkText('/baz'))
     driver.findElement(By.linkText('/foo'))
+    driver.findElement(By.xpath('//*[text() = "3 links"]'))
   })
 
   test.it('deletes a link from the "My links" page', function() {
@@ -138,7 +139,9 @@ test.describe('End-to-end test', function() {
     driver.wait(until.urlIs(url + '#links'))
 
     // Tab over to the "Delete" button.
-    waitForActiveLink('/foo').sendKeys(Key.TAB, Key.TAB, Key.TAB)
+    waitForActiveLink('/foo')
+    driver.findElement(By.xpath('//*[text() = "1 link"]'))
+    activeElement().sendKeys(Key.TAB, Key.TAB, Key.TAB)
 
     // Open the dialog, then cancel the operation (default option).
     activeElement().sendKeys(Key.ENTER, Key.ENTER)
@@ -148,6 +151,7 @@ test.describe('End-to-end test', function() {
     activeElement().sendKeys(Key.ENTER, Key.TAB, Key.ENTER)
     driver.wait(until.elementLocated(
       By.xpath('//*[text() = "/foo has been deleted"]')))
+    driver.findElement(By.xpath('//*[text() = "0 links"]'))
     driver.findElement(By.linkText('/foo')).should.be.rejected
   })
 })
