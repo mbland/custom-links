@@ -42,6 +42,10 @@ test.describe('End-to-end test', function() {
     })
   })
 
+  test.beforeEach(function() {
+    return driver.get(url)
+  })
+
   test.afterEach(function() {
     return new Promise(function(resolve, reject) {
       redisClient.flushdb(err => err ? reject(err) : resolve())
@@ -87,7 +91,6 @@ test.describe('End-to-end test', function() {
   }
 
   test.it('creates a new short link', function() {
-    driver.get(url)
     activeElement().sendKeys('foo' + Key.TAB)
     activeElement().sendKeys(targetLocation + Key.TAB)
     activeElement().sendKeys(Key.ENTER)
@@ -96,7 +99,6 @@ test.describe('End-to-end test', function() {
   })
 
   test.it('logs out of the application', function() {
-    driver.get(url)
     activeElement().sendKeys(Key.chord(Key.SHIFT, Key.TAB))
     activeElement().getText().should.become('Log out')
     activeElement().getAttribute('href').should.become(url + 'logout')
@@ -107,7 +109,6 @@ test.describe('End-to-end test', function() {
   })
 
   test.it('shows the no-links message before any links created', function() {
-    driver.get(url)
     activeElement().sendKeys(Key.chord(Key.SHIFT, Key.TAB))
     activeElement().sendKeys(Key.chord(Key.SHIFT, Key.TAB))
     activeElement().getText().should.become('My links')
