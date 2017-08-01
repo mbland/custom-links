@@ -493,9 +493,7 @@ describe('Custom Links', function() {
     })
 
     it('returns response text with the link replaced by an anchor', function() {
-      xhr.response = {
-        err: 'Could not do stuff with /foo.'
-      }
+      xhr.response = JSON.stringify({ err: 'Could not do stuff with /foo.' })
       expect(cl.apiErrorMessage(xhr, linkInfo, prefix))
         .to.equal('The operation failed: ' +
           'Could not do stuff with ' + linkInfo.anchor + '.')

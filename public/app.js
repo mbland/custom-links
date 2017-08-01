@@ -50,6 +50,7 @@
   }
 
   cl.apiErrorMessage = function(xhrOrErr, linkInfo, prefix) {
+    var response = xhrOrErr.response
     prefix += ': '
 
     if (xhrOrErr.status === undefined) {
@@ -59,9 +60,9 @@
       return prefix + 'A server error occurred. ' +
         'Please contact the system administrator or try again later.'
     }
-    if (xhrOrErr.response) {
-      return prefix +
-        xhrOrErr.response.err.replace(linkInfo.relative, linkInfo.anchor)
+    if (response) {
+      response = JSON.parse(response)
+      return prefix + response.err.replace(linkInfo.relative, linkInfo.anchor)
     }
     return prefix + xhrOrErr.statusText
   }
