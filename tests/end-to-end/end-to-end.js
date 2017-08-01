@@ -9,6 +9,7 @@ var test = require('selenium-webdriver/testing')
 var webdriver = require('selenium-webdriver')
 var By = webdriver.By
 var Key = webdriver.Key
+var until = webdriver.until
 
 chai.should()
 chai.use(chaiAsPromised)
@@ -20,7 +21,8 @@ test.describe('End-to-end test', function() {
       url,
       targetLocation,
       activeElement,
-      createNewLink
+      createNewLink,
+      waitForActiveLink
 
   // eslint-disable-next-line no-unused-vars
   var takeScreenshot
@@ -38,6 +40,10 @@ test.describe('End-to-end test', function() {
       targetLocation = url + 'tests/redirect-target.html'
       redisClient = redis.createClient({ port: serverInfo.redis.port })
     })
+  })
+
+  test.beforeEach(function() {
+    return driver.get(url)
   })
 
   test.afterEach(function() {
@@ -65,68 +71,63 @@ test.describe('End-to-end test', function() {
 
   createNewLink = (link, target) => {
     driver.findElement(By.linkText('New link')).click()
-    driver.getCurrentUrl().should.become(url + '#')
+    driver.wait(until.urlIs(url + '#'))
     driver.findElement(By.tagName('input')).click()
     activeElement().sendKeys(
       Key.HOME, Key.chord(Key.SHIFT, Key.END), link + Key.TAB)
     activeElement().sendKeys(
       Key.HOME, Key.chord(Key.SHIFT, Key.END), target + Key.TAB)
     activeElement().sendKeys(Key.ENTER)
-    driver.wait(() => {
-      return activeElement().getText().then(text => text === url + link)
-    }, 3000, 'timed out waiting for link: ' + link + ' => ' + target)
+    waitForActiveLink(url + link)
+  }
+
+  waitForActiveLink = (linkText) => {
+    var link = driver.wait(until.elementLocated(By.linkText(linkText)), 2000,
+      'timeout waiting for "' + linkText + '" link to appear')
+
+    driver.wait(() => webdriver.WebElement.equals(activeElement(), link), 2000,
+      'timeout waiting for "' + linkText + '" link to become active')
+    return link
   }
 
   test.it('creates a new short link', function() {
-    driver.get(url)
     activeElement().sendKeys('foo' + Key.TAB)
     activeElement().sendKeys(targetLocation + Key.TAB)
     activeElement().sendKeys(Key.ENTER)
-    driver.wait(() => {
-      return activeElement().getText().then(text => text === url + 'foo')
-    }, 3000)
-    activeElement().click()
-    driver.getCurrentUrl().should.become(targetLocation)
+    waitForActiveLink(url + 'foo').click()
+    driver.wait(until.urlIs(targetLocation))
   })
 
   test.it('logs out of the application', function() {
-    driver.get(url)
     activeElement().sendKeys(Key.chord(Key.SHIFT, Key.TAB))
     activeElement().getText().should.become('Log out')
     activeElement().getAttribute('href').should.become(url + 'logout')
     activeElement().click()
     // Note that since we're using the dummy test auth instance, we'll get
     // redirected back to the landing page.
-    driver.getCurrentUrl().should.become(url)
+    driver.wait(until.urlIs(url))
   })
 
   test.it('shows the no-links message before any links created', function() {
-    driver.get(url)
     activeElement().sendKeys(Key.chord(Key.SHIFT, Key.TAB))
     activeElement().sendKeys(Key.chord(Key.SHIFT, Key.TAB))
     activeElement().getText().should.become('My links')
     activeElement().click()
 
-    driver.getCurrentUrl().should.become(url + '#links')
-    driver.wait(() => {
-      return activeElement().getText()
-        .then(text => text === 'Create a new custom link')
-    }, 3000)
-    activeElement().click()
-    driver.getCurrentUrl().should.become(url)
+    driver.wait(until.urlIs(url + '#links'))
+    waitForActiveLink('Create a new custom link').click()
+    driver.wait(until.urlIs(url))
   })
 
   test.it('shows user\'s links on the "My links" page', function() {
     this.timeout(10000)
-    createNewLink('foo', 'https://foo.com')
-    createNewLink('baz', 'https://baz.com')
-    createNewLink('bar', 'https://bar.com')
+    createNewLink('foo', targetLocation)
+    createNewLink('baz', targetLocation)
+    createNewLink('bar', targetLocation)
 
     driver.findElement(By.linkText('My links')).click()
-    driver.getCurrentUrl().should.become(url + '#links')
-    driver.wait(() => {
-      return activeElement().getText().then(text => text === '/bar')
-    }, 3000)
+    driver.wait(until.urlIs(url + '#links'))
+    waitForActiveLink('/bar')
     driver.findElement(By.linkText('/baz'))
     driver.findElement(By.linkText('/foo'))
   })
