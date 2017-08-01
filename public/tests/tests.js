@@ -493,9 +493,7 @@ describe('Custom Links', function() {
     })
 
     it('returns response text with the link replaced by an anchor', function() {
-      xhr.response = {
-        err: 'Could not do stuff with /foo.'
-      }
+      xhr.response = JSON.stringify({ err: 'Could not do stuff with /foo.' })
       expect(cl.apiErrorMessage(xhr, linkInfo, prefix))
         .to.equal('The operation failed: ' +
           'Could not do stuff with ' + linkInfo.anchor + '.')
@@ -515,12 +513,15 @@ describe('Custom Links', function() {
   })
 
   describe('confirmDelete', function() {
-    var resultElement, dialog
+    var dialog, resultElement, linksView
 
     beforeEach(function() {
       stubOut(cl.backend, 'deleteLink')
       resultElement = prepareFlashingElement(document.createElement('div'))
-      dialog = cl.confirmDelete('/foo', resultElement)
+      linksView = new cl.View(cl.getTemplate('links-view'), function() { })
+      linksView.numLinks = 1
+      linksView.updateNumLinks = sinon.spy()
+      dialog = cl.confirmDelete('/foo', resultElement, linksView)
       dialog.open()
     })
 
@@ -536,6 +537,7 @@ describe('Custom Links', function() {
       return dialog.operation.then(function() {
         cl.backend.deleteLink.called.should.be.true
         resultElement.textContent.should.equal('deleted')
+        linksView.updateNumLinks.withArgs(-1).calledOnce.should.be.true
       })
     })
   })
@@ -729,6 +731,12 @@ describe('Custom Links', function() {
   })
 
   describe('createLinksTable', function() {
+    var linksView
+
+    beforeEach(function() {
+      linksView = new cl.View(cl.getTemplate('links-view'), function() { })
+    })
+
     it('returns an empty table if no links', function() {
       var table = cl.createLinksTable([]),
           header = table.children[0]
@@ -738,9 +746,8 @@ describe('Custom Links', function() {
     })
 
     it('returns a table with a single element', function() {
-      var table = cl.createLinksTable([
-            { url: '/foo', location: 'https://foo.com/', count: 3 }
-          ]),
+      var urls = [{ url: '/foo', location: 'https://foo.com/', count: 3 }],
+          table = cl.createLinksTable(urls, linksView),
           linkRow = table.children[1],
           anchors,
           buttons,
@@ -768,9 +775,8 @@ describe('Custom Links', function() {
     })
 
     it('launches a dialog box to confirm deletion', function() {
-      var table = cl.createLinksTable([
-            { url: '/foo', location: 'https://foo.com/', count: 3 }
-          ]),
+      var urls = [{ url: '/foo', location: 'https://foo.com/', count: 3 }],
+          table = cl.createLinksTable(urls, linksView),
           row = table.getElementsByClassName('link')[0],
           deleteButton = row.getElementsByTagName('button')[1],
           openSpy = sinon.spy()
@@ -779,6 +785,9 @@ describe('Custom Links', function() {
       cl.confirmDelete.withArgs('/foo').returns({ open: openSpy })
       deleteButton.click()
       cl.confirmDelete.called.should.be.true
+      cl.confirmDelete.args[0][0].should.equal('/foo')
+      cl.confirmDelete.args[0][1].should.not.be.null
+      cl.confirmDelete.args[0][2].should.equal(linksView)
       openSpy.called.should.be.true
     })
 
@@ -788,7 +797,8 @@ describe('Custom Links', function() {
             { url: '/bar', location: 'https://bar.com/', count: 2 },
             { url: '/baz', location: 'https://baz.com/', count: 3 }
           ],
-          rows = cl.createLinksTable(links).getElementsByClassName('link')
+          table = cl.createLinksTable(links, linksView),
+          rows = table.getElementsByClassName('link')
 
       rows.length.should.equal(links.length)
       rows[0].getElementsByTagName('a')[0].textContent.should.equal('/bar')
@@ -803,7 +813,7 @@ describe('Custom Links', function() {
               { url: '/baz', location: 'https://baz.com/', count: 3 }
           ],
           tableOptions = { sortKey: 'count', order: 'descending' },
-          table = cl.createLinksTable(links, tableOptions),
+          table = cl.createLinksTable(links, linksView, tableOptions),
           rows = table.getElementsByClassName('link')
 
       rows.length.should.equal(links.length)
@@ -813,7 +823,7 @@ describe('Custom Links', function() {
     })
 
     it('raises an error for a bad sort order option', function() {
-      expect(function() { cl.createLinksTable([], { order: 'bogus' }) })
+      expect(function() { cl.createLinksTable([], null, { order: 'bogus' }) })
         .to.throw(Error, 'invalid sort order: bogus')
     })
   })
@@ -847,7 +857,9 @@ describe('Custom Links', function() {
         expect(noLinksNotice).to.not.be.undefined
         newLinkAnchor = noLinksNotice.getElementsByTagName('a')[0]
         expect(newLinkAnchor).to.not.be.undefined
-        expect(viewElementReceivesFocus(view, newLinkAnchor)).to.equal(true)
+        viewElementReceivesFocus(view, newLinkAnchor).should.equal(true)
+        view.element.getElementsByClassName('total')[0].textContent
+          .should.equal('')
       })
     })
 
@@ -860,13 +872,33 @@ describe('Custom Links', function() {
       })
     })
 
-    it('shows links belonging to a valid user', function() {
+    it('shows a single link', function() {
+      setApiResponseLinks([
+        { url: '/foo', location: 'https://foo.com/', count: 1 }
+      ])
+      return cl.linksView().then(function(view) {
+        var linksTable = view.element.getElementsByClassName('links')[0],
+            rows,
+            firstLink
+
+        expect(linksTable).to.not.be.undefined
+        rows = linksTable.getElementsByClassName('link')
+        rows.length.should.equal(1)
+        view.element.getElementsByClassName('total')[0].textContent
+          .should.equal('1 link')
+
+        firstLink = rows[0].getElementsByTagName('a')[0]
+        firstLink.textContent.should.equal('/foo')
+        expect(viewElementReceivesFocus(view, firstLink)).to.equal(true)
+      })
+    })
+
+    it('shows multiple links', function() {
       setApiResponseLinks([
         { url: '/foo', location: 'https://foo.com/', count: 1 },
         { url: '/bar', location: 'https://bar.com/', count: 2 },
         { url: '/baz', location: 'https://baz.com/', count: 3 }
       ])
-
       return cl.linksView().then(function(view) {
         var linksTable = view.element.getElementsByClassName('links')[0],
             rows,
@@ -875,6 +907,8 @@ describe('Custom Links', function() {
         expect(linksTable).to.not.be.undefined
         rows = linksTable.getElementsByClassName('link')
         rows.length.should.equal(3)
+        view.element.getElementsByClassName('total')[0].textContent
+          .should.equal('3 links')
 
         firstLink = rows[0].getElementsByTagName('a')[0]
         firstLink.textContent.should.equal('/bar')
