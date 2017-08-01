@@ -209,6 +209,20 @@ describe('Custom Links', function() {
           .should.be.rejectedWith('The link wasn\'t created: simulated error')
       })
     })
+
+    describe('deleteLink', function() {
+      it('returns a success message after a link is deleted', function() {
+        xhr.withArgs('DELETE', '/api/delete/foo').returns(Promise.resolve())
+        return backend.deleteLink('/foo').should.become('/foo has been deleted')
+      })
+
+      it('rejects with an error message if a link isn\'t deleted', function() {
+        xhr.withArgs('DELETE', '/api/delete/foo')
+          .returns(Promise.reject('simulated error'))
+        return backend.deleteLink('/foo')
+          .should.be.rejectedWith('/foo wasn\'t deleted: simulated error')
+      })
+    })
   })
 
   describe('loadApp', function() {
@@ -490,6 +504,13 @@ describe('Custom Links', function() {
     it('returns the failure message and the statusText', function() {
       expect(cl.apiErrorMessage(xhr, linkInfo, prefix))
         .to.equal('The operation failed: Permission denied')
+    })
+  })
+
+  describe('rejectOnApiError', function() {
+    it('creates a rejected Promise handler for a failed API call', function() {
+      return cl.rejectOnApiError('foo', 'API call failed')(new Error('Error!'))
+        .should.be.rejectedWith('API call failed: Error!')
     })
   })
 
