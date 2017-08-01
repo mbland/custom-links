@@ -347,7 +347,7 @@
       })
   }
 
-  cl.Dialog = function(templateName, resultElement, startOperation) {
+  cl.Dialog = function(templateName, data, startOperation, resultElement) {
     var dialog = this,
         errPrefix = 'The "' + templateName + '" dialog box template '
 
@@ -376,6 +376,7 @@
 
     this.first = this.buttons[0]
     this.last = this.buttons[this.buttons.length - 1]
+    cl.applyData(data, this.box)
     this.element = cl.getTemplate('dialog-overlay')
     this.element.appendChild(this.box)
     this.previousFocus = document.activeElement

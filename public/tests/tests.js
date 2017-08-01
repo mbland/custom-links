@@ -847,15 +847,17 @@ describe('Custom Links', function() {
       testTemplate = addTemplate('test-template', [
         '<div class=\'test-dialog dialog\'>',
         '  <h3 class=\'title\'>Confirm update</h3>',
-        '  <p class=\'description\'>Update <span class=\'link\'></span>?</p>',
+        '  <p class=\'description\'>',
+        '    Update <span data-name=\'link\'></span>?',
+        '  </p>',
         '  <button class=\'confirm focused\'>OK</button>',
         '  <button class=\'cancel\'>Cancel</button>',
         '</div>'
       ].join('\n'))
 
-      dialog = new cl.Dialog('test-template', resultElement, function() {
+      dialog = new cl.Dialog('test-template', { link: '/foo' }, function() {
         return Promise.resolve('operation done')
-      })
+      }, resultElement)
       event = {
         keyCode: null,
         shiftKey: false,
@@ -886,9 +888,15 @@ describe('Custom Links', function() {
     }
 
     it('creates an object from a valid dialog box template', function() {
+      var link
+
       expect(dialog.element).to.not.be.undefined
       expect(dialog.element.parentNode).to.be.null
       expect(dialog.previousFocus).to.equal(document.activeElement)
+
+      link = dialog.element.querySelector(['[data-name=link]'])
+      expect(link).to.not.be.undefined
+      expect(link.textContent).to.equal('/foo')
     })
 
     it('throws if the template doesn\'t contain a title', function() {
@@ -952,7 +960,7 @@ describe('Custom Links', function() {
       cancel = testTemplate.getElementsByClassName('cancel')[0]
       expect(cancel).to.equal(confirm)
 
-      dialog = new cl.Dialog('test-template', null, operation)
+      dialog = new cl.Dialog('test-template', {}, operation)
       spyOn(dialog, 'close')
       dialog.confirm.click()
       operation.called.should.be.false
