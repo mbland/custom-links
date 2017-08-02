@@ -72,7 +72,7 @@ test.describe('End-to-end test', function() {
   createNewLink = (link, target) => {
     driver.findElement(By.linkText('New link')).click()
     driver.wait(until.urlIs(url + '#'))
-    driver.findElement(By.tagName('input')).click()
+    driver.findElement(By.css('input')).click()
     activeElement().sendKeys(
       Key.HOME, Key.chord(Key.SHIFT, Key.END), link + Key.TAB)
     activeElement().sendKeys(
@@ -96,6 +96,16 @@ test.describe('End-to-end test', function() {
     activeElement().sendKeys(Key.ENTER)
     waitForActiveLink(url + 'foo').click()
     driver.wait(until.urlIs(targetLocation))
+  })
+
+  test.it('opens the new link form for an unknown link', function() {
+    driver.get(url + 'foo')
+    driver.wait(until.urlIs(url + '#-/foo'))
+    driver.findElement(By.css('input')).getAttribute('value')
+      .should.become('foo')
+    activeElement().sendKeys(targetLocation + Key.TAB)
+    activeElement().sendKeys(Key.ENTER)
+    waitForActiveLink(url + 'foo')
   })
 
   test.it('logs out of the application', function() {

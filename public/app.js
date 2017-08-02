@@ -199,15 +199,16 @@
     return element
   }
 
-  cl.landingView = function() {
+  cl.landingView = function(link) {
     var view = cl.getTemplate('landing-view'),
         editForm = cl.getTemplate('edit-link'),
         button = editForm.getElementsByTagName('button')[0]
 
     button.onclick = cl.createLinkClick
-    view.appendChild(cl.applyData({ submit: 'Create link' }, editForm))
+    link = (link || '').replace(/^\/+/, '')
+    view.appendChild(cl.applyData({ url: link }, editForm))
     return Promise.resolve(new cl.View(view, function() {
-      cl.focusFirstElement(view, 'input')
+      view.getElementsByTagName('input')[link ? 1 : 0].focus()
     }))
   }
 
