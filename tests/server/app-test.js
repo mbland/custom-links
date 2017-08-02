@@ -62,15 +62,15 @@ describe('assembleApp', function() {
     logError.restore()
   })
 
-  describe('get homepage and redirects', function() {
-    var getRedirect
+  describe('get homepage and links', function() {
+    var getLink
 
     beforeEach(function() {
-      getRedirect = sinon.stub(redirectDb, 'getRedirect')
+      getLink = sinon.stub(redirectDb, 'getLink')
     })
 
     afterEach(function() {
-      getRedirect.restore()
+      getLink.restore()
     })
 
     it('redirects to /auth if not logged in', function() {
@@ -149,8 +149,8 @@ describe('assembleApp', function() {
         })
     })
 
-    it('redirects to the url returned by the RedirectDb', function() {
-      getRedirect.withArgs('/foo', { recordAccess: true })
+    it('redirects to the target URL returned by the RedirectDb', function() {
+      getLink.withArgs('/foo', { recordAccess: true })
         .returns(Promise.resolve(
           { location: REDIRECT_LOCATION, owner: 'mbland@acm.org', count: 27 }))
 
@@ -161,8 +161,8 @@ describe('assembleApp', function() {
         .expect('location', REDIRECT_LOCATION)
     })
 
-    it('redirects to the homepage with nonexistent url parameter', function() {
-      getRedirect.withArgs('/foo', { recordAccess: true })
+    it('redirects to the homepage with nonexistent link parameter', function() {
+      getLink.withArgs('/foo', { recordAccess: true })
         .returns(Promise.resolve(null))
 
       return request(app)
@@ -173,7 +173,7 @@ describe('assembleApp', function() {
     })
 
     it('reports an error', function() {
-      getRedirect.withArgs('/foo', { recordAccess: true })
+      getLink.withArgs('/foo', { recordAccess: true })
         .callsFake(function() {
           return Promise.reject(new Error('forced error'))
         })
@@ -200,35 +200,35 @@ describe('assembleApp', function() {
     })
 
     describe('/info', function() {
-      var getRedirect
+      var getLink
 
       beforeEach(function() {
-        getRedirect = sinon.stub(redirectDb, 'getRedirect')
+        getLink = sinon.stub(redirectDb, 'getLink')
       })
 
       afterEach(function() {
-        getRedirect.restore()
+        getLink.restore()
       })
 
-      it('returns info for an existing URL', function() {
-        var urlData = {
+      it('returns info for an existing link', function() {
+        var linkData = {
           location: 'https://mike-bland.com/',
           owner: 'mbland@acm.org',
           count: 27
         }
-        getRedirect.withArgs('/foo').returns(Promise.resolve(urlData))
+        getLink.withArgs('/foo').returns(Promise.resolve(linkData))
 
         return request(app)
           .get('/api/info/foo')
           .set('cookie', sessionCookie)
           .expect(200)
           .then(function(response) {
-            response.body.should.eql(urlData)
+            response.body.should.eql(linkData)
           })
       })
 
       it('returns not found', function() {
-        getRedirect.withArgs('/foo').returns(Promise.resolve(null))
+        getLink.withArgs('/foo').returns(Promise.resolve(null))
 
         return request(app)
           .get('/api/info/foo')
@@ -237,7 +237,7 @@ describe('assembleApp', function() {
       })
 
       it('returns server error', function() {
-        getRedirect.withArgs('/foo').callsFake(function() {
+        getLink.withArgs('/foo').callsFake(function() {
           return Promise.reject(new Error('forced error'))
         })
 
@@ -253,18 +253,18 @@ describe('assembleApp', function() {
     })
 
     describe('/create', function() {
-      var createRedirect, setArgs, makeRequest
+      var createLink, setArgs, makeRequest
 
       beforeEach(function() {
-        createRedirect = sinon.stub(redirectDb, 'createRedirect')
+        createLink = sinon.stub(redirectDb, 'createLink')
       })
 
       afterEach(function() {
-        createRedirect.restore()
+        createLink.restore()
       })
 
       setArgs = function() {
-        return createRedirect
+        return createLink
           .withArgs('/foo', REDIRECT_LOCATION, 'mbland@acm.org')
       }
 
@@ -275,15 +275,15 @@ describe('assembleApp', function() {
           .set('cookie', sessionCookie)
       }
 
-      it('creates a new URL', function() {
+      it('creates a new link', function() {
         setArgs().returns(Promise.resolve())
         return makeRequest().expect(201)
       })
 
-      it('raises a server error when createRedirect fails', function() {
-        setArgs().callsFake(function(url, location, userId) {
+      it('raises a server error when createLink fails', function() {
+        setArgs().callsFake(function(link, location, userId) {
           return Promise.reject(new Error('forced error for ' +
-            [url, location, userId].join(' ')))
+            [link, location, userId].join(' ')))
         })
         return makeRequest()
           .expect(500)
@@ -296,9 +296,9 @@ describe('assembleApp', function() {
       })
 
       it('returns forbidden when a failure isn\'t an Error', function() {
-        setArgs().callsFake(function(url, location, userId) {
+        setArgs().callsFake(function(link, location, userId) {
           return Promise.reject('forced error for ' +
-            [url, location, userId].join(' '))
+            [link, location, userId].join(' '))
         })
 
         return makeRequest()
@@ -316,26 +316,26 @@ describe('assembleApp', function() {
     })
 
     describe('/user', function() {
-      var getOwnedRedirects
+      var getOwnedLinks
 
       beforeEach(function() {
-        getOwnedRedirects = sinon.stub(redirectDb, 'getOwnedRedirects')
+        getOwnedLinks = sinon.stub(redirectDb, 'getOwnedLinks')
       })
 
       afterEach(function() {
-        getOwnedRedirects.restore()
+        getOwnedLinks.restore()
       })
 
       it('returns the list of redirect info owned by the user', function() {
         // Not including the owner, though it would be normally.
-        var urls = [
-          { url: '/foo', location: REDIRECT_LOCATION, count: 27 },
-          { url: '/bar', location: REDIRECT_LOCATION, count: 28 },
-          { url: '/baz', location: REDIRECT_LOCATION, count: 29 }
+        var links = [
+          { link: '/foo', location: REDIRECT_LOCATION, count: 27 },
+          { link: '/bar', location: REDIRECT_LOCATION, count: 28 },
+          { link: '/baz', location: REDIRECT_LOCATION, count: 29 }
         ]
 
-        getOwnedRedirects.withArgs('mbland@acm.org')
-          .returns(Promise.resolve(urls))
+        getOwnedLinks.withArgs('mbland@acm.org')
+          .returns(Promise.resolve(links))
 
         return request(app)
           .get('/api/user/mbland@acm.org')
@@ -343,12 +343,12 @@ describe('assembleApp', function() {
           .expect(200)
           .expect('Content-Type', 'application/json; charset=utf-8')
           .then(function(res) {
-            expect(res.body.urls).to.eql(urls)
+            expect(res.body.links).to.eql(links)
           })
       })
 
       it('raises a server error', function() {
-        getOwnedRedirects.withArgs('mbland@acm.org')
+        getOwnedLinks.withArgs('mbland@acm.org')
           .callsFake(function(userId) {
             return Promise.reject(new Error('forced error for ' + userId))
           })
@@ -365,7 +365,7 @@ describe('assembleApp', function() {
       })
 
       it('returns not found if a user doesn\'t exist', function() {
-        getOwnedRedirects.withArgs('mbland@acm.org')
+        getOwnedLinks.withArgs('mbland@acm.org')
           .callsFake(function(userId) {
             return Promise.reject(userId + ' doesn\'t exist')
           })
@@ -410,9 +410,9 @@ describe('assembleApp', function() {
       })
 
       it('raises a server error', function() {
-        setArgs().callsFake(function(url, user, owner) {
+        setArgs().callsFake(function(link, user, owner) {
           return Promise.reject(new Error('forced error for ' +
-            [url, user, owner].join(' ')))
+            [link, user, owner].join(' ')))
         })
         return makeRequest()
           .expect(500)
@@ -423,9 +423,9 @@ describe('assembleApp', function() {
           })
       })
 
-      it('returns forbidden when the user doesn\'t own the URL', function() {
-        setArgs().callsFake(function(url, user) {
-          return Promise.reject(user + ' doesn\'t own ' + url)
+      it('returns forbidden when the user doesn\'t own the link', function() {
+        setArgs().callsFake(function(link, user) {
+          return Promise.reject(user + ' doesn\'t own ' + link)
         })
         return makeRequest()
           .expect(403)
@@ -467,9 +467,9 @@ describe('assembleApp', function() {
       })
 
       it('raises a server error', function() {
-        setArgs().callsFake(function(url, user, location) {
+        setArgs().callsFake(function(link, user, location) {
           return Promise.reject(new Error('forced error for ' +
-            [url, user, location].join(' ')))
+            [link, user, location].join(' ')))
         })
         return makeRequest()
           .expect(500)
@@ -481,9 +481,9 @@ describe('assembleApp', function() {
           })
       })
 
-      it('returns forbidden when the user doesn\'t own the URL', function() {
-        setArgs().callsFake(function(url, user) {
-          return Promise.reject(user + ' doesn\'t own ' + url)
+      it('returns forbidden when the user doesn\'t own the link', function() {
+        setArgs().callsFake(function(link, user) {
+          return Promise.reject(user + ' doesn\'t own ' + link)
         })
         return makeRequest()
           .expect(403)
@@ -497,18 +497,18 @@ describe('assembleApp', function() {
     })
 
     describe('/delete', function() {
-      var deleteRedirection, setArgs
+      var deleteLink, setArgs
 
       beforeEach(function() {
-        deleteRedirection = sinon.stub(redirectDb, 'deleteRedirection')
+        deleteLink = sinon.stub(redirectDb, 'deleteLink')
       })
 
       afterEach(function() {
-        deleteRedirection.restore()
+        deleteLink.restore()
       })
 
       setArgs = function() {
-        return deleteRedirection.withArgs('/foo', 'mbland@acm.org')
+        return deleteLink.withArgs('/foo', 'mbland@acm.org')
       }
 
       it('sucessfully deletes a redirection', function() {
@@ -520,9 +520,9 @@ describe('assembleApp', function() {
       })
 
       it('raises a server error', function() {
-        setArgs().callsFake(function(url, user) {
+        setArgs().callsFake(function(link, user) {
           return Promise.reject(
-            new Error('forced error for ' + url + ' ' + user))
+            new Error('forced error for ' + link + ' ' + user))
         })
         return request(app)
           .delete('/api/delete/foo')
@@ -535,9 +535,9 @@ describe('assembleApp', function() {
           })
       })
 
-      it('returns forbidden when the user doesn\'t own the URL', function() {
-        setArgs().callsFake(function(url, user) {
-          return Promise.reject(user + ' doesn\'t own ' + url)
+      it('returns forbidden when the user doesn\'t own the link', function() {
+        setArgs().callsFake(function(link, user) {
+          return Promise.reject(user + ' doesn\'t own ' + link)
         })
         return request(app)
           .delete('/api/delete/foo')

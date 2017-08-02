@@ -7,7 +7,7 @@ var sinon = require('sinon')
 var chai = require('chai')
 var chaiAsPromised = require('chai-as-promised')
 
-var REDIRECT_TARGET = 'https://mike-bland.com/'
+var LINK_TARGET = 'https://mike-bland.com/'
 
 chai.should()
 chai.use(chaiAsPromised)
@@ -47,10 +47,10 @@ describe('RedisClient', function() {
     return helpers.killServer(redisServer)
   })
 
-  setData = function(url, redirectTarget, owner, count) {
+  setData = function(link, target, owner, count) {
     return new Promise(function(resolve, reject) {
       clientImpl.hmset('/foo',
-        'location', redirectTarget,
+        'location', target,
         'owner', owner,
         'count', count,
         function(err) {
@@ -121,62 +121,62 @@ describe('RedisClient', function() {
     })
   })
 
-  describe('getRedirect', function() {
-    it('returns null if a redirect doesn\'t exist', function() {
-      return redisClient.getRedirect('/foo').should.become(null)
+  describe('getLink', function() {
+    it('returns null if a link doesn\'t exist', function() {
+      return redisClient.getLink('/foo').should.become(null)
     })
 
-    it('returns data if redirect exists, converts count to int', function() {
-      return setData('/foo', REDIRECT_TARGET, 'mbland', 0).should.be.fulfilled
+    it('returns data if link exists, converts count to int', function() {
+      return setData('/foo', LINK_TARGET, 'mbland', 0).should.be.fulfilled
         .then(function() {
-          return redisClient.getRedirect('/foo').should.become({
-            location: REDIRECT_TARGET, owner: 'mbland', count: 0
+          return redisClient.getLink('/foo').should.become({
+            location: LINK_TARGET, owner: 'mbland', count: 0
           })
         })
     })
 
     it('raises an error when clientImpl fails', function() {
-      stubClientImplMethod('hgetall').callsFake(function(url, cb) {
-        cb(new Error('forced error for ' + url))
+      stubClientImplMethod('hgetall').callsFake(function(link, cb) {
+        cb(new Error('forced error for ' + link))
       })
-      return redisClient.getRedirect('/foo')
+      return redisClient.getLink('/foo')
         .should.be.rejectedWith(Error, 'forced error for /foo')
     })
   })
 
   describe('recordAccess', function() {
-    it('increments the count for a URL', function() {
-      return setData('/foo', REDIRECT_TARGET, 'mbland', 0).should.be.fulfilled
+    it('increments the count for a link', function() {
+      return setData('/foo', LINK_TARGET, 'mbland', 0).should.be.fulfilled
         .then(function() {
           return redisClient.recordAccess('/foo').should.be.fulfilled
         })
         .then(function() {
-          return redisClient.getRedirect('/foo').should.become({
-            location: REDIRECT_TARGET, owner: 'mbland', count: 1
+          return redisClient.getLink('/foo').should.become({
+            location: LINK_TARGET, owner: 'mbland', count: 1
           })
         })
     })
 
     it('raises an error when clientImpl fails', function() {
-      stubClientImplMethod('hincrby').callsFake(function(url, field, val, cb) {
-        cb(new Error('forced error for ' + [url, field, val].join(' ')))
+      stubClientImplMethod('hincrby').callsFake(function(link, field, val, cb) {
+        cb(new Error('forced error for ' + [link, field, val].join(' ')))
       })
       return redisClient.recordAccess('/foo')
         .should.be.rejectedWith(Error, 'forced error for /foo count 1')
     })
   })
 
-  describe('addUrlToOwner', function() {
-    it('adds URLs to an owner\'s list in LIFO order', function() {
+  describe('addLinkToOwner', function() {
+    it('adds links to an owner\'s list in LIFO order', function() {
       return redisClient.findOrCreateUser('mbland')
         .should.become(true).then(function() {
-          return redisClient.addUrlToOwner('mbland', '/foo')
+          return redisClient.addLinkToOwner('mbland', '/foo')
         })
         .should.become(true).then(function() {
-          return redisClient.addUrlToOwner('mbland', '/bar')
+          return redisClient.addLinkToOwner('mbland', '/bar')
         })
         .should.become(true).then(function() {
-          return redisClient.addUrlToOwner('mbland', '/baz')
+          return redisClient.addLinkToOwner('mbland', '/baz')
         })
         .should.become(true).then(function() {
           return readOwnerList('mbland')
@@ -184,121 +184,120 @@ describe('RedisClient', function() {
         })
     })
 
-    it('fails to add a URL to a nonexistent owner', function() {
-      return redisClient.addUrlToOwner('mbland', '/foo').should.become(false)
+    it('fails to add a link to a nonexistent owner', function() {
+      return redisClient.addLinkToOwner('mbland', '/foo').should.become(false)
     })
 
     it('raises an error if client.lpushx fails', function() {
-      stubClientImplMethod('lpushx').callsFake(function(owner, url, cb) {
-        cb(new Error('forced error for ' + owner + ' ' + url))
+      stubClientImplMethod('lpushx').callsFake(function(owner, link, cb) {
+        cb(new Error('forced error for ' + owner + ' ' + link))
       })
       return redisClient.findOrCreateUser('mbland')
         .should.become(true).then(function() {
-          return redisClient.addUrlToOwner('mbland', '/foo')
+          return redisClient.addLinkToOwner('mbland', '/foo')
         })
         .should.be.rejectedWith(Error, 'forced error for mbland /foo')
     })
   })
 
-  describe('removeUrlFromOwner', function() {
-    it('removes a URL from an owner\'s list', function() {
+  describe('removeLinkFromOwner', function() {
+    it('removes a link from an owner\'s list', function() {
       return redisClient.findOrCreateUser('mbland')
         .should.become(true).then(function() {
-          return redisClient.addUrlToOwner('mbland', '/foo')
+          return redisClient.addLinkToOwner('mbland', '/foo')
         })
         .should.become(true).then(function() {
-          return redisClient.addUrlToOwner('mbland', '/bar')
+          return redisClient.addLinkToOwner('mbland', '/bar')
         })
         .should.become(true).then(function() {
-          return redisClient.addUrlToOwner('mbland', '/baz')
+          return redisClient.addLinkToOwner('mbland', '/baz')
         })
         .should.become(true).then(function() {
-          return redisClient.removeUrlFromOwner('mbland', '/bar')
+          return redisClient.removeLinkFromOwner('mbland', '/bar')
         })
         .should.become(true).then(function() {
           return readOwnerList('mbland').should.become(['/baz', '/foo', ''])
         })
     })
 
-    it('returns false if the owner didn\'t own the URL', function() {
-      return redisClient.removeUrlFromOwner('mbland', '/foo')
+    it('returns false if the owner didn\'t own the link', function() {
+      return redisClient.removeLinkFromOwner('mbland', '/foo')
         .should.become(false)
     })
 
     it('raises an error if client.lrem fails', function() {
-      stubClientImplMethod('lrem').callsFake(function(owner, cnt, url, cb) {
-        cb(new Error('forced error for ' + [owner, cnt, url].join(' ')))
+      stubClientImplMethod('lrem').callsFake(function(owner, cnt, link, cb) {
+        cb(new Error('forced error for ' + [owner, cnt, link].join(' ')))
       })
-      return redisClient.removeUrlFromOwner('mbland', '/foo')
+      return redisClient.removeLinkFromOwner('mbland', '/foo')
         .should.be.rejectedWith(Error, 'forced error for mbland 1 /foo')
     })
   })
 
-  describe('createRedirect', function() {
-    it('creates a new redirection', function() {
-      return redisClient.createRedirect('/foo', REDIRECT_TARGET, 'mbland')
+  describe('createLink', function() {
+    it('creates a new link', function() {
+      return redisClient.createLink('/foo', LINK_TARGET, 'mbland')
         .should.become(true).then(function() {
-          return redisClient.getRedirect('/foo')
+          return redisClient.getLink('/foo')
         })
         .should.become({
-          location: REDIRECT_TARGET, owner: 'mbland', count: 0
+          location: LINK_TARGET, owner: 'mbland', count: 0
         })
     })
 
-    it('fails to create a new redirection when one already exists', function() {
-      return redisClient.createRedirect('/foo', REDIRECT_TARGET, 'mbland')
+    it('fails to create a new link when one already exists', function() {
+      return redisClient.createLink('/foo', LINK_TARGET, 'mbland')
         .should.become(true).then(function() {
-          return redisClient.createRedirect('/foo', REDIRECT_TARGET, 'mbland')
+          return redisClient.createLink('/foo', LINK_TARGET, 'mbland')
         })
         .should.become(false)
     })
 
     it('raises an error when hsetnx fails', function() {
-      stubClientImplMethod('hsetnx').callsFake(function(url, field, val, cb) {
-        cb(new Error('forced error for ' + [url, field, val].join(' ')))
+      stubClientImplMethod('hsetnx').callsFake(function(link, field, val, cb) {
+        cb(new Error('forced error for ' + [link, field, val].join(' ')))
       })
-      return redisClient.createRedirect('/foo', REDIRECT_TARGET, 'mbland')
+      return redisClient.createLink('/foo', LINK_TARGET, 'mbland')
         .should.be.rejectedWith(Error, 'forced error for /foo owner mbland')
         .then(function() {
-          return redisClient.getRedirect('/foo').should.become(null)
+          return redisClient.getLink('/foo').should.become(null)
         })
     })
 
     it('raises an error when hmset fails', function() {
       stubClientImplMethod('hmset').callsFake(
-        function(url, field1, val1, field2, val2, cb) {
+        function(link, field1, val1, field2, val2, cb) {
           cb(new Error('forced error for ' +
-            [url, field1, val1, field2, val2].join(' ')))
+            [link, field1, val1, field2, val2].join(' ')))
         })
-      return redisClient.createRedirect('/foo', REDIRECT_TARGET, 'mbland')
+      return redisClient.createLink('/foo', LINK_TARGET, 'mbland')
         .should.be.rejectedWith(Error, 'failed to set location and count: ' +
-          'Error: forced error for /foo location ' + REDIRECT_TARGET +
-          ' count 0')
+          'Error: forced error for /foo location ' + LINK_TARGET + ' count 0')
         .then(function() {
-          return redisClient.getRedirect('/foo')
+          return redisClient.getLink('/foo')
             .should.become({ owner: 'mbland' })
         })
     })
   })
 
-  describe('getOwnedRedirects', function() {
-    it('returns the empty list if no redirects exist', function() {
-      return redisClient.getOwnedRedirects('mbland').should.become([])
+  describe('getOwnedLinks', function() {
+    it('returns the empty list if no links exist', function() {
+      return redisClient.getOwnedLinks('mbland').should.become([])
     })
 
-    it('returns the user\'s redirects in reverse order', function() {
+    it('returns the user\'s links in reverse order', function() {
       return redisClient.findOrCreateUser('mbland')
         .should.become(true).then(function() {
-          return redisClient.addUrlToOwner('mbland', '/foo')
+          return redisClient.addLinkToOwner('mbland', '/foo')
         })
         .should.become(true).then(function() {
-          return redisClient.addUrlToOwner('mbland', '/bar')
+          return redisClient.addLinkToOwner('mbland', '/bar')
         })
         .should.become(true).then(function() {
-          return redisClient.addUrlToOwner('mbland', '/baz')
+          return redisClient.addLinkToOwner('mbland', '/baz')
         })
         .should.become(true).then(function() {
-          return redisClient.getOwnedRedirects('mbland')
+          return redisClient.getOwnedLinks('mbland')
         })
         .should.become(['/baz', '/bar', '/foo'])
     })
@@ -307,41 +306,41 @@ describe('RedisClient', function() {
       stubClientImplMethod('lrange').callsFake(function(key, start, end, cb) {
         cb(new Error('forced error for ' + [key, start, end].join(' ')))
       })
-      return redisClient.getOwnedRedirects('mbland')
+      return redisClient.getOwnedLinks('mbland')
         .should.be.rejectedWith(Error, 'forced error for mbland 0 -1')
     })
   })
 
   describe('updateProperty', function() {
     it('successfully updates a property', function() {
-      return redisClient.createRedirect('/foo', REDIRECT_TARGET, 'msb')
+      return redisClient.createLink('/foo', LINK_TARGET, 'msb')
         .should.become(true).then(function() {
           return redisClient.updateProperty('/foo', 'owner', 'mbland')
         })
         .should.become(true).then(function() {
-          return redisClient.getRedirect('/foo')
+          return redisClient.getLink('/foo')
         })
-        .should.become({ owner: 'mbland', location: REDIRECT_TARGET, count: 0 })
+        .should.become({ owner: 'mbland', location: LINK_TARGET, count: 0 })
     })
 
-    it('raises an error if getting redirect info fails', function() {
-      stubClientImplMethod('hgetall').callsFake(function(url, cb) {
-        cb(new Error('forced error for ' + url))
+    it('raises an error if getting link info fails', function() {
+      stubClientImplMethod('hgetall').callsFake(function(link, cb) {
+        cb(new Error('forced error for ' + link))
       })
       return redisClient.updateProperty('/foo', 'owner', 'mbland')
         .should.be.rejectedWith(Error, 'forced error for /foo')
     })
 
-    it('fails if the redirection doesn\'t exist', function() {
+    it('fails if the link doesn\'t exist', function() {
       return redisClient.updateProperty('/foo', 'owner', 'mbland')
         .should.become(false)
     })
 
     it('raises an error if changing property fails', function() {
-      stubClientImplMethod('hset').callsFake(function(url, field, val, cb) {
-        cb(new Error('forced error for ' + [url, field, val].join(' ')))
+      stubClientImplMethod('hset').callsFake(function(link, field, val, cb) {
+        cb(new Error('forced error for ' + [link, field, val].join(' ')))
       })
-      return redisClient.createRedirect('/foo', REDIRECT_TARGET, 'msb')
+      return redisClient.createLink('/foo', LINK_TARGET, 'msb')
         .should.become(true).then(function() {
           return redisClient.updateProperty('/foo', 'owner', 'mbland')
         })
@@ -349,29 +348,29 @@ describe('RedisClient', function() {
     })
   })
 
-  describe('deleteRedirection', function() {
-    it('successfully deletes the redirection', function() {
-      return redisClient.createRedirect('/foo', REDIRECT_TARGET, 'mbland')
+  describe('deleteLink', function() {
+    it('successfully deletes the link', function() {
+      return redisClient.createLink('/foo', LINK_TARGET, 'mbland')
         .should.become(true).then(function() {
-          return redisClient.deleteRedirection('/foo')
+          return redisClient.deleteLink('/foo')
         })
         .should.become(true).then(function() {
-          return redisClient.getRedirect('/foo')
+          return redisClient.getLink('/foo')
         })
         .should.become(null)
     })
 
-    it('returns false if the redirection doesn\'t exist', function() {
-      return redisClient.deleteRedirection('/foo').should.become(false)
+    it('returns false if the link doesn\'t exist', function() {
+      return redisClient.deleteLink('/foo').should.become(false)
     })
 
     it('raises an error if client.del fails', function() {
       stubClientImplMethod('del').callsFake(function(key, cb) {
         cb(new Error('forced error for ' + key))
       })
-      return redisClient.createRedirect('/foo', REDIRECT_TARGET, 'mbland')
+      return redisClient.createLink('/foo', LINK_TARGET, 'mbland')
         .should.become(true).then(function() {
-          return redisClient.deleteRedirection('/foo')
+          return redisClient.deleteLink('/foo')
         })
         .should.be.rejectedWith(Error, 'forced error for /foo')
     })
