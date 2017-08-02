@@ -14,7 +14,7 @@ chai.use(chaiAsPromised)
 
 describe('RedisClient', function() {
   var redisClient, clientImpl, serverPort, redisServer, setData, readOwnerList,
-      stubClientImplMethod, stubs
+      stubClientImplMethod, fakeTimestamp, getFakeTimestamp, stubs
 
   before(function() {
     return helpers.pickUnusedPort()
@@ -23,11 +23,13 @@ describe('RedisClient', function() {
         serverPort = redisData.port
         redisServer = redisData.server
         clientImpl = redis.createClient({ port: serverPort })
-        redisClient = new RedisClient(clientImpl)
+        getFakeTimestamp = () => new Date(parseInt(fakeTimestamp)).getTime()
+        redisClient = new RedisClient(clientImpl, getFakeTimestamp)
       })
   })
 
   beforeEach(function() {
+    fakeTimestamp = '1234567890'
     stubs = []
   })
 
@@ -72,6 +74,19 @@ describe('RedisClient', function() {
     stubs.push(stub)
     return stub
   }
+
+  describe('getTimestamp', function() {
+    it('uses the fake version in the test suite', function() {
+      redisClient.getTimestamp().should.equal(parseInt(fakeTimestamp))
+    })
+
+    it('uses the Date builtin in production', function() {
+      var before = new Date().getTime(),
+          prodTime = new RedisClient(clientImpl).getTimestamp()
+
+      prodTime.should.be.within(before, new Date().getTime())
+    })
+  })
 
   describe('userExists', function() {
     it('returns false if a user doesn\'t exist', function() {
@@ -241,7 +256,11 @@ describe('RedisClient', function() {
           return redisClient.getLink('/foo')
         })
         .should.become({
-          target: LINK_TARGET, owner: 'mbland', count: 0
+          target: LINK_TARGET,
+          owner: 'mbland',
+          created: fakeTimestamp,
+          updated: fakeTimestamp,
+          count: 0
         })
     })
 
@@ -266,13 +285,16 @@ describe('RedisClient', function() {
 
     it('raises an error when hmset fails', function() {
       stubClientImplMethod('hmset').callsFake(
-        function(link, field1, val1, field2, val2, cb) {
+        function(link, f1, v1, f2, v2, f3, v3, f4, v4, cb) {
           cb(new Error('forced error for ' +
-            [link, field1, val1, field2, val2].join(' ')))
+            [link, f1, v1, f2, v2, f3, v3, f4, v4].join(' ')))
         })
       return redisClient.createLink('/foo', LINK_TARGET, 'mbland')
-        .should.be.rejectedWith(Error, 'failed to set target and count: ' +
-          'Error: forced error for /foo target ' + LINK_TARGET + ' count 0')
+        .should.be.rejectedWith(Error,
+          'failed to set target, count, and timestamps: ' +
+          'Error: forced error for /foo target ' + LINK_TARGET +
+          ' created ' + fakeTimestamp + ' updated ' + fakeTimestamp +
+          ' count 0')
         .then(function() {
           return redisClient.getLink('/foo')
             .should.become({ owner: 'mbland' })
@@ -313,14 +335,23 @@ describe('RedisClient', function() {
 
   describe('updateProperty', function() {
     it('successfully updates a property', function() {
+      var updateTimestamp = (parseInt(fakeTimestamp) + 3600) + ''
+
       return redisClient.createLink('/foo', LINK_TARGET, 'msb')
         .should.become(true).then(function() {
+          fakeTimestamp = updateTimestamp
           return redisClient.updateProperty('/foo', 'owner', 'mbland')
         })
         .should.become(true).then(function() {
           return redisClient.getLink('/foo')
         })
-        .should.become({ owner: 'mbland', target: LINK_TARGET, count: 0 })
+        .should.become({
+          owner: 'mbland',
+          target: LINK_TARGET,
+          created: fakeTimestamp,
+          updated: updateTimestamp,
+          count: 0
+        })
     })
 
     it('raises an error if getting link info fails', function() {
@@ -337,14 +368,17 @@ describe('RedisClient', function() {
     })
 
     it('raises an error if changing property fails', function() {
-      stubClientImplMethod('hset').callsFake(function(link, field, val, cb) {
-        cb(new Error('forced error for ' + [link, field, val].join(' ')))
-      })
       return redisClient.createLink('/foo', LINK_TARGET, 'msb')
         .should.become(true).then(function() {
+          stubClientImplMethod('hmset').callsFake(
+            (link, field, val, updatedLabel, updatedStamp, cb) => {
+              cb(new Error('forced error for ' +
+                [link, field, val, updatedLabel, updatedStamp].join(' ')))
+            })
           return redisClient.updateProperty('/foo', 'owner', 'mbland')
         })
-        .should.be.rejectedWith(Error, 'forced error for /foo owner')
+        .should.be.rejectedWith(Error,
+          'forced error for /foo owner mbland updated ' + fakeTimestamp)
     })
   })
 

@@ -214,6 +214,8 @@ describe('assembleApp', function() {
         var linkData = {
           target: 'https://mike-bland.com/',
           owner: 'mbland@acm.org',
+          created: '1234567890',
+          updated: '1234567890',
           count: 27
         }
         getLink.withArgs('/foo').returns(Promise.resolve(linkData))
