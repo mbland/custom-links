@@ -82,10 +82,10 @@ test.describe('End-to-end test', function() {
   }
 
   waitForActiveLink = (linkText) => {
-    var link = driver.wait(until.elementLocated(By.linkText(linkText)), 2000,
+    var link = driver.wait(until.elementLocated(By.linkText(linkText)), 3000,
       'timeout waiting for "' + linkText + '" link to appear')
 
-    driver.wait(() => webdriver.WebElement.equals(activeElement(), link), 2000,
+    driver.wait(() => webdriver.WebElement.equals(activeElement(), link), 3000,
       'timeout waiting for "' + linkText + '" link to become active')
     return link
   }
