@@ -90,24 +90,6 @@ test.describe('End-to-end test', function() {
     return link
   }
 
-  test.it('creates a new short link', function() {
-    activeElement().sendKeys('foo' + Key.TAB)
-    activeElement().sendKeys(targetLocation + Key.TAB)
-    activeElement().sendKeys(Key.ENTER)
-    waitForActiveLink(url + 'foo').click()
-    driver.wait(until.urlIs(targetLocation))
-  })
-
-  test.it('opens the new link form for an unknown link', function() {
-    driver.get(url + 'foo')
-    driver.wait(until.urlIs(url + '#-/foo'))
-    driver.findElement(By.css('input')).getAttribute('value')
-      .should.become('foo')
-    activeElement().sendKeys(targetLocation + Key.TAB)
-    activeElement().sendKeys(Key.ENTER)
-    waitForActiveLink(url + 'foo')
-  })
-
   test.it('logs out of the application', function() {
     activeElement().sendKeys(Key.chord(Key.SHIFT, Key.TAB))
     activeElement().getText().should.become('Log out')
@@ -127,6 +109,24 @@ test.describe('End-to-end test', function() {
     driver.wait(until.urlIs(url + '#links'))
     waitForActiveLink('Create a new custom link').click()
     driver.wait(until.urlIs(url))
+  })
+
+  test.it('creates a new short link', function() {
+    activeElement().sendKeys('foo' + Key.TAB)
+    activeElement().sendKeys(targetLocation + Key.TAB)
+    activeElement().sendKeys(Key.ENTER)
+    waitForActiveLink(url + 'foo').click()
+    driver.wait(until.urlIs(targetLocation))
+  })
+
+  test.it('opens the new link form for an unknown link', function() {
+    driver.get(url + 'foo')
+    driver.wait(until.urlIs(url + '#-/foo'))
+    driver.findElement(By.css('input')).getAttribute('value')
+      .should.become('foo')
+    activeElement().sendKeys(targetLocation + Key.TAB)
+    activeElement().sendKeys(Key.ENTER)
+    waitForActiveLink(url + 'foo')
   })
 
   test.it('shows user\'s links on the "My links" page', function() {
