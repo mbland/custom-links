@@ -52,19 +52,19 @@ describe('Custom Links', function() {
   }
 
   describe('showView', function() {
-    it('does not show the landing view until called', function() {
-      clTest.getView('landing-view').length.should.equal(0)
+    it('does not show any view until called', function() {
+      clTest.getView('create-view').length.should.equal(0)
     })
 
     it('shows the landing page view when no other view set', function() {
       return cl.showView('#foobar').then(function() {
-        clTest.getView('landing-view').length.should.equal(1)
+        clTest.getView('create-view').length.should.equal(1)
       })
     })
 
     it('shows the landing page view when the hash ID is empty', function() {
       return cl.showView('').then(function() {
-        clTest.getView('landing-view').length.should.equal(1)
+        clTest.getView('create-view').length.should.equal(1)
       })
     })
 
@@ -72,7 +72,7 @@ describe('Custom Links', function() {
       // This normally won't happen, since window.location.hash will return the
       // empty string if only '#' is present.
       return cl.showView('#').then(function() {
-        clTest.getView('landing-view').length.should.equal(1)
+        clTest.getView('create-view').length.should.equal(1)
       })
     })
 
@@ -82,23 +82,23 @@ describe('Custom Links', function() {
           return cl.showView('#foobar')
         })
         .then(function() {
-          clTest.getView('landing-view').length.should.equal(1)
+          clTest.getView('create-view').length.should.equal(1)
         })
     })
 
     it('passes the hash view parameter to the view function', function() {
-      spyOn(cl, 'landingView')
+      spyOn(cl, 'createLinkView')
       return cl.showView('#-/foo').then(function() {
-        cl.landingView.calledWith('/foo').should.be.true
+        cl.createLinkView.calledWith('/foo').should.be.true
       })
     })
 
     it('calls the done() callback if present', function() {
-      var landingView = cl.landingView,
+      var createLinkView = cl.createLinkView,
           doneSpy
 
-      stubOut(cl, 'landingView').callsFake(function() {
-        return landingView().then(function(view) {
+      stubOut(cl, 'createLinkView').callsFake(function() {
+        return createLinkView().then(function(view) {
           doneSpy = sinon.spy(view, 'done')
           return view
         })
@@ -116,7 +116,7 @@ describe('Custom Links', function() {
 
       return cl.showView('').then(function() {
         container.children.length.should.equal(1)
-        clTest.getView('landing-view').length.should.equal(1)
+        clTest.getView('create-view').length.should.equal(1)
       })
     })
   })
@@ -289,8 +289,8 @@ describe('Custom Links', function() {
 
   describe('getTemplate', function() {
     it('returns a new template element', function() {
-      var original = document.getElementsByClassName('landing-view')[0],
-          template = cl.getTemplate('landing-view')
+      var original = document.getElementsByClassName('create-view')[0],
+          template = cl.getTemplate('create-view')
       expect(original).to.not.be.undefined
       expect(template).to.not.be.undefined
       original.should.not.equal(template)
@@ -302,10 +302,10 @@ describe('Custom Links', function() {
     })
   })
 
-  describe('landingView', function() {
+  describe('createLinkView', function() {
     it('shows a form to create a custom link', function() {
-      return cl.landingView().then(function(view) {
-        var form = view.element.getElementsByTagName('form').item(0),
+      return cl.createLinkView().then(function(view) {
+        var form = view.element,
             labels = form.getElementsByTagName('label'),
             inputs = form.getElementsByTagName('input'),
             button = form.getElementsByTagName('button')[0]
@@ -320,9 +320,8 @@ describe('Custom Links', function() {
     })
 
     it('fills in the link field when passed a hash view parameter', function() {
-      return cl.landingView('/foo').then(function(view) {
-        var form = view.element.getElementsByTagName('form').item(0),
-            inputs = form.getElementsByTagName('input')
+      return cl.createLinkView('/foo').then(function(view) {
+        var inputs = view.element.getElementsByTagName('input')
 
         expect(inputs[0]).not.to.eql(null)
         inputs[0].defaultValue.should.equal('foo')
@@ -337,7 +336,7 @@ describe('Custom Links', function() {
             link: '/foo',
             target: LINK_TARGET
           },
-          form = cl.getTemplate('edit-link'),
+          form = cl.getTemplate('create-view'),
           fields = form.getElementsByTagName('input'),
           link = fields[0],
           target = fields[1]
@@ -599,7 +598,7 @@ describe('Custom Links', function() {
 
     beforeEach(function() {
       stubOut(cl.backend, 'createLink')
-      linkForm = cl.getTemplate('edit-link')
+      linkForm = cl.getTemplate('create-view')
       linkForm.querySelector('[data-name=link]').value = 'foo'
       linkForm.querySelector('[data-name=target]').value = LINK_TARGET
     })
@@ -714,7 +713,7 @@ describe('Custom Links', function() {
 
     beforeEach(function() {
       return cl.showView('#').then(function() {
-        view = prepareFlashingElement(clTest.getView('landing-view')[0])
+        view = prepareFlashingElement(clTest.getView('create-view')[0])
         button = view.getElementsByTagName('button')[0]
         result = view.getElementsByClassName('result')[0]
       })
