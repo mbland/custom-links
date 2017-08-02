@@ -28,7 +28,7 @@ var redisClient = redis.createClient(redisClientOptions)
 app.use(morgan('combined'))
 customLinks.assembleApp(
   app,
-  new LinkDb(new RedisClient(redisClient, logger)),
+  new LinkDb(new RedisClient(redisClient)),
   logger,
   new RedisStore(redisStoreOptions),
   config)
