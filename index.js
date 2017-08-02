@@ -8,7 +8,7 @@ var packageInfo = require('./package.json')
 var express = require('express')
 var app = express()
 var redis = require('redis')
-var RedirectDb = require('./lib/redirect-db')
+var LinkDb = require('./lib/link-db')
 var RedisClient = require('./lib/redis-client')
 var redisClientOptions = {}
 var session = require('express-session')
@@ -28,7 +28,7 @@ var redisClient = redis.createClient(redisClientOptions)
 app.use(morgan('combined'))
 customLinks.assembleApp(
   app,
-  new RedirectDb(new RedisClient(redisClient, logger)),
+  new LinkDb(new RedisClient(redisClient, logger)),
   logger,
   new RedisStore(redisStoreOptions),
   config)
