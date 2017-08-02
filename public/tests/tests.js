@@ -88,8 +88,8 @@ describe('Custom Links', function() {
 
     it('passes the hash view parameter to the view function', function() {
       spyOn(cl, 'landingView')
-      return cl.showView('#-foo-bar').then(function() {
-        cl.landingView.calledWith('foo-bar').should.be.true
+      return cl.showView('#-/foo').then(function() {
+        cl.landingView.calledWith('/foo').should.be.true
       })
     })
 
@@ -316,6 +316,17 @@ describe('Custom Links', function() {
         expect(inputs[1]).not.to.eql(null)
         expect(button.textContent).to.contain('Create link')
         expect(viewElementReceivesFocus(view, inputs[0])).to.equal(true)
+      })
+    })
+
+    it('fills in the link field when passed a hash view parameter', function() {
+      return cl.landingView('/foo').then(function(view) {
+        var form = view.element.getElementsByTagName('form').item(0),
+            inputs = form.getElementsByTagName('input')
+
+        expect(inputs[0]).not.to.eql(null)
+        inputs[0].defaultValue.should.equal('foo')
+        expect(viewElementReceivesFocus(view, inputs[1])).to.equal(true)
       })
     })
   })
