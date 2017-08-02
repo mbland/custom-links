@@ -1,6 +1,6 @@
 'use strict'
 
-var RedirectDb = require('../../lib/redirect-db')
+var LinkDb = require('../../lib/link-db')
 var RedisClient = require('../../lib/redis-client')
 
 var sinon = require('sinon')
@@ -12,13 +12,13 @@ var LINK_TARGET = 'https://mike-bland.com/'
 chai.should()
 chai.use(chaiAsPromised)
 
-describe('RedirectDb', function() {
-  var redirectDb, logger, client, stubClientMethod, stubs
+describe('LinkDb', function() {
+  var linkDb, logger, client, stubClientMethod, stubs
 
   beforeEach(function() {
     client = new RedisClient
     logger = { error: function() { } }
-    redirectDb = new RedirectDb(client, logger)
+    linkDb = new LinkDb(client, logger)
     stubs = []
   })
 
@@ -37,12 +37,12 @@ describe('RedirectDb', function() {
   describe('userExists', function() {
     it('resolves if a user exists', function() {
       stubClientMethod('userExists').returns(Promise.resolve(true))
-      return redirectDb.userExists('mbland').should.be.fulfilled
+      return linkDb.userExists('mbland').should.be.fulfilled
     })
 
     it('rejects if a user doesn\'t exist', function() {
       stubClientMethod('userExists').returns(Promise.resolve(false))
-      return redirectDb.userExists('mbland')
+      return linkDb.userExists('mbland')
         .should.be.rejectedWith('user mbland doesn\'t exist')
     })
 
@@ -50,7 +50,7 @@ describe('RedirectDb', function() {
       stubClientMethod('userExists').callsFake(function(user) {
         return Promise.reject(new Error('forced error for ' + user))
       })
-      return redirectDb.userExists('mbland')
+      return linkDb.userExists('mbland')
         .should.be.rejectedWith(Error, 'forced error for mbland')
     })
   })
@@ -58,12 +58,12 @@ describe('RedirectDb', function() {
   describe('findUser', function() {
     it('finds an existing user', function() {
       stubClientMethod('userExists').returns(Promise.resolve(true))
-      return redirectDb.findUser('mbland').should.become({ id: 'mbland' })
+      return linkDb.findUser('mbland').should.become({ id: 'mbland' })
     })
 
     it('does not find an existing user', function() {
       stubClientMethod('userExists').returns(Promise.resolve(false))
-      return redirectDb.findUser('mbland')
+      return linkDb.findUser('mbland')
         .should.be.rejectedWith('user mbland doesn\'t exist')
     })
   })
@@ -72,7 +72,7 @@ describe('RedirectDb', function() {
     it('finds or creates a user', function() {
       stubClientMethod('findOrCreateUser').withArgs('mbland')
         .returns(Promise.resolve(true))
-      return redirectDb.findOrCreateUser('mbland')
+      return linkDb.findOrCreateUser('mbland')
         .should.become({ id: 'mbland' })
     })
   })
@@ -81,7 +81,7 @@ describe('RedirectDb', function() {
     it('returns null for an unknown link', function() {
       stubClientMethod('getLink').withArgs('/foo')
         .returns(Promise.resolve(null))
-      return redirectDb.getLink('/foo').should.become(null)
+      return linkDb.getLink('/foo').should.become(null)
     })
 
     it('returns the data for a known link', function() {
@@ -91,7 +91,7 @@ describe('RedirectDb', function() {
         .returns(Promise.resolve(linkData))
       stubClientMethod('recordAccess').withArgs('/foo')
         .returns(Promise.resolve())
-      return redirectDb.getLink('/foo').should.become(linkData)
+      return linkDb.getLink('/foo').should.become(linkData)
         .then(function() {
           client.recordAccess.calledOnce.should.be.false
         })
@@ -104,7 +104,7 @@ describe('RedirectDb', function() {
         .returns(Promise.resolve(linkData))
       stubClientMethod('recordAccess').withArgs('/foo')
         .returns(Promise.resolve())
-      return redirectDb.getLink('/foo', { recordAccess: true })
+      return linkDb.getLink('/foo', { recordAccess: true })
         .should.become(linkData)
         .then(function() {
           client.recordAccess.calledOnce.should.be.true
@@ -122,7 +122,7 @@ describe('RedirectDb', function() {
           return Promise.reject('forced error for ' + link)
         })
 
-      return redirectDb.getLink('/foo', { recordAccess: true })
+      return linkDb.getLink('/foo', { recordAccess: true })
         .should.become(linkData)
         .then(function() {
           errorSpy.calledWith('failed to record access for /foo: ' +
@@ -139,13 +139,13 @@ describe('RedirectDb', function() {
         .returns(Promise.resolve(true))
       stubClientMethod('addLinkToOwner')
         .returns(Promise.resolve())
-      return redirectDb.createLink('/foo', LINK_TARGET, 'mbland')
+      return linkDb.createLink('/foo', LINK_TARGET, 'mbland')
         .should.be.fulfilled
     })
 
     it('fails to create a link if the user doesn\'t exist', function() {
       stubClientMethod('userExists').returns(Promise.resolve(false))
-      return redirectDb.createLink('/foo', LINK_TARGET, 'mbland')
+      return linkDb.createLink('/foo', LINK_TARGET, 'mbland')
         .should.be.rejectedWith('user mbland doesn\'t exist')
     })
 
@@ -155,7 +155,7 @@ describe('RedirectDb', function() {
       stubClientMethod('getLink')
         .returns(Promise.resolve({ link: '/foo', owner: 'mbland' }))
 
-      return redirectDb.createLink('/foo', LINK_TARGET, 'mbland')
+      return linkDb.createLink('/foo', LINK_TARGET, 'mbland')
         .should.be.rejectedWith('/foo already exists')
     })
 
@@ -165,7 +165,7 @@ describe('RedirectDb', function() {
       stubClientMethod('getLink')
         .returns(Promise.resolve({ link: '/foo', owner: 'msb' }))
 
-      return redirectDb.createLink('/foo', LINK_TARGET, 'mbland')
+      return linkDb.createLink('/foo', LINK_TARGET, 'mbland')
         .should.be.rejectedWith('/foo is owned by msb')
     })
 
@@ -178,7 +178,7 @@ describe('RedirectDb', function() {
             [link, location, user].join(' ')))
         })
 
-      return redirectDb.createLink('/foo', LINK_TARGET, 'mbland')
+      return linkDb.createLink('/foo', LINK_TARGET, 'mbland')
         .should.be.rejectedWith(Error,
           'error creating /foo to be owned by mbland: ' +
            'forced error for /foo ' + LINK_TARGET + ' mbland')
@@ -190,7 +190,7 @@ describe('RedirectDb', function() {
         .withArgs('/foo', LINK_TARGET, 'mbland')
         .returns(Promise.resolve(true))
       stubClientMethod('addLinkToOwner').returns(Promise.resolve(false))
-      return redirectDb.createLink('/foo', LINK_TARGET, 'mbland')
+      return linkDb.createLink('/foo', LINK_TARGET, 'mbland')
         .should.be.rejectedWith(Error, '/foo created, ' +
           'but failed to add to list for user mbland: ' +
           'user was deleted before link could be assigned')
@@ -207,7 +207,7 @@ describe('RedirectDb', function() {
             new Error('forced error for ' + user + ' ' + link))
         })
 
-      return redirectDb.createLink('/foo', LINK_TARGET, 'mbland')
+      return linkDb.createLink('/foo', LINK_TARGET, 'mbland')
         .should.be.rejectedWith(Error, '/foo created, ' +
           'but failed to add to list for user mbland: ' +
           'forced error for mbland /foo')
@@ -220,7 +220,7 @@ describe('RedirectDb', function() {
         .returns(Promise.resolve(true))
       stubClientMethod('getOwnedLinks').withArgs('mbland')
         .returns(Promise.resolve([]))
-      return redirectDb.getOwnedLinks('mbland').should.become([])
+      return linkDb.getOwnedLinks('mbland').should.become([])
     })
 
     it('successfully fetches owned links', function() {
@@ -233,7 +233,7 @@ describe('RedirectDb', function() {
           link: link, location: LINK_TARGET, owner: 'mbland', count: 0 })
       })
 
-      return redirectDb.getOwnedLinks('mbland')
+      return linkDb.getOwnedLinks('mbland')
         .should.become([
           { link: '/baz', location: LINK_TARGET, owner: 'mbland', count: 0 },
           { link: '/bar', location: LINK_TARGET, owner: 'mbland', count: 0 },
@@ -244,7 +244,7 @@ describe('RedirectDb', function() {
     it('fails to fetch links for a nonexistent user', function() {
       stubClientMethod('userExists').withArgs('mbland')
         .returns(Promise.resolve(false))
-      return redirectDb.getOwnedLinks('mbland')
+      return linkDb.getOwnedLinks('mbland')
         .should.be.rejectedWith('user mbland doesn\'t exist')
     })
 
@@ -255,7 +255,7 @@ describe('RedirectDb', function() {
         .callsFake(function(owner) {
           return Promise.reject(new Error('forced failure for ' + owner))
         })
-      return redirectDb.getOwnedLinks('mbland')
+      return linkDb.getOwnedLinks('mbland')
         .should.be.rejectedWith(Error, 'forced failure for mbland')
     })
 
@@ -271,7 +271,7 @@ describe('RedirectDb', function() {
         return Promise.resolve({
           link: link, location: LINK_TARGET, owner: 'mbland', count: 0 })
       })
-      return redirectDb.getOwnedLinks('mbland')
+      return linkDb.getOwnedLinks('mbland')
         .should.be.rejectedWith(Error, 'forced failure for /bar')
     })
   })
@@ -280,20 +280,20 @@ describe('RedirectDb', function() {
     it('successfully validates ownership', function() {
       stubClientMethod('getLink').withArgs('/foo')
         .returns(Promise.resolve({ owner: 'mbland' }))
-      return redirectDb.checkOwnership('/foo', 'mbland').should.be.fulfilled
+      return linkDb.checkOwnership('/foo', 'mbland').should.be.fulfilled
     })
 
     it('fails if the link doesn\'t exist', function() {
       stubClientMethod('getLink').withArgs('/foo')
         .returns(Promise.resolve(null))
-      return redirectDb.checkOwnership('/foo', 'mbland')
+      return linkDb.checkOwnership('/foo', 'mbland')
         .should.be.rejectedWith('/foo does not exist')
     })
 
     it('fails unless invoked by the owner', function() {
       stubClientMethod('getLink').withArgs('/foo')
         .returns(Promise.resolve({ owner: 'msb' }))
-      return redirectDb.checkOwnership('/foo', 'mbland')
+      return linkDb.checkOwnership('/foo', 'mbland')
         .should.be.rejectedWith('/foo is owned by msb')
     })
   })
@@ -305,7 +305,7 @@ describe('RedirectDb', function() {
       stubClientMethod('updateProperty').withArgs('/foo', 'location', '/baz')
         .returns(Promise.resolve(true))
 
-      return redirectDb.updateProperty('/foo', 'mbland', 'location', '/baz')
+      return linkDb.updateProperty('/foo', 'mbland', 'location', '/baz')
         .should.be.fulfilled
     })
 
@@ -317,7 +317,7 @@ describe('RedirectDb', function() {
           return Promise.reject(new Error('forced error for ' +
             [link, name, value].join(' ')))
         })
-      return redirectDb.updateProperty('/foo', 'mbland', 'location', '/baz')
+      return linkDb.updateProperty('/foo', 'mbland', 'location', '/baz')
         .should.be.rejectedWith(Error, 'failed to update location of /foo ' +
           'to /baz: forced error for /foo location /baz')
     })
@@ -327,7 +327,7 @@ describe('RedirectDb', function() {
         .returns(Promise.resolve({ owner: 'mbland' }))
       stubClientMethod('updateProperty').withArgs('/foo', 'location', '/baz')
         .returns(Promise.resolve(false))
-      return redirectDb.updateProperty('/foo', 'mbland', 'location', '/baz')
+      return linkDb.updateProperty('/foo', 'mbland', 'location', '/baz')
         .should.be.rejectedWith(Error,
           'property location of /foo doesn\'t exist')
     })
@@ -346,7 +346,7 @@ describe('RedirectDb', function() {
       stubClientMethod('removeLinkFromOwner').withArgs('msb', '/foo')
         .returns(Promise.resolve(true))
 
-      return redirectDb.changeOwner('/foo', 'msb', 'mbland').should.be.fulfilled
+      return linkDb.changeOwner('/foo', 'msb', 'mbland').should.be.fulfilled
     })
 
     it('fails unless invoked by the original owner', function() {
@@ -354,7 +354,7 @@ describe('RedirectDb', function() {
         .returns(Promise.resolve({ owner: 'msb' }))
       stubClientMethod('userExists').withArgs('mbland')
         .returns(Promise.resolve(true))
-      return redirectDb.changeOwner('/foo', 'mbland', 'mbland')
+      return linkDb.changeOwner('/foo', 'mbland', 'mbland')
         .should.be.rejectedWith('/foo is owned by msb')
     })
 
@@ -363,7 +363,7 @@ describe('RedirectDb', function() {
         .returns(Promise.resolve({ owner: 'msb' }))
       stubClientMethod('userExists').withArgs('mbland')
         .returns(Promise.resolve(false))
-      return redirectDb.changeOwner('/foo', 'msb', 'mbland')
+      return linkDb.changeOwner('/foo', 'msb', 'mbland')
         .should.be.rejectedWith('user mbland doesn\'t exist')
     })
 
@@ -382,7 +382,7 @@ describe('RedirectDb', function() {
       stubClientMethod('removeLinkFromOwner').withArgs('msb', '/foo')
         .returns(Promise.resolve(true))
 
-      return redirectDb.changeOwner('/foo', 'msb', 'mbland')
+      return linkDb.changeOwner('/foo', 'msb', 'mbland')
         .should.be.rejectedWith(Error, 'changed ownership of /foo ' +
           'from msb to mbland, but failed to add it to new owner\'s list: ' +
           'forced error for mbland /foo')
@@ -400,7 +400,7 @@ describe('RedirectDb', function() {
       stubClientMethod('removeLinkFromOwner').withArgs('msb', '/foo')
         .returns(Promise.resolve(false))
 
-      return redirectDb.changeOwner('/foo', 'msb', 'mbland')
+      return linkDb.changeOwner('/foo', 'msb', 'mbland')
         .should.be.rejectedWith(Error, 'assigned ownership of /foo to ' +
           'mbland, but msb didn\'t own it')
     })
@@ -420,7 +420,7 @@ describe('RedirectDb', function() {
             new Error('forced error for ' + owner + ' ' + link))
         })
 
-      return redirectDb.changeOwner('/foo', 'msb', 'mbland')
+      return linkDb.changeOwner('/foo', 'msb', 'mbland')
         .should.be.rejectedWith(Error, 'changed ownership of /foo from msb ' +
           'to mbland, but failed to remove it from previous owner\'s list: ' +
           'forced error for msb /foo')
@@ -434,14 +434,14 @@ describe('RedirectDb', function() {
       stubClientMethod('updateProperty').withArgs('/foo', 'location', '/baz')
         .returns(Promise.resolve(true))
 
-      return redirectDb.updateLocation('/foo', 'mbland', '/baz')
+      return linkDb.updateLocation('/foo', 'mbland', '/baz')
         .should.be.fulfilled
     })
 
     it('fails unless invoked by the owner', function() {
       stubClientMethod('getLink').withArgs('/foo')
         .returns(Promise.resolve({ owner: 'msb' }))
-      return redirectDb.updateLocation('/foo', 'mbland', '/baz')
+      return linkDb.updateLocation('/foo', 'mbland', '/baz')
         .should.be.rejectedWith('/foo is owned by msb')
     })
   })
@@ -455,13 +455,13 @@ describe('RedirectDb', function() {
       stubClientMethod('removeLinkFromOwner').withArgs('mbland', '/foo')
         .returns(Promise.resolve(true))
 
-      return redirectDb.deleteLink('/foo', 'mbland').should.be.fulfilled
+      return linkDb.deleteLink('/foo', 'mbland').should.be.fulfilled
     })
 
     it('fails unless invoked by the owner', function() {
       stubClientMethod('getLink').withArgs('/foo')
         .returns(Promise.resolve({ owner: 'msb' }))
-      return redirectDb.deleteLink('/foo', 'mbland')
+      return linkDb.deleteLink('/foo', 'mbland')
         .should.be.rejectedWith('/foo is owned by msb')
     })
 
@@ -471,7 +471,7 @@ describe('RedirectDb', function() {
       stubClientMethod('deleteLink').withArgs('/foo')
         .returns(Promise.resolve(false))
 
-      return redirectDb.deleteLink('/foo', 'mbland')
+      return linkDb.deleteLink('/foo', 'mbland')
         .should.be.rejectedWith('/foo already deleted')
     })
 
@@ -483,7 +483,7 @@ describe('RedirectDb', function() {
           return Promise.reject(new Error('forced error for ' + link))
         })
 
-      return redirectDb.deleteLink('/foo', 'mbland')
+      return linkDb.deleteLink('/foo', 'mbland')
         .should.be.rejectedWith(Error, 'forced error for /foo')
     })
 
@@ -495,7 +495,7 @@ describe('RedirectDb', function() {
       stubClientMethod('removeLinkFromOwner').withArgs('mbland', '/foo')
         .returns(Promise.resolve(false))
 
-      return redirectDb.deleteLink('/foo', 'mbland')
+      return linkDb.deleteLink('/foo', 'mbland')
         .should.be.rejectedWith(Error, 'deleted /foo, ' +
           'but mbland didn\'t own it')
     })
@@ -511,7 +511,7 @@ describe('RedirectDb', function() {
             owner + ' ' + link))
         })
 
-      return redirectDb.deleteLink('/foo', 'mbland')
+      return linkDb.deleteLink('/foo', 'mbland')
         .should.be.rejectedWith(Error, 'deleted /foo, ' +
           'but failed to remove link from the owner\'s list for mbland: ' +
           'forced error for mbland /foo')

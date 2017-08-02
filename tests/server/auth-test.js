@@ -3,7 +3,7 @@
 var auth = require('../../lib/auth')
 var testAuth = require('../../lib/auth/test')
 var googleAuth = require('../../lib/auth/google')
-var RedirectDb = require('../../lib/redirect-db')
+var LinkDb = require('../../lib/link-db')
 
 var sinon = require('sinon')
 var chai = require('chai')
@@ -14,10 +14,10 @@ chai.should()
 chai.use(chaiAsPromised)
 
 describe('auth', function() {
-  var redirectDb, stubs, stubDbMethod
+  var linkDb, stubs, stubDbMethod
 
   before(function() {
-    redirectDb = new RedirectDb
+    linkDb = new LinkDb
     stubs = []
   })
 
@@ -28,7 +28,7 @@ describe('auth', function() {
   })
 
   stubDbMethod = function(method) {
-    var stub = sinon.stub(redirectDb, method)
+    var stub = sinon.stub(linkDb, method)
     stubs.push(stub)
     return stub
   }
@@ -62,7 +62,7 @@ describe('auth', function() {
 
     doVerify = function(config, userIds) {
       return new Promise(function(resolve, reject) {
-        auth.verify(redirectDb, config, userIds, function(err, user) {
+        auth.verify(linkDb, config, userIds, function(err, user) {
           err ? reject(err) : resolve(user)
         })
       })
@@ -79,7 +79,7 @@ describe('auth', function() {
       doVerify({}, [ 'mbland@acm.org' ]).should.become(false)
     })
 
-    it('returns an error if a RedirectDb operation fails', function() {
+    it('returns an error if a LinkDb operation fails', function() {
       stubDbMethod('findOrCreateUser').withArgs('mbland@acm.org')
         .callsFake(function(user) {
           return Promise.reject(new Error('forced error for ' + user))
@@ -94,7 +94,7 @@ describe('auth', function() {
     it('serializes the user ID', function() {
       return new Promise(
         function(resolve, reject) {
-          var serializeUser = auth.makeUserSerializer(redirectDb)
+          var serializeUser = auth.makeUserSerializer(linkDb)
           serializeUser({ id: 'mbland@acm.org' }, function(err, user) {
             err ? reject(err) : resolve(user)
           })
@@ -107,7 +107,7 @@ describe('auth', function() {
     var doDeserialize
 
     doDeserialize = function(user) {
-      var deserializeUser = auth.makeUserDeserializer(redirectDb)
+      var deserializeUser = auth.makeUserDeserializer(linkDb)
       return new Promise(function(resolve, reject) {
         deserializeUser(user, function(err, user) {
           err ? reject(err) : resolve(user)
@@ -148,7 +148,7 @@ describe('auth', function() {
 
       beforeEach(function() {
         process.env.CUSTOM_LINKS_TEST_AUTH = 'mbland@acm.org'
-        testAuth.assemble(passport, redirectDb, { users: [ 'mbland@acm.org' ] })
+        testAuth.assemble(passport, linkDb, { users: [ 'mbland@acm.org' ] })
         strategy = passport.use.getCall(0).args[0]
       })
 
@@ -236,7 +236,7 @@ describe('auth', function() {
       })
 
       doVerify = function(userObj, config) {
-        var verify = googleAuth.verify(redirectDb, config)
+        var verify = googleAuth.verify(linkDb, config)
         return new Promise(function(resolve, reject) {
           verify('access token', 'refresh token', userObj, function(err, user) {
             err ? reject(err) : resolve(user)
@@ -245,7 +245,7 @@ describe('auth', function() {
       }
 
       it('registers the strategy with passport.use', function() {
-        googleAuth.assemble(passport, redirectDb, {
+        googleAuth.assemble(passport, linkDb, {
           GOOGLE_CLIENT_ID: '<client-id>',
           GOOGLE_CLIENT_SECRET: '<client-secret>',
           GOOGLE_CALLBACK_URL: '<callback-url>'
@@ -287,7 +287,7 @@ describe('auth', function() {
           deserializeUser,
           serializeSpy = sinon.spy()
 
-      auth.assemble(passport, redirectDb, { AUTH_PROVIDERS: [] })
+      auth.assemble(passport, linkDb, { AUTH_PROVIDERS: [] })
       passport.use.notCalled.should.be.true
 
       serializeUser = passport.serializeUser.getCall(0).args[0]
@@ -309,12 +309,12 @@ describe('auth', function() {
     })
 
     it('uses the test auth provider', function() {
-      auth.assemble(passport, redirectDb, { AUTH_PROVIDERS: ['test'] })
+      auth.assemble(passport, linkDb, { AUTH_PROVIDERS: ['test'] })
       expect(passport.use.getCall(0).args[0].name).to.equal('test')
     })
 
     it('uses multiple auth providers', function() {
-      auth.assemble(passport, redirectDb, {
+      auth.assemble(passport, linkDb, {
         AUTH_PROVIDERS: [ 'google', 'test' ],
         GOOGLE_CLIENT_ID: '<client-id>',
         GOOGLE_CLIENT_SECRET: '<client-secret>',
@@ -326,7 +326,7 @@ describe('auth', function() {
 
     it('raises an error for an unknown auth provider', function() {
       var assemble = function() {
-        auth.assemble(passport, redirectDb, { AUTH_PROVIDERS: [ 'bogus' ] })
+        auth.assemble(passport, linkDb, { AUTH_PROVIDERS: [ 'bogus' ] })
       }
       expect(assemble).to.throw(Error,
         'Failed to load bogus provider: Cannot find module \'./auth/bogus\'')

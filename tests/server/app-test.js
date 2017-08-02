@@ -4,7 +4,7 @@ var appLib = require('../../lib')
 var assembleApp = appLib.assembleApp
 var sessionParams = appLib.sessionParams
 var Config = require('../../lib/config')
-var RedirectDb = require('../../lib/redirect-db')
+var LinkDb = require('../../lib/link-db')
 var express = require('express')
 var request = require('supertest')
 var chai = require('chai')
@@ -18,13 +18,13 @@ chai.use(chaiAsPromised)
 var REDIRECT_LOCATION = 'https://mike-bland.com/'
 
 describe('assembleApp', function() {
-  var app, redirectDb, logger, logError, config, sessionCookie
+  var app, linkDb, logger, logError, config, sessionCookie
 
   before(function() {
-    redirectDb = new RedirectDb
-    sinon.stub(redirectDb, 'findOrCreateUser')
+    linkDb = new LinkDb
+    sinon.stub(linkDb, 'findOrCreateUser')
       .returns(Promise.resolve({ id: 'mbland@acm.org' }))
-    sinon.stub(redirectDb, 'findUser')
+    sinon.stub(linkDb, 'findUser')
       .returns(Promise.resolve({ id: 'mbland@acm.org' }))
 
     logger = { error: function() { } }
@@ -36,7 +36,7 @@ describe('assembleApp', function() {
     })
     app = express()
     // A null session store will use the in-memory implementation
-    app = new assembleApp(app, redirectDb, logger, null, config)
+    app = new assembleApp(app, linkDb, logger, null, config)
   })
 
   beforeEach(function() {
@@ -66,7 +66,7 @@ describe('assembleApp', function() {
     var getLink
 
     beforeEach(function() {
-      getLink = sinon.stub(redirectDb, 'getLink')
+      getLink = sinon.stub(linkDb, 'getLink')
     })
 
     afterEach(function() {
@@ -149,7 +149,7 @@ describe('assembleApp', function() {
         })
     })
 
-    it('redirects to the target URL returned by the RedirectDb', function() {
+    it('redirects to the target URL returned by the LinkDb', function() {
       getLink.withArgs('/foo', { recordAccess: true })
         .returns(Promise.resolve(
           { location: REDIRECT_LOCATION, owner: 'mbland@acm.org', count: 27 }))
@@ -203,7 +203,7 @@ describe('assembleApp', function() {
       var getLink
 
       beforeEach(function() {
-        getLink = sinon.stub(redirectDb, 'getLink')
+        getLink = sinon.stub(linkDb, 'getLink')
       })
 
       afterEach(function() {
@@ -256,7 +256,7 @@ describe('assembleApp', function() {
       var createLink, setArgs, makeRequest
 
       beforeEach(function() {
-        createLink = sinon.stub(redirectDb, 'createLink')
+        createLink = sinon.stub(linkDb, 'createLink')
       })
 
       afterEach(function() {
@@ -319,7 +319,7 @@ describe('assembleApp', function() {
       var getOwnedLinks
 
       beforeEach(function() {
-        getOwnedLinks = sinon.stub(redirectDb, 'getOwnedLinks')
+        getOwnedLinks = sinon.stub(linkDb, 'getOwnedLinks')
       })
 
       afterEach(function() {
@@ -386,7 +386,7 @@ describe('assembleApp', function() {
       var changeOwner, setArgs, makeRequest
 
       beforeEach(function() {
-        changeOwner = sinon.stub(redirectDb, 'changeOwner')
+        changeOwner = sinon.stub(linkDb, 'changeOwner')
       })
 
       afterEach(function() {
@@ -442,7 +442,7 @@ describe('assembleApp', function() {
       var updateLocation, setArgs, makeRequest
 
       beforeEach(function() {
-        updateLocation = sinon.stub(redirectDb, 'updateLocation')
+        updateLocation = sinon.stub(linkDb, 'updateLocation')
       })
 
       afterEach(function() {
@@ -500,7 +500,7 @@ describe('assembleApp', function() {
       var deleteLink, setArgs
 
       beforeEach(function() {
-        deleteLink = sinon.stub(redirectDb, 'deleteLink')
+        deleteLink = sinon.stub(linkDb, 'deleteLink')
       })
 
       afterEach(function() {
