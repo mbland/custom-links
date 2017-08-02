@@ -206,7 +206,7 @@
 
     button.onclick = cl.createLinkClick
     link = (link || '').replace(/^\/+/, '')
-    view.appendChild(cl.applyData({ url: link }, editForm))
+    view.appendChild(cl.applyData({ link: link }, editForm))
     return Promise.resolve(new cl.View(view, function() {
       view.getElementsByTagName('input')[link ? 1 : 0].focus()
     }))
@@ -227,11 +227,11 @@
 
     return cl.backend.getUserInfo(cl.userId)
       .then(function(response) {
-        if (response.urls === undefined || response.urls.length === 0) {
+        if (response.links === undefined || response.links.length === 0) {
           return cl.getTemplate('no-links')
         }
-        linksView.updateNumLinks(response.urls.length)
-        return cl.createLinksTable(response.urls, linksView)
+        linksView.updateNumLinks(response.links.length)
+        return cl.createLinksTable(response.links, linksView)
       })
       .catch(function(err) {
         var errMessage = cl.getTemplate('result failure')
@@ -253,7 +253,7 @@
         order
 
     options = options || {}
-    sortKey = options.sortKey || 'url'
+    sortKey = options.sortKey || 'link'
     options.order = options.order || 'ascending'
 
     switch (options.order) {
@@ -277,11 +277,11 @@
           cells = current.getElementsByClassName('cell'),
           actions = cells[3].getElementsByTagName('button')
 
-      cells[0].appendChild(cl.createAnchor(link.url))
+      cells[0].appendChild(cl.createAnchor(link.link))
       cells[1].appendChild(cl.createAnchor(link.location))
       cells[2].textContent = link.count
       actions[1].onclick = function() {
-        cl.confirmDelete(link.url, current, linksView).open()
+        cl.confirmDelete(link.link, current, linksView).open()
       }
       linkTable.appendChild(current)
     })
@@ -326,16 +326,16 @@
   }
 
   cl.createLink = function(linkForm) {
-    var url = linkForm.querySelector('[data-name=url]'),
+    var link = linkForm.querySelector('[data-name=link]'),
         location = linkForm.querySelector('[data-name=location]')
 
-    if (!url || !location) {
+    if (!link || !location) {
       throw new Error('fields missing from link form: ' + linkForm.outerHTML)
     }
-    url = url.value.replace(/^\/+/, '')
+    link = link.value.replace(/^\/+/, '')
     location = location.value
 
-    if (url.length === 0) {
+    if (link.length === 0) {
       return Promise.reject('Custom link field must not be empty.')
     } else if (location.length === 0) {
       return Promise.reject('Redirect location field must not be empty.')
@@ -343,7 +343,7 @@
       return Promise.reject('Redirect location protocol must be ' +
         'http:// or https://.')
     }
-    return cl.backend.createLink(url, location)
+    return cl.backend.createLink(link, location)
   }
 
   cl.createLinkClick = function(e) {
@@ -483,11 +483,11 @@
     }, resultElement)
   }
 
-  cl.createAnchor = function(url, text) {
+  cl.createAnchor = function(link, text) {
     var anchor = document.createElement('a')
 
-    anchor.appendChild(document.createTextNode(text || url))
-    anchor.href = url
+    anchor.appendChild(document.createTextNode(text || link))
+    anchor.href = link
     return anchor
   }
 
