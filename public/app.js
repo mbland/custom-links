@@ -146,7 +146,7 @@
         viewParam = hashId.slice(viewId.length + 1),
         container = document.getElementsByClassName('view-container')[0],
         routes = {
-          '#': cl.landingView,
+          '#': cl.createLinkView,
           '#links': cl.linksView
         },
         renderView = routes[viewId]
@@ -199,16 +199,15 @@
     return element
   }
 
-  cl.landingView = function(link) {
-    var view = cl.getTemplate('landing-view'),
-        editForm = cl.getTemplate('edit-link'),
-        button = editForm.getElementsByTagName('button')[0]
+  cl.createLinkView = function(link) {
+    var linkForm = cl.getTemplate('create-view'),
+        button = linkForm.getElementsByTagName('button')[0]
 
     button.onclick = cl.createLinkClick
     link = (link || '').replace(/^\/+/, '')
-    view.appendChild(cl.applyData({ link: link }, editForm))
-    return Promise.resolve(new cl.View(view, function() {
-      view.getElementsByTagName('input')[link ? 1 : 0].focus()
+    linkForm = cl.applyData({ link: link }, linkForm)
+    return Promise.resolve(new cl.View(linkForm, function() {
+      linkForm.getElementsByTagName('input')[link ? 1 : 0].focus()
     }))
   }
 
