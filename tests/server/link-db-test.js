@@ -85,7 +85,7 @@ describe('LinkDb', function() {
     })
 
     it('returns the data for a known link', function() {
-      var linkData = { location: LINK_TARGET, owner: 'mbland', count: 27 }
+      var linkData = { target: LINK_TARGET, owner: 'mbland', count: 27 }
 
       stubClientMethod('getLink').withArgs('/foo')
         .returns(Promise.resolve(linkData))
@@ -98,7 +98,7 @@ describe('LinkDb', function() {
     })
 
     it('records access of a known link', function() {
-      var linkData = { location: LINK_TARGET, owner: 'mbland', count: 27 }
+      var linkData = { target: LINK_TARGET, owner: 'mbland', count: 27 }
 
       stubClientMethod('getLink').withArgs('/foo')
         .returns(Promise.resolve(linkData))
@@ -112,7 +112,7 @@ describe('LinkDb', function() {
     })
 
     it('logs an error if the link is known but recordAccess fails', function() {
-      var linkData = { location: LINK_TARGET, owner: 'mbland', count: 27 },
+      var linkData = { target: LINK_TARGET, owner: 'mbland', count: 27 },
           errorSpy = sinon.spy(logger, 'error')
 
       stubClientMethod('getLink').withArgs('/foo')
@@ -173,9 +173,9 @@ describe('LinkDb', function() {
       stubClientMethod('userExists').returns(Promise.resolve(true))
       stubClientMethod('createLink')
         .withArgs('/foo', LINK_TARGET, 'mbland')
-        .callsFake(function(link, location, user) {
+        .callsFake(function(link, target, user) {
           return Promise.reject(new Error('forced error for ' +
-            [link, location, user].join(' ')))
+            [link, target, user].join(' ')))
         })
 
       return linkDb.createLink('/foo', LINK_TARGET, 'mbland')
@@ -230,14 +230,14 @@ describe('LinkDb', function() {
         .returns(Promise.resolve(['/baz', '/bar', '/foo']))
       stubClientMethod('getLink').callsFake(function(link) {
         return Promise.resolve({
-          link: link, location: LINK_TARGET, owner: 'mbland', count: 0 })
+          link: link, target: LINK_TARGET, owner: 'mbland', count: 0 })
       })
 
       return linkDb.getOwnedLinks('mbland')
         .should.become([
-          { link: '/baz', location: LINK_TARGET, owner: 'mbland', count: 0 },
-          { link: '/bar', location: LINK_TARGET, owner: 'mbland', count: 0 },
-          { link: '/foo', location: LINK_TARGET, owner: 'mbland', count: 0 }
+          { link: '/baz', target: LINK_TARGET, owner: 'mbland', count: 0 },
+          { link: '/bar', target: LINK_TARGET, owner: 'mbland', count: 0 },
+          { link: '/foo', target: LINK_TARGET, owner: 'mbland', count: 0 }
         ])
     })
 
@@ -269,7 +269,7 @@ describe('LinkDb', function() {
           return Promise.reject(new Error('forced failure for ' + link))
         }
         return Promise.resolve({
-          link: link, location: LINK_TARGET, owner: 'mbland', count: 0 })
+          link: link, target: LINK_TARGET, owner: 'mbland', count: 0 })
       })
       return linkDb.getOwnedLinks('mbland')
         .should.be.rejectedWith(Error, 'forced failure for /bar')
@@ -299,37 +299,37 @@ describe('LinkDb', function() {
   })
 
   describe('updateProperty', function() {
-    it('successfully changes the location', function() {
+    it('successfully changes the target', function() {
       stubClientMethod('getLink').withArgs('/foo')
         .returns(Promise.resolve({ owner: 'mbland' }))
-      stubClientMethod('updateProperty').withArgs('/foo', 'location', '/baz')
+      stubClientMethod('updateProperty').withArgs('/foo', 'target', '/baz')
         .returns(Promise.resolve(true))
 
-      return linkDb.updateProperty('/foo', 'mbland', 'location', '/baz')
+      return linkDb.updateProperty('/foo', 'mbland', 'target', '/baz')
         .should.be.fulfilled
     })
 
     it('raises an error if client.updateProperty fails', function() {
       stubClientMethod('getLink').withArgs('/foo')
         .returns(Promise.resolve({ owner: 'mbland' }))
-      stubClientMethod('updateProperty').withArgs('/foo', 'location', '/baz')
+      stubClientMethod('updateProperty').withArgs('/foo', 'target', '/baz')
         .callsFake(function(link, name, value) {
           return Promise.reject(new Error('forced error for ' +
             [link, name, value].join(' ')))
         })
-      return linkDb.updateProperty('/foo', 'mbland', 'location', '/baz')
-        .should.be.rejectedWith(Error, 'failed to update location of /foo ' +
-          'to /baz: forced error for /foo location /baz')
+      return linkDb.updateProperty('/foo', 'mbland', 'target', '/baz')
+        .should.be.rejectedWith(Error, 'failed to update target of /foo ' +
+          'to /baz: forced error for /foo target /baz')
     })
 
     it('returns failure if a property doesn\'t exist', function() {
       stubClientMethod('getLink').withArgs('/foo')
         .returns(Promise.resolve({ owner: 'mbland' }))
-      stubClientMethod('updateProperty').withArgs('/foo', 'location', '/baz')
+      stubClientMethod('updateProperty').withArgs('/foo', 'target', '/baz')
         .returns(Promise.resolve(false))
-      return linkDb.updateProperty('/foo', 'mbland', 'location', '/baz')
+      return linkDb.updateProperty('/foo', 'mbland', 'target', '/baz')
         .should.be.rejectedWith(Error,
-          'property location of /foo doesn\'t exist')
+          'property target of /foo doesn\'t exist')
     })
   })
 
@@ -427,21 +427,21 @@ describe('LinkDb', function() {
     })
   })
 
-  describe('updateLocation', function() {
-    it('successfully changes the location', function() {
+  describe('updateTarget', function() {
+    it('successfully changes the target', function() {
       stubClientMethod('getLink').withArgs('/foo')
         .returns(Promise.resolve({ owner: 'mbland' }))
-      stubClientMethod('updateProperty').withArgs('/foo', 'location', '/baz')
+      stubClientMethod('updateProperty').withArgs('/foo', 'target', '/baz')
         .returns(Promise.resolve(true))
 
-      return linkDb.updateLocation('/foo', 'mbland', '/baz')
+      return linkDb.updateTarget('/foo', 'mbland', '/baz')
         .should.be.fulfilled
     })
 
     it('fails unless invoked by the owner', function() {
       stubClientMethod('getLink').withArgs('/foo')
         .returns(Promise.resolve({ owner: 'msb' }))
-      return linkDb.updateLocation('/foo', 'mbland', '/baz')
+      return linkDb.updateTarget('/foo', 'mbland', '/baz')
         .should.be.rejectedWith('/foo is owned by msb')
     })
   })

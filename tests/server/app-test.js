@@ -15,7 +15,7 @@ var sinon = require('sinon')
 chai.should()
 chai.use(chaiAsPromised)
 
-var REDIRECT_LOCATION = 'https://mike-bland.com/'
+var LINK_TARGET = 'https://mike-bland.com/'
 
 describe('assembleApp', function() {
   var app, linkDb, logger, logError, config, sessionCookie
@@ -152,13 +152,13 @@ describe('assembleApp', function() {
     it('redirects to the target URL returned by the LinkDb', function() {
       getLink.withArgs('/foo', { recordAccess: true })
         .returns(Promise.resolve(
-          { location: REDIRECT_LOCATION, owner: 'mbland@acm.org', count: 27 }))
+          { target: LINK_TARGET, owner: 'mbland@acm.org', count: 27 }))
 
       return request(app)
         .get('/foo')
         .set('cookie', sessionCookie)
         .expect(302)
-        .expect('location', REDIRECT_LOCATION)
+        .expect('location', LINK_TARGET)
     })
 
     it('redirects to the homepage with nonexistent link parameter', function() {
@@ -212,7 +212,7 @@ describe('assembleApp', function() {
 
       it('returns info for an existing link', function() {
         var linkData = {
-          location: 'https://mike-bland.com/',
+          target: 'https://mike-bland.com/',
           owner: 'mbland@acm.org',
           count: 27
         }
@@ -265,13 +265,13 @@ describe('assembleApp', function() {
 
       setArgs = function() {
         return createLink
-          .withArgs('/foo', REDIRECT_LOCATION, 'mbland@acm.org')
+          .withArgs('/foo', LINK_TARGET, 'mbland@acm.org')
       }
 
       makeRequest = function() {
         return request(app)
           .post('/api/create/foo')
-          .send({ location: REDIRECT_LOCATION })
+          .send({ target: LINK_TARGET })
           .set('cookie', sessionCookie)
       }
 
@@ -281,31 +281,31 @@ describe('assembleApp', function() {
       })
 
       it('raises a server error when createLink fails', function() {
-        setArgs().callsFake(function(link, location, userId) {
+        setArgs().callsFake(function(link, target, userId) {
           return Promise.reject(new Error('forced error for ' +
-            [link, location, userId].join(' ')))
+            [link, target, userId].join(' ')))
         })
         return makeRequest()
           .expect(500)
           .then(function() {
             logError.calledOnce.should.be.true
             expect(logError.args[0][0].message)
-              .to.equal('forced error for /foo ' + REDIRECT_LOCATION +
+              .to.equal('forced error for /foo ' + LINK_TARGET +
                 ' mbland@acm.org')
           })
       })
 
       it('returns forbidden when a failure isn\'t an Error', function() {
-        setArgs().callsFake(function(link, location, userId) {
+        setArgs().callsFake(function(link, target, userId) {
           return Promise.reject('forced error for ' +
-            [link, location, userId].join(' '))
+            [link, target, userId].join(' '))
         })
 
         return makeRequest()
           .expect(403)
           .expect('Content-Type', 'application/json; charset=utf-8')
           .then(function(res) {
-            var expected = 'forced error for /foo ' + REDIRECT_LOCATION +
+            var expected = 'forced error for /foo ' + LINK_TARGET +
               ' mbland@acm.org'
 
             expect(res.body.err).to.equal(expected)
@@ -329,9 +329,9 @@ describe('assembleApp', function() {
       it('returns the list of redirect info owned by the user', function() {
         // Not including the owner, though it would be normally.
         var links = [
-          { link: '/foo', location: REDIRECT_LOCATION, count: 27 },
-          { link: '/bar', location: REDIRECT_LOCATION, count: 28 },
-          { link: '/baz', location: REDIRECT_LOCATION, count: 29 }
+          { link: '/foo', target: LINK_TARGET, count: 27 },
+          { link: '/bar', target: LINK_TARGET, count: 28 },
+          { link: '/baz', target: LINK_TARGET, count: 29 }
         ]
 
         getOwnedLinks.withArgs('mbland@acm.org')
@@ -438,46 +438,45 @@ describe('assembleApp', function() {
       })
     })
 
-    describe('/location', function() {
-      var updateLocation, setArgs, makeRequest
+    describe('/target', function() {
+      var updateTarget, setArgs, makeRequest
 
       beforeEach(function() {
-        updateLocation = sinon.stub(linkDb, 'updateLocation')
+        updateTarget = sinon.stub(linkDb, 'updateTarget')
       })
 
       afterEach(function() {
-        updateLocation.restore()
+        updateTarget.restore()
       })
 
       setArgs = function() {
-        return updateLocation.withArgs(
-          '/foo', 'mbland@acm.org', REDIRECT_LOCATION)
+        return updateTarget.withArgs(
+          '/foo', 'mbland@acm.org', LINK_TARGET)
       }
 
       makeRequest = function() {
         return request(app)
-          .post('/api/location/foo')
-          .send({ location: REDIRECT_LOCATION })
+          .post('/api/target/foo')
+          .send({ target: LINK_TARGET })
           .set('cookie', sessionCookie)
       }
 
-      it('successfully sets the location', function() {
+      it('successfully sets the target', function() {
         setArgs().returns(Promise.resolve())
         return makeRequest().expect(204)
       })
 
       it('raises a server error', function() {
-        setArgs().callsFake(function(link, user, location) {
+        setArgs().callsFake(function(link, user, target) {
           return Promise.reject(new Error('forced error for ' +
-            [link, user, location].join(' ')))
+            [link, user, target].join(' ')))
         })
         return makeRequest()
           .expect(500)
           .then(function() {
             logError.calledOnce.should.be.true
             expect(logError.args[0][0].message)
-              .to.equal('forced error for /foo mbland@acm.org ' +
-                REDIRECT_LOCATION)
+              .to.equal('forced error for /foo mbland@acm.org ' + LINK_TARGET)
           })
       })
 

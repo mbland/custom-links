@@ -11,7 +11,7 @@ describe('Custom Links', function() {
       viewElementReceivesFocus,
       prepareFlashingElement,
       HOST_PREFIX = window.location.protocol + '//' + window.location.host,
-      REDIRECT_LOCATION = 'https://mike-bland.com/'
+      LINK_TARGET = 'https://mike-bland.com/'
 
   afterEach(function() {
     doubles.forEach(function(double) {
@@ -149,9 +149,9 @@ describe('Custom Links', function() {
 
       it('returns user info from a successful response', function() {
         var usersLinks = [
-            { link: '/foo', location: 'https://foo.com/', count: 1 },
-            { link: '/bar', location: 'https://bar.com/', count: 2 },
-            { link: '/baz', location: 'https://baz.com/', count: 3 }
+            { link: '/foo', target: 'https://foo.com/', count: 1 },
+            { link: '/bar', target: 'https://bar.com/', count: 2 },
+            { link: '/baz', target: 'https://baz.com/', count: 3 }
         ]
 
         xhr.withArgs('GET', '/api/user/mbland@acm.org').returns(
@@ -193,7 +193,7 @@ describe('Custom Links', function() {
     describe('createLink', function() {
       it('returns a success message after a link is created', function() {
         xhr
-          .withArgs('POST', '/api/create/foo', { location: 'https://foo.com/' })
+          .withArgs('POST', '/api/create/foo', { target: 'https://foo.com/' })
           .returns(Promise.resolve())
         return backend.createLink('foo', 'https://foo.com/')
           .should.become('<a href=\'/foo\'>' +
@@ -203,7 +203,7 @@ describe('Custom Links', function() {
 
       it('rejects with an error message if a link isn\'t created', function() {
         xhr
-          .withArgs('POST', '/api/create/foo', { location: 'https://foo.com/' })
+          .withArgs('POST', '/api/create/foo', { target: 'https://foo.com/' })
           .returns(Promise.reject('simulated error'))
         return backend.createLink('foo', 'https://foo.com/')
           .should.be.rejectedWith('The link wasn\'t created: simulated error')
@@ -335,16 +335,16 @@ describe('Custom Links', function() {
     it('applies an object\'s properties to a template', function() {
       var data = {
             link: '/foo',
-            location: REDIRECT_LOCATION
+            target: LINK_TARGET
           },
           form = cl.getTemplate('edit-link'),
           fields = form.getElementsByTagName('input'),
           link = fields[0],
-          location = fields[1]
+          target = fields[1]
 
       expect(cl.applyData(data, form)).to.equal(form)
       expect(link.defaultValue).to.equal('/foo')
-      expect(location.defaultValue).to.equal(REDIRECT_LOCATION)
+      expect(target.defaultValue).to.equal(LINK_TARGET)
     })
   })
 
@@ -601,11 +601,11 @@ describe('Custom Links', function() {
       stubOut(cl.backend, 'createLink')
       linkForm = cl.getTemplate('edit-link')
       linkForm.querySelector('[data-name=link]').value = 'foo'
-      linkForm.querySelector('[data-name=location]').value = REDIRECT_LOCATION
+      linkForm.querySelector('[data-name=target]').value = LINK_TARGET
     })
 
     expectBackendCall = function() {
-      return cl.backend.createLink.withArgs('foo', REDIRECT_LOCATION)
+      return cl.backend.createLink.withArgs('foo', LINK_TARGET)
     }
 
     it('creates a link from valid form data', function() {
@@ -633,8 +633,8 @@ describe('Custom Links', function() {
     })
 
     it('throws an error if the target URL field is missing', function() {
-      var locationField = linkForm.querySelector('[data-name=location]')
-      locationField.parentNode.removeChild(locationField)
+      var targetField = linkForm.querySelector('[data-name=target]')
+      targetField.parentNode.removeChild(targetField)
       expect(function() { cl.createLink(linkForm) }).to.throw(Error,
         'fields missing from link form: ' + linkForm.outerHTML)
     })
@@ -646,15 +646,15 @@ describe('Custom Links', function() {
     })
 
     it('rejects if the target URL value is missing', function() {
-      linkForm.querySelector('[data-name=location]').value = ''
+      linkForm.querySelector('[data-name=target]').value = ''
       return cl.createLink(linkForm).should.be.rejectedWith(
-        'Redirect location field must not be empty.')
+        'Target URL field must not be empty.')
     })
 
     it('rejects if the target URL has an incorrect protocol', function() {
-      linkForm.querySelector('[data-name=location]').value = 'gopher://bar'
+      linkForm.querySelector('[data-name=target]').value = 'gopher://bar'
       return cl.createLink(linkForm).should.be.rejectedWith(
-        'Redirect location protocol must be http:// or https://.')
+        'Target URL protocol must be http:// or https://.')
     })
   })
 
@@ -754,7 +754,7 @@ describe('Custom Links', function() {
     })
 
     it('returns a table with a single element', function() {
-      var links = [{ link: '/foo', location: 'https://foo.com/', count: 3 }],
+      var links = [{ link: '/foo', target: 'https://foo.com/', count: 3 }],
           table = cl.createLinksTable(links, linksView),
           linkRow = table.children[1],
           anchors,
@@ -783,7 +783,7 @@ describe('Custom Links', function() {
     })
 
     it('launches a dialog box to confirm deletion', function() {
-      var links = [{ link: '/foo', location: 'https://foo.com/', count: 3 }],
+      var links = [{ link: '/foo', target: 'https://foo.com/', count: 3 }],
           table = cl.createLinksTable(links, linksView),
           row = table.getElementsByClassName('link')[0],
           deleteButton = row.getElementsByTagName('button')[1],
@@ -801,9 +801,9 @@ describe('Custom Links', function() {
 
     it('returns a table of multiple elements sorted by link', function() {
       var links =[
-            { link: '/foo', location: 'https://foo.com/', count: 1 },
-            { link: '/bar', location: 'https://bar.com/', count: 2 },
-            { link: '/baz', location: 'https://baz.com/', count: 3 }
+            { link: '/foo', target: 'https://foo.com/', count: 1 },
+            { link: '/bar', target: 'https://bar.com/', count: 2 },
+            { link: '/baz', target: 'https://baz.com/', count: 3 }
           ],
           table = cl.createLinksTable(links, linksView),
           rows = table.getElementsByClassName('link')
@@ -816,9 +816,9 @@ describe('Custom Links', function() {
 
     it('returns a table of multiple elements sorted by clicks', function() {
       var links = [
-              { link: '/foo', location: 'https://foo.com/', count: 1 },
-              { link: '/bar', location: 'https://bar.com/', count: 2 },
-              { link: '/baz', location: 'https://baz.com/', count: 3 }
+              { link: '/foo', target: 'https://foo.com/', count: 1 },
+              { link: '/bar', target: 'https://bar.com/', count: 2 },
+              { link: '/baz', target: 'https://baz.com/', count: 3 }
           ],
           tableOptions = { sortKey: 'count', order: 'descending' },
           table = cl.createLinksTable(links, linksView, tableOptions),
@@ -882,7 +882,7 @@ describe('Custom Links', function() {
 
     it('shows a single link', function() {
       setApiResponseLinks([
-        { link: '/foo', location: 'https://foo.com/', count: 1 }
+        { link: '/foo', target: 'https://foo.com/', count: 1 }
       ])
       return cl.linksView().then(function(view) {
         var linksTable = view.element.getElementsByClassName('links')[0],
@@ -903,9 +903,9 @@ describe('Custom Links', function() {
 
     it('shows multiple links', function() {
       setApiResponseLinks([
-        { link: '/foo', location: 'https://foo.com/', count: 1 },
-        { link: '/bar', location: 'https://bar.com/', count: 2 },
-        { link: '/baz', location: 'https://baz.com/', count: 3 }
+        { link: '/foo', target: 'https://foo.com/', count: 1 },
+        { link: '/bar', target: 'https://bar.com/', count: 2 },
+        { link: '/baz', target: 'https://baz.com/', count: 3 }
       ])
       return cl.linksView().then(function(view) {
         var linksTable = view.element.getElementsByClassName('links')[0],
