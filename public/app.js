@@ -105,7 +105,7 @@
   }
 
   cl.Backend.prototype.createLink = function(link, target) {
-    return this.xhr('POST', '/api/create/' + link, { location: target })
+    return this.xhr('POST', '/api/create/' + link, { target: target })
       .then(function() {
         return cl.createLinkInfo(link).anchor + ' now redirects to ' + target
       })
@@ -278,7 +278,7 @@
           actions = cells[3].getElementsByTagName('button')
 
       cells[0].appendChild(cl.createAnchor(link.link))
-      cells[1].appendChild(cl.createAnchor(link.location))
+      cells[1].appendChild(cl.createAnchor(link.target))
       cells[2].textContent = link.count
       actions[1].onclick = function() {
         cl.confirmDelete(link.link, current, linksView).open()
@@ -327,23 +327,22 @@
 
   cl.createLink = function(linkForm) {
     var link = linkForm.querySelector('[data-name=link]'),
-        location = linkForm.querySelector('[data-name=location]')
+        target = linkForm.querySelector('[data-name=target]')
 
-    if (!link || !location) {
+    if (!link || !target) {
       throw new Error('fields missing from link form: ' + linkForm.outerHTML)
     }
     link = link.value.replace(/^\/+/, '')
-    location = location.value
+    target = target.value
 
     if (link.length === 0) {
       return Promise.reject('Custom link field must not be empty.')
-    } else if (location.length === 0) {
-      return Promise.reject('Redirect location field must not be empty.')
-    } else if (location.match(/https?:\/\//) === null) {
-      return Promise.reject('Redirect location protocol must be ' +
-        'http:// or https://.')
+    } else if (target.length === 0) {
+      return Promise.reject('Target URL field must not be empty.')
+    } else if (target.match(/https?:\/\//) === null) {
+      return Promise.reject('Target URL protocol must be http:// or https://.')
     }
-    return cl.backend.createLink(link, location)
+    return cl.backend.createLink(link, target)
   }
 
   cl.createLinkClick = function(e) {

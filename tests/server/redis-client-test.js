@@ -50,7 +50,7 @@ describe('RedisClient', function() {
   setData = function(link, target, owner, count) {
     return new Promise(function(resolve, reject) {
       clientImpl.hmset('/foo',
-        'location', target,
+        'target', target,
         'owner', owner,
         'count', count,
         function(err) {
@@ -130,7 +130,7 @@ describe('RedisClient', function() {
       return setData('/foo', LINK_TARGET, 'mbland', 0).should.be.fulfilled
         .then(function() {
           return redisClient.getLink('/foo').should.become({
-            location: LINK_TARGET, owner: 'mbland', count: 0
+            target: LINK_TARGET, owner: 'mbland', count: 0
           })
         })
     })
@@ -152,7 +152,7 @@ describe('RedisClient', function() {
         })
         .then(function() {
           return redisClient.getLink('/foo').should.become({
-            location: LINK_TARGET, owner: 'mbland', count: 1
+            target: LINK_TARGET, owner: 'mbland', count: 1
           })
         })
     })
@@ -241,7 +241,7 @@ describe('RedisClient', function() {
           return redisClient.getLink('/foo')
         })
         .should.become({
-          location: LINK_TARGET, owner: 'mbland', count: 0
+          target: LINK_TARGET, owner: 'mbland', count: 0
         })
     })
 
@@ -271,8 +271,8 @@ describe('RedisClient', function() {
             [link, field1, val1, field2, val2].join(' ')))
         })
       return redisClient.createLink('/foo', LINK_TARGET, 'mbland')
-        .should.be.rejectedWith(Error, 'failed to set location and count: ' +
-          'Error: forced error for /foo location ' + LINK_TARGET + ' count 0')
+        .should.be.rejectedWith(Error, 'failed to set target and count: ' +
+          'Error: forced error for /foo target ' + LINK_TARGET + ' count 0')
         .then(function() {
           return redisClient.getLink('/foo')
             .should.become({ owner: 'mbland' })
@@ -320,7 +320,7 @@ describe('RedisClient', function() {
         .should.become(true).then(function() {
           return redisClient.getLink('/foo')
         })
-        .should.become({ owner: 'mbland', location: LINK_TARGET, count: 0 })
+        .should.become({ owner: 'mbland', target: LINK_TARGET, count: 0 })
     })
 
     it('raises an error if getting link info fails', function() {
