@@ -25,6 +25,9 @@ body{margin-top:30px;}
 .clicks-action button{width:100%;}
 .dialog-overlay{position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(0,0,0,0.3);z-index:2;}
 .dialog {width:375px;position:relative;background:whitesmoke;border-radius:5px;margin:20% auto;padding:10px 0;text-align:center;font-weight:bold;border:medium solid black;z-index:3;}
+.edit-view .info{margin-bottom:1em;}
+.edit-view .info .row{display:flex;justify-content:flex-start;}
+.edit-view .label{font-weight:bold;width:110px;}
 @media (max-width:849px){
 .clicks-action{flex:0 0;}
 }
@@ -61,6 +64,38 @@ body{margin-top:30px;}
         <button class='button-primary' type='submit'>Create link</button>
         <div class='result'></div>
       </form>
+      <div class='edit-view'>
+        <div class='info'>
+          <div class='row'>
+            <div class='label cell'>Editing link:</div>
+            <div class='cell' data-name='link'>[link]</div>
+          </div>
+          <div class='row'>
+            <div class='label cell'>Clicks:</div>
+            <div class='cell' data-name='clicks'>[clicks]</div>
+          </div>
+          <div class='row'>
+            <div class='label cell'>Created:</div>
+            <div class='cell' data-name='created'>[stamp]</div>
+          </div>
+          <div class='row'>
+            <div class='label cell'>Last updated:</div>
+            <div class='cell' data-name='updated'>[stamp]</div>
+          </div>
+        </div>
+        <form action='/api/target'>
+          <label>Target URL:</label>
+          <input class='u-full-width' data-name='target'/>
+          <button class='button-primary' type='submit'>Update target</button>
+          <div class='result'></div>
+        </form>
+        <form action='/api/owner'>
+          <label>Owner:</label>
+          <input class='u-full-width' data-name='owner'/>
+          <button class='button-primary' type='submit'>Change owner</button>
+          <div class='result'></div>
+        </form>
+      </div>
       <div class='result success'>
       </div>
       <div class='result failure'>
