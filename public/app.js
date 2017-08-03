@@ -274,17 +274,24 @@
     links.forEach(function(link) {
       var current = linkEntry.cloneNode(true),
           cells = current.getElementsByClassName('cell'),
-          actions = cells[3].getElementsByTagName('button')
+          actions = cells[5].getElementsByTagName('button')
 
       cells[0].appendChild(cl.createAnchor(link.link))
       cells[1].appendChild(cl.createAnchor(link.target))
-      cells[2].textContent = link.count
+      cells[2].textContent = cl.dateStamp(link.created)
+      cells[3].textContent = cl.dateStamp(link.updated)
+      cells[4].textContent = link.count
       actions[1].onclick = function() {
         cl.confirmDelete(link.link, current, linksView).open()
       }
       linkTable.appendChild(current)
     })
     return linkTable
+  }
+
+  cl.dateStamp = function(timestamp) {
+    var date = new Date(timestamp ? parseInt(timestamp) : 0)
+    return date.toLocaleString().replace(/, /, ' ')
   }
 
   cl.fade = function(element, increment, deadline) {

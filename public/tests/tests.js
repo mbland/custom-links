@@ -744,6 +744,19 @@ describe('Custom Links', function() {
     })
   })
 
+  describe('dateStamp', function() {
+    it('returns a properly formatted locale date string', function() {
+      var date = new Date
+      cl.dateStamp(date.getTime() + '').should.equal(
+        date.toLocaleString().replace(/, /, ' '))
+    })
+
+    it('returns a default date string if timestamp undefined', function() {
+      var date = new Date(0)
+      cl.dateStamp().should.equal(date.toLocaleString().replace(/, /, ' '))
+    })
+  })
+
   describe('createLinksTable', function() {
     var linksView
 
@@ -760,10 +773,17 @@ describe('Custom Links', function() {
     })
 
     it('returns a table with a single element', function() {
-      var links = [{ link: '/foo', target: 'https://foo.com/', count: 3 }],
+      var links = [{
+            link: '/foo',
+            target: 'https://foo.com/',
+            created: '0987654321',
+            updated: '1234567890',
+            count: 3
+          }],
           table = cl.createLinksTable(links, linksView),
           linkRow = table.children[1],
           anchors,
+          timestamps,
           buttons,
           linkTarget,
           clicksAction
@@ -776,6 +796,11 @@ describe('Custom Links', function() {
       anchors[0].href.should.equal(HOST_PREFIX + '/foo')
       anchors[1].textContent.should.equal('https://foo.com/')
       anchors[1].href.should.equal('https://foo.com/')
+
+      timestamps = linkTarget.getElementsByClassName('timestamp')
+      timestamps.length.should.equal(2)
+      timestamps[0].textContent.should.equal(cl.dateStamp('0987654321'))
+      timestamps[1].textContent.should.equal(cl.dateStamp('1234567890'))
 
       clicksAction = linkRow.children[1]
       clicksAction.children.length.should.equal(2)

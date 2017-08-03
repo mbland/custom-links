@@ -26,17 +26,17 @@ body{margin-top:30px;}
 .dialog-overlay{position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(0,0,0,0.3);z-index:2;}
 .dialog {width:375px;position:relative;background:whitesmoke;border-radius:5px;margin:20% auto;padding:10px 0;text-align:center;font-weight:bold;border:medium solid black;z-index:3;}
 .dialog .confirm{background:lavenderblush;}
-@media (max-width:749px){
+@media (max-width:849px){
 .clicks-action{flex:0 0;}
 }
-@media (min-width:750px){
+@media (min-width:850px){
+.timestamp.cell{width:100px;word-break:normal;}
 .link-target{display:flex;flex:1;}
-.clicks-action{display:flex;flex:0.5;justify-content:flex-end;}
+.links-header .clicks-action{width:215px;}
 .links .cell{flex:0 0 100px;}
 .links button{margin:2px;}
-.links-header .action{text-align:center;flex:0 0 215px;}
 .links-data .action{display:flex;flex:0 0 215px;}
-.links-row .target{flex:1;}
+.links-row .target{flex:1 1 auto;}
 }
 </style>
 </head>
@@ -74,6 +74,8 @@ body{margin-top:30px;}
           <div class='wrapper link-target'>
             <div class='label cell'>Link</div>
             <div class='label cell target'>Target</div>
+            <div class='label cell timestamp created'>Created</div>
+            <div class='label cell timestamp updated'>Updated</div>
           </div>
           <div class='wrapper clicks-action'>
             <div class='label cell clicks'>Clicks</div>
@@ -85,6 +87,8 @@ body{margin-top:30px;}
         <div class='wrapper link-target'>
           <div class='cell'></div>
           <div class='cell target'></div>
+          <div class='cell timestamp created'></div>
+          <div class='cell timestamp updated'></div>
         </div>
         <div class='wrapper clicks-action'>
           <div class='cell clicks'></div>
