@@ -169,7 +169,7 @@ describe('assembleApp', function() {
         .get('/foo')
         .set('cookie', sessionCookie)
         .expect(302)
-        .expect('location', '/#-/foo')
+        .expect('location', '/#create-/foo')
     })
 
     it('reports an error', function() {

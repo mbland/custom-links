@@ -142,12 +142,12 @@
   }
 
   cl.showView = function(hashId) {
-    var viewId = hashId === '' ? '#' : hashId.split('-', 1),
+    var viewId = hashId === '' ? '#' : hashId.split('-', 1)[0],
         viewParam = hashId.slice(viewId.length + 1),
         container = document.getElementsByClassName('view-container')[0],
         routes = {
-          '#': cl.createLinkView,
-          '#links': cl.linksView
+          '#create': cl.createLinkView,
+          '#': cl.linksView
         },
         renderView = routes[viewId]
 

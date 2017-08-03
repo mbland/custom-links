@@ -10,8 +10,15 @@ describe('Custom Links', function() {
       doubles = [],
       viewElementReceivesFocus,
       prepareFlashingElement,
+      USER_ID = 'mbland@acm.org',
       HOST_PREFIX = window.location.protocol + '//' + window.location.host,
       LINK_TARGET = 'https://mike-bland.com/'
+
+  beforeEach(function() {
+    cl.userId = USER_ID
+    stubOut(cl.backend, 'getUserInfo')
+    cl.backend.getUserInfo.returns(Promise.resolve({ links: [] }))
+  })
 
   afterEach(function() {
     doubles.forEach(function(double) {
@@ -53,18 +60,18 @@ describe('Custom Links', function() {
 
   describe('showView', function() {
     it('does not show any view until called', function() {
-      clTest.getView('create-view').length.should.equal(0)
+      clTest.getView('links-view').length.should.equal(0)
     })
 
     it('shows the landing page view when no other view set', function() {
       return cl.showView('#foobar').then(function() {
-        clTest.getView('create-view').length.should.equal(1)
+        clTest.getView('links-view').length.should.equal(1)
       })
     })
 
     it('shows the landing page view when the hash ID is empty', function() {
       return cl.showView('').then(function() {
-        clTest.getView('create-view').length.should.equal(1)
+        clTest.getView('links-view').length.should.equal(1)
       })
     })
 
@@ -72,7 +79,7 @@ describe('Custom Links', function() {
       // This normally won't happen, since window.location.hash will return the
       // empty string if only '#' is present.
       return cl.showView('#').then(function() {
-        clTest.getView('create-view').length.should.equal(1)
+        clTest.getView('links-view').length.should.equal(1)
       })
     })
 
@@ -82,13 +89,13 @@ describe('Custom Links', function() {
           return cl.showView('#foobar')
         })
         .then(function() {
-          clTest.getView('create-view').length.should.equal(1)
+          clTest.getView('links-view').length.should.equal(1)
         })
     })
 
     it('passes the hash view parameter to the view function', function() {
       spyOn(cl, 'createLinkView')
-      return cl.showView('#-/foo').then(function() {
+      return cl.showView('#create-/foo').then(function() {
         cl.createLinkView.calledWith('/foo').should.be.true
       })
     })
@@ -103,7 +110,7 @@ describe('Custom Links', function() {
           return view
         })
       })
-      return cl.showView('#').then(function() {
+      return cl.showView('#create').then(function() {
         expect(doneSpy.calledOnce).to.be.true
       })
     })
@@ -116,7 +123,7 @@ describe('Custom Links', function() {
 
       return cl.showView('').then(function() {
         container.children.length.should.equal(1)
-        clTest.getView('create-view').length.should.equal(1)
+        clTest.getView('links-view').length.should.equal(1)
       })
     })
   })
@@ -132,8 +139,8 @@ describe('Custom Links', function() {
     describe('getLoggedInUserId', function() {
       it('returns the user ID from a successful response', function() {
         xhr.withArgs('GET', '/id').returns(
-          Promise.resolve({ response: 'mbland@acm.org' }))
-        return backend.getLoggedInUserId().should.become('mbland@acm.org')
+          Promise.resolve({ response: USER_ID }))
+        return backend.getLoggedInUserId().should.become(USER_ID)
       })
 
       it('returns cl.UNKNOWN_USER if the request fails', function() {
@@ -154,10 +161,9 @@ describe('Custom Links', function() {
             { link: '/baz', target: 'https://baz.com/', count: 3 }
         ]
 
-        xhr.withArgs('GET', '/api/user/mbland@acm.org').returns(
+        xhr.withArgs('GET', '/api/user/' + USER_ID).returns(
           Promise.resolve({ response: JSON.stringify({ links: usersLinks }) }))
-        return backend.getUserInfo('mbland@acm.org')
-          .should.become({ links: usersLinks })
+        return backend.getUserInfo(USER_ID).should.become({ links: usersLinks })
       })
 
       it('returns an empty response for cl.UNKNOWN_USER', function() {
@@ -165,23 +171,23 @@ describe('Custom Links', function() {
       })
 
       it('rejects with an error message', function() {
-        xhr.withArgs('GET', '/api/user/mbland@acm.org').returns(
+        xhr.withArgs('GET', '/api/user/' + USER_ID).returns(
           Promise.reject(new Error('simulated error')))
-        return backend.getUserInfo('mbland@acm.org').should.be.rejectedWith(
+        return backend.getUserInfo(USER_ID).should.be.rejectedWith(
           'Request for user info failed: simulated error')
       })
 
       it('rejects with status text', function() {
-        xhr.withArgs('GET', '/api/user/mbland@acm.org').returns(
+        xhr.withArgs('GET', '/api/user/' + USER_ID).returns(
           Promise.reject({ statusText: 'Forbidden' }))
-        return backend.getUserInfo('mbland@acm.org').should.be.rejectedWith(
+        return backend.getUserInfo(USER_ID).should.be.rejectedWith(
           'Request for user info failed: Forbidden')
       })
 
       it('rejects with a parse error from invalid response text', function() {
-        xhr.withArgs('GET', '/api/user/mbland@acm.org').returns(
+        xhr.withArgs('GET', '/api/user/' + USER_ID).returns(
           Promise.resolve({ response: 'foobar' }))
-        return backend.getUserInfo('mbland@acm.org')
+        return backend.getUserInfo(USER_ID)
           .should.be.rejectedWith('Failed to parse user info response: ')
           .then(function() {
             console.error.args[0].should.eql(
@@ -229,8 +235,9 @@ describe('Custom Links', function() {
     var invokeLoadApp
 
     beforeEach(function() {
+      cl.userId = undefined
       stubOut(cl.backend, 'getLoggedInUserId')
-      cl.backend.getLoggedInUserId.returns(Promise.resolve('mbland@acm.org'))
+      cl.backend.getLoggedInUserId.returns(Promise.resolve(USER_ID))
     })
 
     invokeLoadApp = function() {
@@ -261,7 +268,7 @@ describe('Custom Links', function() {
 
     it('sets the logged in user ID', function() {
       return invokeLoadApp().then(function() {
-        cl.userId.should.equal('mbland@acm.org')
+        cl.userId.should.equal(USER_ID)
       })
     })
 
@@ -276,12 +283,12 @@ describe('Custom Links', function() {
 
         userId = navBar.querySelector('[id=userid]')
         expect(userId).to.not.be.undefined
-        userId.textContent.should.equal('mbland@acm.org')
+        userId.textContent.should.equal(USER_ID)
 
         navLinks = navBar.getElementsByTagName('A')
         navLinks.length.should.equal(3)
         navLinks[0].href.should.equal(HOST_PREFIX + '/#')
-        navLinks[1].href.should.equal(HOST_PREFIX + '/#links')
+        navLinks[1].href.should.equal(HOST_PREFIX + '/#create')
         navLinks[2].href.should.equal(HOST_PREFIX + '/logout')
       })
     })
@@ -712,7 +719,7 @@ describe('Custom Links', function() {
     var view, button, result
 
     beforeEach(function() {
-      return cl.showView('#').then(function() {
+      return cl.showView('#create').then(function() {
         view = prepareFlashingElement(clTest.getView('create-view')[0])
         button = view.getElementsByTagName('button')[0]
         result = view.getElementsByClassName('result')[0]
@@ -836,22 +843,10 @@ describe('Custom Links', function() {
   })
 
   describe('linksView', function() {
-    var origUserId = cl.userId,
-        userId = 'mbland@acm.org',
-        setApiResponseLinks
-
-    beforeEach(function() {
-      cl.userId = userId
-      stubOut(console, 'error')
-      stubOut(cl.backend, 'getUserInfo')
-    })
-
-    afterEach(function() {
-      cl.userId = origUserId
-    })
+    var setApiResponseLinks
 
     setApiResponseLinks = function(links) {
-      cl.backend.getUserInfo.withArgs(userId)
+      cl.backend.getUserInfo.withArgs(USER_ID)
         .returns(Promise.resolve({ links: links }))
     }
 
@@ -927,8 +922,9 @@ describe('Custom Links', function() {
     })
 
     it('shows an error message when the backend call fails', function() {
-      cl.backend.getUserInfo.withArgs(userId).returns(
+      cl.backend.getUserInfo.withArgs(USER_ID).returns(
         Promise.reject(new Error('simulated network error')))
+      stubOut(console, 'error')
 
       return cl.linksView().then(function(view) {
         var errorMsg = view.element.getElementsByClassName('result failure')[0]

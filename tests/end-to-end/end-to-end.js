@@ -71,7 +71,7 @@ test.describe('End-to-end test', function() {
 
   createNewLink = (link, target) => {
     driver.findElement(By.linkText('New link')).click()
-    driver.wait(until.urlIs(url + '#'))
+    driver.wait(until.urlIs(url + '#create'))
     driver.findElement(By.css('input')).click()
     activeElement().sendKeys(
       Key.HOME, Key.chord(Key.SHIFT, Key.END), link + Key.TAB)
@@ -90,6 +90,13 @@ test.describe('End-to-end test', function() {
     return link
   }
 
+  test.it('shows the no-links message before any links created', function() {
+    activeElement().getText().should.become('Create a new custom link')
+    activeElement().getAttribute('href').should.become(url + '#create')
+    activeElement().click()
+    driver.wait(until.urlIs(url + '#create'))
+  })
+
   test.it('logs out of the application', function() {
     activeElement().sendKeys(Key.chord(Key.SHIFT, Key.TAB))
     activeElement().getText().should.become('Log out')
@@ -100,18 +107,12 @@ test.describe('End-to-end test', function() {
     driver.wait(until.urlIs(url))
   })
 
-  test.it('shows the no-links message before any links created', function() {
-    activeElement().sendKeys(Key.chord(Key.SHIFT, Key.TAB))
-    activeElement().sendKeys(Key.chord(Key.SHIFT, Key.TAB))
-    activeElement().getText().should.become('My links')
-    activeElement().click()
-
-    driver.wait(until.urlIs(url + '#links'))
-    waitForActiveLink('Create a new custom link').click()
-    driver.wait(until.urlIs(url))
-  })
-
   test.it('creates a new short link', function() {
+    activeElement().sendKeys(Key.chord(Key.SHIFT, Key.TAB))
+    activeElement().sendKeys(Key.chord(Key.SHIFT, Key.TAB))
+    activeElement().getText().should.become('New link')
+    activeElement().click()
+    driver.wait(until.urlIs(url + '#create'))
     activeElement().sendKeys('foo' + Key.TAB)
     activeElement().sendKeys(targetLocation + Key.TAB)
     activeElement().sendKeys(Key.ENTER)
@@ -121,7 +122,7 @@ test.describe('End-to-end test', function() {
 
   test.it('opens the new link form for an unknown link', function() {
     driver.get(url + 'foo')
-    driver.wait(until.urlIs(url + '#-/foo'))
+    driver.wait(until.urlIs(url + '#create-/foo'))
     driver.findElement(By.css('input')).getAttribute('value')
       .should.become('foo')
     activeElement().sendKeys(targetLocation + Key.TAB)
@@ -136,7 +137,7 @@ test.describe('End-to-end test', function() {
     createNewLink('bar', targetLocation)
 
     driver.findElement(By.linkText('My links')).click()
-    driver.wait(until.urlIs(url + '#links'))
+    driver.wait(until.urlIs(url + '#'))
     waitForActiveLink('/bar')
     driver.findElement(By.linkText('/baz'))
     driver.findElement(By.linkText('/foo'))
@@ -146,7 +147,7 @@ test.describe('End-to-end test', function() {
   test.it('deletes a link from the "My links" page', function() {
     createNewLink('foo', targetLocation)
     driver.findElement(By.linkText('My links')).click()
-    driver.wait(until.urlIs(url + '#links'))
+    driver.wait(until.urlIs(url + '#'))
 
     // Tab over to the "Delete" button.
     waitForActiveLink('/foo')
