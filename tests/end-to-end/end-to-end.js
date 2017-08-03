@@ -43,7 +43,8 @@ test.describe('End-to-end test', function() {
   })
 
   test.beforeEach(function() {
-    return driver.get(url)
+    driver.get(url)
+    return waitForActiveLink('Create a new custom link')
   })
 
   test.afterEach(function() {
@@ -91,7 +92,6 @@ test.describe('End-to-end test', function() {
   }
 
   test.it('shows the no-links message before any links created', function() {
-    activeElement().getText().should.become('Create a new custom link')
     activeElement().getAttribute('href').should.become(url + '#create')
     activeElement().click()
     driver.wait(until.urlIs(url + '#create'))
@@ -108,11 +108,14 @@ test.describe('End-to-end test', function() {
   })
 
   test.it('creates a new short link', function() {
+    // Rather than click on the active "Create a new custom link" link, let's
+    // make sure we can navigate to "New link" in the nav bar as expected.
     activeElement().sendKeys(Key.chord(Key.SHIFT, Key.TAB))
     activeElement().sendKeys(Key.chord(Key.SHIFT, Key.TAB))
     activeElement().getText().should.become('New link')
     activeElement().click()
     driver.wait(until.urlIs(url + '#create'))
+
     activeElement().sendKeys('foo' + Key.TAB)
     activeElement().sendKeys(targetLocation + Key.TAB)
     activeElement().sendKeys(Key.ENTER)
