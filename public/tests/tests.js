@@ -281,6 +281,32 @@ describe('Custom Links', function() {
           undefined, 'Failed to get link info for /foo')
       })
     })
+
+    describe('updateTarget', function() {
+      it('calls /api/update', function() {
+        stubOut(backend, 'makeApiCall')
+        backend.updateTarget('foo', LINK_TARGET)
+        backend.makeApiCall.calledOnce.should.be.true
+        checkMakeApiCallArgs('POST', 'target',
+          cl.createLinkInfo('foo'), { target: LINK_TARGET },
+          '<a href=\'/foo\'>' +  window.location.origin +
+            '/foo</a> now redirects to ' + LINK_TARGET,
+          'The target URL wasn\'t updated')
+      })
+    })
+
+    describe('changeOwner', function() {
+      it('calls /api/owner', function() {
+        stubOut(backend, 'makeApiCall')
+        backend.changeOwner('foo', USER_ID)
+        backend.makeApiCall.calledOnce.should.be.true
+        checkMakeApiCallArgs('POST', 'owner',
+          cl.createLinkInfo('foo'), { owner: USER_ID },
+          USER_ID + ' now owns ' + '<a href=\'/foo\'>' +
+            window.location.origin + '/foo</a>',
+          'Ownership wasn\'t transferred')
+      })
+    })
   })
 
   describe('loadApp', function() {
@@ -1428,29 +1454,109 @@ describe('Custom Links', function() {
     })
   })
 
-  describe('updateTargetClick', function() {
-    var event
+  describe('updateTarget', function() {
+    var targetForm, targetField, data, expectBackendCall
 
     beforeEach(function() {
-      event = { preventDefault: sinon.spy() }
+      stubOut(cl.backend, 'updateTarget')
+      targetForm = cl.getTemplate('edit-view').getElementsByTagName('form')[0]
+      targetField = targetForm.querySelector('[data-name=target]')
+      data = {
+        link: 'foo',
+        original: LINK_TARGET
+      }
     })
 
-    it('should prevent the default event action', function() {
-      cl.updateTargetClick(event)
-      event.preventDefault.called.should.be.true
+    expectBackendCall = function() {
+      return cl.backend.updateTarget.withArgs('foo', LINK_TARGET + 'foo')
+    }
+
+    it('doesn\'t send a request if the target URL hasn\'t changed', function() {
+      targetField.value = LINK_TARGET
+      return cl.updateTarget(targetForm, data).then(function(result) {
+        result.should.equal('The target URL remains the same.')
+        cl.backend.updateTarget.called.should.be.false
+      })
+    })
+
+    it('fails if the target URL doesn\'t pass validation', function() {
+      targetField.value = 'gopher://foo.com'
+      return cl.updateTarget(targetForm, data)
+        .should.be.rejectedWith(
+          'Target URL protocol must be http:// or https://.')
+        .then(function() {
+          cl.backend.updateTarget.called.should.be.false
+        })
+    })
+
+    it('successfully updates the target URL', function() {
+      targetField.value = LINK_TARGET + 'foo'
+      expectBackendCall().returns(Promise.resolve('success'))
+      return cl.updateTarget(targetForm, data).should.become('success')
     })
   })
 
-  describe('changeOwnerClick', function() {
-    var event
+  describe('changeOwner', function() {
+    var ownerForm, ownerField, link
 
     beforeEach(function() {
-      event = { preventDefault: sinon.spy() }
+      stubOut(cl, 'confirmTransfer')
+      ownerForm = prepareFlashingElement(
+        cl.getTemplate('edit-view').getElementsByTagName('form')[1])
+      ownerField = ownerForm.querySelector('[data-name=owner]')
+      link = cl.createLinkInfo('foo')
     })
 
-    it('should prevent the default event action', function() {
-      cl.changeOwnerClick(event)
-      event.preventDefault.called.should.be.true
+    afterEach(function() {
+      clTest.removeElement(ownerForm)
+    })
+
+    it('doesn\'t send a request if the owner hasn\'t changed', function() {
+      ownerField.value = USER_ID
+      return cl.changeOwner(ownerForm, link, USER_ID).then(function(element) {
+        element.textContent.should.equal('The owner remains the same.')
+        cl.confirmTransfer.called.should.be.false
+      })
+    })
+
+    it('opens a dialog box to confirm the ownership transfer', function() {
+      var result = ownerForm.getElementsByClassName('result')[0],
+          openSpy = sinon.spy()
+
+      ownerField.value = 'foo@bar.com'
+      cl.confirmTransfer.withArgs(link, ownerField.value, result)
+        .returns({ open: openSpy })
+
+      cl.changeOwner(ownerForm, link, USER_ID)
+      openSpy.called.should.be.true
+    })
+  })
+
+  describe('confirmTransfer', function() {
+    var dialog, link, result
+
+    beforeEach(function() {
+      stubOut(cl.backend, 'changeOwner')
+      link = cl.createLinkInfo('foo')
+      result = prepareFlashingElement(document.createElement('div'))
+      dialog = cl.confirmTransfer(link, USER_ID, result)
+      dialog.open()
+    })
+
+    afterEach(function() {
+      dialog.close()
+      clTest.removeElement(result)
+    })
+
+    it('opens a dialog box to confirm the ownership transfer', function() {
+      dialog.element.parentNode.should.equal(document.body)
+      cl.backend.changeOwner.withArgs(link.trimmed, USER_ID)
+        .returns(Promise.resolve('transferred'))
+      dialog.confirm.click()
+      return dialog.operation.then(function() {
+        cl.backend.changeOwner.calledOnce.should.be.true
+        result.textContent.should.equal('transferred')
+      })
     })
   })
 
@@ -1493,36 +1599,61 @@ describe('Custom Links', function() {
         .to.equal(cl.dateStamp(data.updated))
     })
 
-    it('prepares the target update form', function() {
-      var updateTarget = view.element.getElementsByTagName('form')[0],
-          targetField,
-          submitButton
+    describe('the target URL form', function() {
+      var updateTarget, targetField, submitButton, resultElement
 
-      expect(updateTarget).to.not.be.undefined
-      targetField = updateTarget.getElementsByTagName('input')[0],
-      expect(targetField).to.not.be.undefined
-      submitButton = updateTarget.getElementsByTagName('button')[0]
-      expect(submitButton).to.not.be.undefined
+      beforeEach(function() {
+        updateTarget = view.element.getElementsByTagName('form')[0]
+        expect(updateTarget).to.not.be.undefined
+        targetField = updateTarget.getElementsByTagName('input')[0],
+        expect(targetField).to.not.be.undefined
+        submitButton = updateTarget.getElementsByTagName('button')[0]
+        expect(submitButton).to.not.be.undefined
+        resultElement = updateTarget.getElementsByClassName('result')[0]
+        expect(resultElement).to.not.be.undefined
+      })
 
-      document.activeElement.should.equal(targetField)
-      document.activeElement.value.should.equal(data.target)
-      clTest.getSelection().should.equal(data.target)
-      submitButton.onclick.should.equal(cl.updateTargetClick)
+      it('sets the active element to the target field', function() {
+        document.activeElement.should.equal(targetField)
+      })
+
+      it('sets the target URL value to the existing target', function() {
+        document.activeElement.value.should.equal(data.target)
+      })
+
+      it('selects the entire target URL value', function() {
+        clTest.getSelection().should.equal(data.target)
+      })
+
+      it('assigns a submit handler to call cl.updateTarget', function() {
+        submitButton.onclick().should.eql([updateTarget, 'updateTarget',
+          { link: link.trimmed, original: data.target }])
+      })
     })
 
-    it('prepares the change owner form', function() {
-      var changeOwner = view.element.getElementsByTagName('form')[1],
-          ownerField,
-          submitButton
+    describe('the change owner form', function() {
+      var changeOwner, ownerField, submitButton, resultElement
 
-      expect(changeOwner).to.not.be.undefined
-      ownerField = changeOwner.getElementsByTagName('input')[0],
-      expect(ownerField).to.not.be.undefined
-      submitButton = changeOwner.getElementsByTagName('button')[0]
-      expect(submitButton).to.not.be.undefined
+      beforeEach(function() {
+        changeOwner = view.element.getElementsByTagName('form')[1],
+        expect(changeOwner).to.not.be.undefined
+        ownerField = changeOwner.getElementsByTagName('input')[0],
+        ownerField.value.should.equal(data.owner)
+        expect(ownerField).to.not.be.undefined
+        submitButton = changeOwner.getElementsByTagName('button')[0]
+        expect(submitButton).to.not.be.undefined
+        resultElement = changeOwner.getElementsByClassName('result')[0]
+        expect(resultElement).to.not.be.undefined
+      })
 
-      ownerField.value.should.equal(data.owner)
-      submitButton.onclick.should.equal(cl.changeOwnerClick)
+      it('assigns a submit handler to call cl.changeOwner', function() {
+        var event = { preventDefault: sinon.spy() }
+
+        stubOut(cl, 'changeOwner')
+        submitButton.onclick(event)
+        event.preventDefault.calledOnce.should.be.true
+        cl.changeOwner.calledWith(changeOwner, link, data.owner).should.be.true
+      })
     })
   })
 })

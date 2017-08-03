@@ -24,7 +24,7 @@ body{margin-top:30px;}
 .clicks-action{text-align:right;}
 .clicks-action button{width:100%;}
 .dialog-overlay{position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(0,0,0,0.3);z-index:2;}
-.dialog {width:375px;position:relative;background:whitesmoke;border-radius:5px;margin:20% auto;padding:10px 0;text-align:center;font-weight:bold;border:medium solid black;z-index:3;}
+.dialog {width:350px;position:relative;background:whitesmoke;border-radius:5px;margin:20% auto;padding:10px;text-align:center;font-weight:bold;border:medium solid black;z-index:3;}
 .edit-view .info{margin-bottom:1em;}
 .edit-view .info .row{display:flex;justify-content:flex-start;}
 .edit-view .label{font-weight:bold;width:110px;}
@@ -142,6 +142,16 @@ body{margin-top:30px;}
         <h3 class='title'>Confirm delete</h3>
         <p class='description'>
           Are you sure you wish to delete <span data-name='link'>[link]</span>?
+        </p>
+        <button class='confirm'>Yes</button>
+        <button class='focused cancel button-primary'>No</button>
+      </div>
+      <div class='confirm-transfer dialog'>
+        <h3 class='title'>Confirm ownership transfer</h3>
+        <p class='description'>
+          Are you sure you wish to transfer ownership of
+          <span data-name='link'>[link]</span> to
+          <span data-name='owner'>[owner]</span>?
         </p>
         <button class='confirm'>Yes</button>
         <button class='focused cancel button-primary'>No</button>
