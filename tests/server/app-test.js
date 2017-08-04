@@ -152,7 +152,7 @@ describe('assembleApp', function() {
     it('redirects to the target URL returned by the LinkDb', function() {
       getLink.withArgs('/foo', { recordAccess: true })
         .returns(Promise.resolve(
-          { target: LINK_TARGET, owner: 'mbland@acm.org', count: 27 }))
+          { target: LINK_TARGET, owner: 'mbland@acm.org', clicks: 27 }))
 
       return request(app)
         .get('/foo')
@@ -216,7 +216,7 @@ describe('assembleApp', function() {
           owner: 'mbland@acm.org',
           created: '1234567890',
           updated: '1234567890',
-          count: 27
+          clicks: 27
         }
         getLink.withArgs('/foo').returns(Promise.resolve(linkData))
 
@@ -331,9 +331,9 @@ describe('assembleApp', function() {
       it('returns the list of redirect info owned by the user', function() {
         // Not including the owner, though it would be normally.
         var links = [
-          { link: '/foo', target: LINK_TARGET, count: 27 },
-          { link: '/bar', target: LINK_TARGET, count: 28 },
-          { link: '/baz', target: LINK_TARGET, count: 29 }
+          { link: '/foo', target: LINK_TARGET, clicks: 27 },
+          { link: '/bar', target: LINK_TARGET, clicks: 28 },
+          { link: '/baz', target: LINK_TARGET, clicks: 29 }
         ]
 
         getOwnedLinks.withArgs('mbland@acm.org')
