@@ -133,6 +133,16 @@ test.describe('End-to-end test', function() {
     waitForActiveLink(url + 'foo')
   })
 
+  test.it('fails to create a link that already exists', function() {
+    createNewLink('foo', targetLocation)
+    // Back up to the "Create link" button and submit a second time.
+    activeElement().sendKeys(Key.chord(Key.SHIFT, Key.TAB), Key.ENTER)
+
+    driver.wait(until.elementLocated(By.css('.result .failure')), 3000,
+      'timeout waiting for failure message link to appear')
+      .getText().should.eventually.contain(url + 'foo already exists')
+  })
+
   test.it('shows user\'s links on the "My links" page', function() {
     this.timeout(10000)
     createNewLink('foo', targetLocation)

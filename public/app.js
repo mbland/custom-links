@@ -61,7 +61,6 @@
         'Please contact the system administrator or try again later.'
     }
     if (response) {
-      response = JSON.parse(response)
       return prefix + response.err.replace(linkInfo.relative, linkInfo.anchor)
     }
     return prefix + xhrOrErr.statusText
