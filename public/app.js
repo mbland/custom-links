@@ -16,6 +16,8 @@
       if (typeof body === 'object') {
         body = JSON.stringify(body)
         r.setRequestHeader('Content-Type', 'application/json')
+      }
+      if (url.match(/^\/api\//)) {
         r.responseType = 'json'
       }
 
@@ -93,13 +95,7 @@
           (err.message || err.statusText))
       })
       .then(function(xhr) {
-        try {
-          return JSON.parse(xhr.response)
-        } catch (err) {
-          console.error('Bad user info response:', xhr.response)
-          throw new Error('Failed to parse user info response: ' +
-            err.message + '<br/>See console messages for details.')
-        }
+        return xhr.response
       })
   }
 
