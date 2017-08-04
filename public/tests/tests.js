@@ -174,9 +174,9 @@ describe('Custom Links', function() {
 
       it('returns user info from a successful response', function() {
         var usersLinks = [
-            { link: '/foo', target: 'https://foo.com/', count: 1 },
-            { link: '/bar', target: 'https://bar.com/', count: 2 },
-            { link: '/baz', target: 'https://baz.com/', count: 3 }
+            { link: '/foo', target: 'https://foo.com/', clicks: 1 },
+            { link: '/bar', target: 'https://bar.com/', clicks: 2 },
+            { link: '/baz', target: 'https://baz.com/', clicks: 3 }
         ]
 
         xhr.withArgs('GET', '/api/user/' + USER_ID).returns(
@@ -785,7 +785,7 @@ describe('Custom Links', function() {
             target: 'https://foo.com/',
             created: '0987654321',
             updated: '1234567890',
-            count: 3
+            clicks: 3
           }],
           table = cl.createLinksTable(links, linksView),
           linkRow = table.children[1],
@@ -821,7 +821,7 @@ describe('Custom Links', function() {
     })
 
     it('launches a dialog box to confirm deletion', function() {
-      var links = [{ link: '/foo', target: 'https://foo.com/', count: 3 }],
+      var links = [{ link: '/foo', target: 'https://foo.com/', clicks: 3 }],
           table = cl.createLinksTable(links, linksView),
           row = table.getElementsByClassName('link')[0],
           deleteButton = row.getElementsByTagName('button')[1],
@@ -839,9 +839,9 @@ describe('Custom Links', function() {
 
     it('returns a table of multiple elements sorted by link', function() {
       var links =[
-            { link: '/foo', target: 'https://foo.com/', count: 1 },
-            { link: '/bar', target: 'https://bar.com/', count: 2 },
-            { link: '/baz', target: 'https://baz.com/', count: 3 }
+            { link: '/foo', target: 'https://foo.com/', clicks: 1 },
+            { link: '/bar', target: 'https://bar.com/', clicks: 2 },
+            { link: '/baz', target: 'https://baz.com/', clicks: 3 }
           ],
           table = cl.createLinksTable(links, linksView),
           rows = table.getElementsByClassName('link')
@@ -854,11 +854,11 @@ describe('Custom Links', function() {
 
     it('returns a table of multiple elements sorted by clicks', function() {
       var links = [
-              { link: '/foo', target: 'https://foo.com/', count: 1 },
-              { link: '/bar', target: 'https://bar.com/', count: 2 },
-              { link: '/baz', target: 'https://baz.com/', count: 3 }
+              { link: '/foo', target: 'https://foo.com/', clicks: 1 },
+              { link: '/bar', target: 'https://bar.com/', clicks: 2 },
+              { link: '/baz', target: 'https://baz.com/', clicks: 3 }
           ],
-          tableOptions = { sortKey: 'count', order: 'descending' },
+          tableOptions = { sortKey: 'clicks', order: 'descending' },
           table = cl.createLinksTable(links, linksView, tableOptions),
           rows = table.getElementsByClassName('link')
 
@@ -908,7 +908,7 @@ describe('Custom Links', function() {
 
     it('shows a single link', function() {
       setApiResponseLinks([
-        { link: '/foo', target: 'https://foo.com/', count: 1 }
+        { link: '/foo', target: 'https://foo.com/', clicks: 1 }
       ])
       return cl.linksView().then(function(view) {
         var linksTable = view.element.getElementsByClassName('links')[0],
@@ -929,9 +929,9 @@ describe('Custom Links', function() {
 
     it('shows multiple links', function() {
       setApiResponseLinks([
-        { link: '/foo', target: 'https://foo.com/', count: 1 },
-        { link: '/bar', target: 'https://bar.com/', count: 2 },
-        { link: '/baz', target: 'https://baz.com/', count: 3 }
+        { link: '/foo', target: 'https://foo.com/', clicks: 1 },
+        { link: '/bar', target: 'https://bar.com/', clicks: 2 },
+        { link: '/baz', target: 'https://baz.com/', clicks: 3 }
       ])
       return cl.linksView().then(function(view) {
         var linksTable = view.element.getElementsByClassName('links')[0],

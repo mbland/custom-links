@@ -85,7 +85,7 @@ describe('LinkDb', function() {
     })
 
     it('returns the data for a known link', function() {
-      var linkData = { target: LINK_TARGET, owner: 'mbland', count: 27 }
+      var linkData = { target: LINK_TARGET, owner: 'mbland', clicks: 27 }
 
       stubClientMethod('getLink').withArgs('/foo')
         .returns(Promise.resolve(linkData))
@@ -98,7 +98,7 @@ describe('LinkDb', function() {
     })
 
     it('records access of a known link', function() {
-      var linkData = { target: LINK_TARGET, owner: 'mbland', count: 27 }
+      var linkData = { target: LINK_TARGET, owner: 'mbland', clicks: 27 }
 
       stubClientMethod('getLink').withArgs('/foo')
         .returns(Promise.resolve(linkData))
@@ -112,7 +112,7 @@ describe('LinkDb', function() {
     })
 
     it('logs an error if the link is known but recordAccess fails', function() {
-      var linkData = { target: LINK_TARGET, owner: 'mbland', count: 27 },
+      var linkData = { target: LINK_TARGET, owner: 'mbland', clicks: 27 },
           errorSpy = sinon.spy(logger, 'error')
 
       stubClientMethod('getLink').withArgs('/foo')
@@ -230,14 +230,14 @@ describe('LinkDb', function() {
         .returns(Promise.resolve(['/baz', '/bar', '/foo']))
       stubClientMethod('getLink').callsFake(function(link) {
         return Promise.resolve({
-          link: link, target: LINK_TARGET, owner: 'mbland', count: 0 })
+          link: link, target: LINK_TARGET, owner: 'mbland', clicks: 0 })
       })
 
       return linkDb.getOwnedLinks('mbland')
         .should.become([
-          { link: '/baz', target: LINK_TARGET, owner: 'mbland', count: 0 },
-          { link: '/bar', target: LINK_TARGET, owner: 'mbland', count: 0 },
-          { link: '/foo', target: LINK_TARGET, owner: 'mbland', count: 0 }
+          { link: '/baz', target: LINK_TARGET, owner: 'mbland', clicks: 0 },
+          { link: '/bar', target: LINK_TARGET, owner: 'mbland', clicks: 0 },
+          { link: '/foo', target: LINK_TARGET, owner: 'mbland', clicks: 0 }
         ])
     })
 
@@ -269,7 +269,7 @@ describe('LinkDb', function() {
           return Promise.reject(new Error('forced failure for ' + link))
         }
         return Promise.resolve({
-          link: link, target: LINK_TARGET, owner: 'mbland', count: 0 })
+          link: link, target: LINK_TARGET, owner: 'mbland', clicks: 0 })
       })
       return linkDb.getOwnedLinks('mbland')
         .should.be.rejectedWith(Error, 'forced failure for /bar')

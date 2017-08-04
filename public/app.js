@@ -279,7 +279,7 @@
       cells[1].appendChild(cl.createAnchor(link.target))
       cells[2].textContent = cl.dateStamp(link.created)
       cells[3].textContent = cl.dateStamp(link.updated)
-      cells[4].textContent = link.count
+      cells[4].textContent = link.clicks
       actions[1].onclick = function() {
         cl.confirmDelete(link.link, current, linksView).open()
       }

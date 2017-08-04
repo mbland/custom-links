@@ -49,12 +49,12 @@ describe('RedisClient', function() {
     return helpers.killServer(redisServer)
   })
 
-  setData = function(link, target, owner, count) {
+  setData = function(link, target, owner, clicks) {
     return new Promise(function(resolve, reject) {
       clientImpl.hmset('/foo',
         'target', target,
         'owner', owner,
-        'count', count,
+        'clicks', clicks,
         function(err) {
           err ? reject(err) : resolve()
         })
@@ -141,11 +141,11 @@ describe('RedisClient', function() {
       return redisClient.getLink('/foo').should.become(null)
     })
 
-    it('returns data if link exists, converts count to int', function() {
+    it('returns data if link exists, converts clicks to int', function() {
       return setData('/foo', LINK_TARGET, 'mbland', 0).should.be.fulfilled
         .then(function() {
           return redisClient.getLink('/foo').should.become({
-            target: LINK_TARGET, owner: 'mbland', count: 0
+            target: LINK_TARGET, owner: 'mbland', clicks: 0
           })
         })
     })
@@ -160,14 +160,14 @@ describe('RedisClient', function() {
   })
 
   describe('recordAccess', function() {
-    it('increments the count for a link', function() {
+    it('increments the clicks for a link', function() {
       return setData('/foo', LINK_TARGET, 'mbland', 0).should.be.fulfilled
         .then(function() {
           return redisClient.recordAccess('/foo').should.be.fulfilled
         })
         .then(function() {
           return redisClient.getLink('/foo').should.become({
-            target: LINK_TARGET, owner: 'mbland', count: 1
+            target: LINK_TARGET, owner: 'mbland', clicks: 1
           })
         })
     })
@@ -177,7 +177,7 @@ describe('RedisClient', function() {
         cb(new Error('forced error for ' + [link, field, val].join(' ')))
       })
       return redisClient.recordAccess('/foo')
-        .should.be.rejectedWith(Error, 'forced error for /foo count 1')
+        .should.be.rejectedWith(Error, 'forced error for /foo clicks 1')
     })
   })
 
@@ -260,7 +260,7 @@ describe('RedisClient', function() {
           owner: 'mbland',
           created: fakeTimestamp,
           updated: fakeTimestamp,
-          count: 0
+          clicks: 0
         })
     })
 
@@ -291,10 +291,10 @@ describe('RedisClient', function() {
         })
       return redisClient.createLink('/foo', LINK_TARGET, 'mbland')
         .should.be.rejectedWith(Error,
-          'failed to set target, count, and timestamps: ' +
+          'failed to set target, clicks, and timestamps: ' +
           'Error: forced error for /foo target ' + LINK_TARGET +
           ' created ' + fakeTimestamp + ' updated ' + fakeTimestamp +
-          ' count 0')
+          ' clicks 0')
         .then(function() {
           return redisClient.getLink('/foo')
             .should.become({ owner: 'mbland' })
@@ -350,7 +350,7 @@ describe('RedisClient', function() {
           target: LINK_TARGET,
           created: fakeTimestamp,
           updated: updateTimestamp,
-          count: 0
+          clicks: 0
         })
     })
 
