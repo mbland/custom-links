@@ -61,7 +61,6 @@
         'Please contact the system administrator or try again later.'
     }
     if (response) {
-      response = JSON.parse(response)
       return prefix + response.err.replace(linkInfo.relative, linkInfo.anchor)
     }
     return prefix + xhrOrErr.statusText
@@ -355,8 +354,8 @@
     var linkForm = this.parentNode,
         resultFlash = linkForm.getElementsByClassName('result')[0]
 
-    resultFlash.done = cl.flashResult(resultFlash, cl.createLink(linkForm))
     e.preventDefault()
+    resultFlash.done = cl.flashResult(resultFlash, cl.createLink(linkForm))
   }
 
   cl.flashResult = function(element, action) {

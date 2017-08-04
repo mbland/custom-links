@@ -25,7 +25,6 @@ body{margin-top:30px;}
 .clicks-action button{width:100%;}
 .dialog-overlay{position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(0,0,0,0.3);z-index:2;}
 .dialog {width:375px;position:relative;background:whitesmoke;border-radius:5px;margin:20% auto;padding:10px 0;text-align:center;font-weight:bold;border:medium solid black;z-index:3;}
-.dialog .confirm{background:lavenderblush;}
 @media (max-width:849px){
 .clicks-action{flex:0 0;}
 }
@@ -54,12 +53,12 @@ body{margin-top:30px;}
     <div class='view-container container'>
     </div>
     <div class='templates'>
-      <form class='create-view'>
+      <form class='create-view' action='/api/create'>
         <label>Custom link:</label>
         <input class='u-full-width' data-name='link'/>
         <label>Target URL:</label>
         <input class='u-full-width' data-name='target'/>
-        <button class='button-primary' data-name='submit'>Create link</button>
+        <button class='button-primary' type='submit'>Create link</button>
         <div class='result'></div>
       </form>
       <div class='result success'>
@@ -93,7 +92,7 @@ body{margin-top:30px;}
         <div class='wrapper clicks-action'>
           <div class='cell clicks'></div>
           <div class='cell action'>
-            <button>Edit</button>
+            <button class='button-primary'>Edit</button>
             <button>Delete</button>
           </div>
         </div>
@@ -102,15 +101,15 @@ body{margin-top:30px;}
         <p>You do not own any custom links.</p>
         <p><a href='/#create'>Create a new custom link</a> now.</p>
       </div>
-      <div class='dialog-overlay' tabindex='-1'>
+      <div class='dialog-overlay'>
       </div>
       <div class='confirm-delete dialog'>
         <h3 class='title'>Confirm delete</h3>
         <p class='description'>
-          Are you sure you wish to delete <span data-name='link'></span>?
+          Are you sure you wish to delete <span data-name='link'>[link]</span>?
         </p>
         <button class='confirm'>Yes</button>
-        <button class='focused cancel'>No</button>
+        <button class='focused cancel button-primary'>No</button>
       </div>
     </div>
   </div>
