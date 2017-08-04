@@ -156,13 +156,17 @@
       }
       renderView = routes['#']
     }
-    return renderView(viewParam).then(function(view) {
-      var replacement = container.cloneNode(false)
+    return renderView(viewParam)
+      .then(function(view) {
+        var replacement = container.cloneNode(false)
 
-      replacement.appendChild(view.element)
-      container.parentNode.replaceChild(replacement, container)
-      view.done()
-    })
+        replacement.appendChild(view.element)
+        container.parentNode.replaceChild(replacement, container)
+        view.done()
+      })
+      .catch(function(err) {
+        console.error('View not updated for ' + hashId + ':', err)
+      })
   }
 
   cl.View = function(element, done) {

@@ -126,6 +126,24 @@ describe('Custom Links', function() {
         clTest.getView('links-view').length.should.equal(1)
       })
     })
+
+    it('logs to console.error without changing the view on error', function() {
+      var err = new Error('forced error')
+
+      stubOut(console, 'error')
+      stubOut(cl, 'createLinkView')
+      cl.createLinkView.withArgs('/foo').returns(Promise.reject(err))
+
+      return cl.showView('#')
+        .then(function() {
+          return cl.showView('#create-/foo')
+        })
+        .then(function() {
+          clTest.getView('links-view').length.should.equal(1)
+          console.error.calledWith('View not updated for #create-/foo:', err)
+            .should.be.true
+        })
+    })
   })
 
   describe('Backend', function() {
