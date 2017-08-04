@@ -22,6 +22,7 @@ test.describe('End-to-end test', function() {
       targetLocation,
       activeElement,
       createNewLink,
+      waitForFormInput,
       waitForActiveLink
 
   // eslint-disable-next-line no-unused-vars
@@ -73,13 +74,18 @@ test.describe('End-to-end test', function() {
   createNewLink = (link, target) => {
     driver.findElement(By.linkText('New link')).click()
     driver.wait(until.urlIs(url + '#create'))
-    driver.findElement(By.css('input')).click()
+    waitForFormInput().click()
     activeElement().sendKeys(
       Key.HOME, Key.chord(Key.SHIFT, Key.END), link + Key.TAB)
     activeElement().sendKeys(
       Key.HOME, Key.chord(Key.SHIFT, Key.END), target + Key.TAB)
-    activeElement().sendKeys(Key.ENTER)
+    activeElement().sendKeys(Key.SPACE)
     waitForActiveLink(url + link)
+  }
+
+  waitForFormInput = () => {
+    return driver.wait(until.elementLocated(By.css('input'), 3000,
+      'timeout waiting for form input element to appear'))
   }
 
   waitForActiveLink = (linkText) => {
@@ -93,7 +99,7 @@ test.describe('End-to-end test', function() {
 
   test.it('shows the no-links message before any links created', function() {
     activeElement().getAttribute('href').should.become(url + '#create')
-    activeElement().click()
+    activeElement().sendKeys(Key.ENTER)
     driver.wait(until.urlIs(url + '#create'))
   })
 
@@ -101,7 +107,7 @@ test.describe('End-to-end test', function() {
     activeElement().sendKeys(Key.chord(Key.SHIFT, Key.TAB))
     activeElement().getText().should.become('Log out')
     activeElement().getAttribute('href').should.become(url + 'logout')
-    activeElement().click()
+    activeElement().sendKeys(Key.ENTER)
     // Note that since we're using the dummy test auth instance, we'll get
     // redirected back to the landing page.
     driver.wait(until.urlIs(url))
@@ -113,30 +119,30 @@ test.describe('End-to-end test', function() {
     activeElement().sendKeys(Key.chord(Key.SHIFT, Key.TAB))
     activeElement().sendKeys(Key.chord(Key.SHIFT, Key.TAB))
     activeElement().getText().should.become('New link')
-    activeElement().click()
+    activeElement().sendKeys(Key.ENTER)
     driver.wait(until.urlIs(url + '#create'))
+    waitForFormInput()
 
     activeElement().sendKeys('foo' + Key.TAB)
     activeElement().sendKeys(targetLocation + Key.TAB)
-    activeElement().sendKeys(Key.ENTER)
-    waitForActiveLink(url + 'foo').click()
+    activeElement().sendKeys(Key.SPACE)
+    waitForActiveLink(url + 'foo').sendKeys(Key.ENTER)
     driver.wait(until.urlIs(targetLocation))
   })
 
   test.it('opens the new link form for an unknown link', function() {
     driver.get(url + 'foo')
     driver.wait(until.urlIs(url + '#create-/foo'))
-    driver.findElement(By.css('input')).getAttribute('value')
-      .should.become('foo')
+    waitForFormInput().getAttribute('value').should.become('foo')
     activeElement().sendKeys(targetLocation + Key.TAB)
-    activeElement().sendKeys(Key.ENTER)
+    activeElement().sendKeys(Key.SPACE)
     waitForActiveLink(url + 'foo')
   })
 
   test.it('fails to create a link that already exists', function() {
     createNewLink('foo', targetLocation)
     // Back up to the "Create link" button and submit a second time.
-    activeElement().sendKeys(Key.chord(Key.SHIFT, Key.TAB), Key.ENTER)
+    activeElement().sendKeys(Key.chord(Key.SHIFT, Key.TAB), Key.SPACE)
 
     driver.wait(until.elementLocated(By.css('.result .failure')), 3000,
       'timeout waiting for failure message link to appear')
@@ -168,11 +174,11 @@ test.describe('End-to-end test', function() {
     activeElement().sendKeys(Key.TAB, Key.TAB, Key.TAB)
 
     // Open the dialog, then cancel the operation (default option).
-    activeElement().sendKeys(Key.ENTER, Key.ENTER)
+    activeElement().sendKeys(Key.SPACE, Key.SPACE)
     driver.findElement(By.linkText('/foo'))
 
     // Open it again, and now delete the link.
-    activeElement().sendKeys(Key.ENTER, Key.TAB, Key.ENTER)
+    activeElement().sendKeys(Key.SPACE, Key.TAB, Key.SPACE)
     driver.wait(until.elementLocated(
       By.xpath('//*[text() = "/foo has been deleted"]')))
     driver.findElement(By.xpath('//*[text() = "0 links"]'))

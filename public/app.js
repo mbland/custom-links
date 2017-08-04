@@ -354,8 +354,8 @@
     var linkForm = this.parentNode,
         resultFlash = linkForm.getElementsByClassName('result')[0]
 
-    resultFlash.done = cl.flashResult(resultFlash, cl.createLink(linkForm))
     e.preventDefault()
+    resultFlash.done = cl.flashResult(resultFlash, cl.createLink(linkForm))
   }
 
   cl.flashResult = function(element, action) {
