@@ -180,7 +180,7 @@ describe('Custom Links', function() {
         ]
 
         xhr.withArgs('GET', '/api/user/' + USER_ID).returns(
-          Promise.resolve({ response: JSON.stringify({ links: usersLinks }) }))
+          Promise.resolve({ response: { links: usersLinks } }))
         return backend.getUserInfo(USER_ID).should.become({ links: usersLinks })
       })
 
@@ -200,17 +200,6 @@ describe('Custom Links', function() {
           Promise.reject({ statusText: 'Forbidden' }))
         return backend.getUserInfo(USER_ID).should.be.rejectedWith(
           'Request for user info failed: Forbidden')
-      })
-
-      it('rejects with a parse error from invalid response text', function() {
-        xhr.withArgs('GET', '/api/user/' + USER_ID).returns(
-          Promise.resolve({ response: 'foobar' }))
-        return backend.getUserInfo(USER_ID)
-          .should.be.rejectedWith('Failed to parse user info response: ')
-          .then(function() {
-            console.error.args[0].should.eql(
-              ['Bad user info response:', 'foobar'])
-          })
       })
     })
 
