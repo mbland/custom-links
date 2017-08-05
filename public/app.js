@@ -41,10 +41,11 @@
   }
 
   cl.createLinkInfo = function(link) {
-    var trimmed = link.replace(/^\/+/, ''),
+    var trimmed = (link || '').replace(/^\/+/, ''),
         url = window.location.origin + '/' + trimmed
 
     return {
+      trimmed: trimmed,
       relative: '/' + trimmed,
       full: url,
       anchor: '<a href=\'/' + trimmed + '\'>' + url + '</a>'
@@ -68,9 +69,8 @@
     return prefix + xhrOrErr.statusText
   }
 
-  cl.rejectOnApiError = function(link, prefix) {
+  cl.rejectOnApiError = function(linkInfo, prefix) {
     return function(xhrOrErr) {
-      var linkInfo = cl.createLinkInfo(link)
       return Promise.reject(cl.apiErrorMessage(xhrOrErr, linkInfo, prefix))
     }
   }
@@ -100,19 +100,26 @@
   }
 
   cl.Backend.prototype.createLink = function(link, target) {
-    return this.xhr('POST', '/api/create/' + link, { target: target })
+    link = cl.createLinkInfo(link)
+    return this.xhr('POST', '/api/create/' + link.trimmed, { target: target })
       .then(function() {
-        return cl.createLinkInfo(link).anchor + ' now redirects to ' + target
+        return link.anchor + ' now redirects to ' + target
       })
       .catch(cl.rejectOnApiError(link, 'The link wasn\'t created'))
   }
 
+  cl.Backend.prototype.getLink = function(link) {
+    link = cl.createLinkInfo(link)
+    return this.xhr('GET', '/api/info/' + link.trimmed)
+  }
+
   cl.Backend.prototype.deleteLink = function(link) {
-    return this.xhr('DELETE', '/api/delete' + link)
+    link = cl.createLinkInfo(link)
+    return this.xhr('DELETE', '/api/delete/' + link.trimmed)
       .then(function() {
-        return link + ' has been deleted'
+        return link.relative + ' has been deleted'
       })
-      .catch(cl.rejectOnApiError(link, link + ' wasn\'t deleted'))
+      .catch(cl.rejectOnApiError(link, link.relative + ' wasn\'t deleted'))
   }
 
   cl.backend = new cl.Backend(cl.xhr)
@@ -141,8 +148,8 @@
         viewParam = hashId.slice(viewId.length + 1),
         container = document.getElementsByClassName('view-container')[0],
         routes = {
-          '#create': cl.createLinkView,
-          '#': cl.linksView
+          '#': cl.linksView,
+          '#create': cl.createLinkView
         },
         renderView = routes[viewId]
 
@@ -203,11 +210,22 @@
         button = linkForm.getElementsByTagName('button')[0]
 
     button.onclick = cl.createLinkClick
-    link = (link || '').replace(/^\/+/, '')
-    linkForm = cl.applyData({ link: link }, linkForm)
+    link = cl.createLinkInfo(link)
+    linkForm = cl.applyData({ link: link.trimmed }, linkForm)
     return Promise.resolve(new cl.View(linkForm, function() {
-      linkForm.getElementsByTagName('input')[link ? 1 : 0].focus()
+      linkForm.getElementsByTagName('input')[link.trimmed ? 1 : 0].focus()
     }))
+  }
+
+  cl.errorView = function(message) {
+    var placeholder = document.createElement('div'),
+        error = cl.getTemplate('result failure')
+
+    error.innerHTML = message
+    return new cl.View(placeholder, function() {
+      cl.focusFirstElement(document.getElementsByClassName('nav')[0], 'a')
+      return cl.flashElement(placeholder, error.outerHTML)
+    })
   }
 
   cl.linksView = function() {
@@ -234,7 +252,6 @@
       .catch(function(err) {
         var errMessage = cl.getTemplate('result failure')
 
-        console.error(err)
         errMessage.innerHTML = err.message
         return errMessage
       })
@@ -286,6 +303,10 @@
       linkTable.appendChild(current)
     })
     return linkTable
+  }
+
+  cl.setLocationHref = function(window, href) {
+    window.location.href = href
   }
 
   cl.dateStamp = function(timestamp) {

@@ -10,6 +10,7 @@ describe('Custom Links', function() {
       doubles = [],
       viewElementReceivesFocus,
       prepareFlashingElement,
+      useFakeFade,
       USER_ID = 'mbland@acm.org',
       HOST_PREFIX = window.location.protocol + '//' + window.location.host,
       LINK_TARGET = 'https://mike-bland.com/'
@@ -48,14 +49,17 @@ describe('Custom Links', function() {
     // Attach the element to the body to make it visible; needed to test
     // focus/document.activeElement.
     document.body.appendChild(element)
+    useFakeFade()
+    return element
+  }
 
-    // Stub cl.fade() instead of cl.flashElement() because we depend upon
-    // the result's innerHTML to be set by the latter.
+  // Stub cl.fade() instead of cl.flashElement() because we depend upon the
+  // result's innerHTML to be set by the latter.
+  useFakeFade = function() {
     stubOut(cl, 'fade').callsFake(function(element, increment) {
       element.style.opacity = increment < 0.0 ? 0 : 1
       return Promise.resolve(element)
     })
-    return element
   }
 
   describe('showView', function() {
@@ -234,6 +238,14 @@ describe('Custom Links', function() {
           .returns(Promise.reject('simulated error'))
         return backend.deleteLink('/foo')
           .should.be.rejectedWith('/foo wasn\'t deleted: simulated error')
+      })
+    })
+
+    describe('getLink', function() {
+      it('returns the link info', function() {
+        xhr.withArgs('GET', '/api/info/foo')
+          .returns(Promise.resolve({ link: '/foo' }))
+        return backend.getLink('foo').should.become({ link: '/foo' })
       })
     })
   })
@@ -469,17 +481,28 @@ describe('Custom Links', function() {
     it('returns an object with the relative URL, full URL, anchor', function() {
       var full = window.location.origin + '/foo',
           result = cl.createLinkInfo('foo')
+      result.trimmed.should.equal('foo')
       result.relative.should.equal('/foo')
       result.full.should.equal(full)
       result.anchor.should.equal('<a href=\'/foo\'>' + full + '</a>')
     })
 
-    it('handles a link that already has a leading slash', function() {
+    it('handles a link that already has leading slashes', function() {
       var full = window.location.origin + '/foo',
-          result = cl.createLinkInfo('/foo')
+          result = cl.createLinkInfo('///foo')
+      result.trimmed.should.equal('foo')
       result.relative.should.equal('/foo')
       result.full.should.equal(full)
       result.anchor.should.equal('<a href=\'/foo\'>' + full + '</a>')
+    })
+
+    it('handles an undefined link as the root URL', function() {
+      var full = window.location.origin + '/',
+          result = cl.createLinkInfo()
+      result.trimmed.should.equal('')
+      result.relative.should.equal('/')
+      result.full.should.equal(full)
+      result.anchor.should.equal('<a href=\'/\'>' + full + '</a>')
     })
   })
 
@@ -528,7 +551,9 @@ describe('Custom Links', function() {
 
   describe('rejectOnApiError', function() {
     it('creates a rejected Promise handler for a failed API call', function() {
-      return cl.rejectOnApiError('foo', 'API call failed')(new Error('Error!'))
+      var rejectionHandler = cl.rejectOnApiError(cl.createLinkInfo('foo'),
+        'API call failed')
+      return rejectionHandler(new Error('Error!'))
         .should.be.rejectedWith('API call failed: Error!')
     })
   })
@@ -751,6 +776,14 @@ describe('Custom Links', function() {
     })
   })
 
+  describe('setLocationHref', function() {
+    it('sets the window.location.href attribute', function() {
+      var fakeWindow = { location: { href: null } }
+      cl.setLocationHref(fakeWindow, '#edit-/foo')
+      fakeWindow.location.href.should.equal('#edit-/foo')
+    })
+  })
+
   describe('dateStamp', function() {
     it('returns a properly formatted locale date string', function() {
       var date = new Date
@@ -956,14 +989,11 @@ describe('Custom Links', function() {
     it('shows an error message when the backend call fails', function() {
       cl.backend.getUserInfo.withArgs(USER_ID).returns(
         Promise.reject(new Error('simulated network error')))
-      stubOut(console, 'error')
-
       return cl.linksView().then(function(view) {
         var errorMsg = view.element.getElementsByClassName('result failure')[0]
 
         expect(errorMsg).to.not.be.undefined
         errorMsg.textContent.should.equal('simulated network error')
-        console.error.args[0][0].message.should.equal('simulated network error')
       })
     })
   })
@@ -1211,6 +1241,36 @@ describe('Custom Links', function() {
             expect(dialog.element.parentNode).to.be.null
           })
       })
+    })
+  })
+
+  describe('errorView', function() {
+    var view, nav
+
+    before(function() {
+      stubOut(cl, 'flashElement')
+      nav = clTest.fixture.getElementsByClassName('nav')[0]
+      // We must take care to insert the nav node before all others.
+      nav = document.body.insertBefore(nav.cloneNode(true),
+        document.body.firstChild)
+
+      view = cl.errorView('error message')
+      view.done()
+    })
+
+    after(function() {
+      clTest.removeElement(nav)
+    })
+
+    it('flashes the error message', function() {
+      cl.flashElement.args[0].length.should.equal(2)
+      cl.flashElement.args[0][0].tagName.should.equal('DIV')
+      cl.flashElement.args[0][1].should.equal(
+        '<div class="result failure">error message</div>')
+    })
+
+    it('focuses the first nav link', function() {
+      document.activeElement.should.equal(nav.getElementsByTagName('a')[0])
     })
   })
 })
