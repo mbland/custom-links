@@ -341,6 +341,7 @@ describe('Custom Links', function() {
         expect(labels[1].textContent).to.eql('Target URL:')
         expect(inputs[1]).not.to.eql(null)
         expect(button.textContent).to.contain('Create link')
+        expect(button.onclick).to.equal(cl.createLinkClick)
         expect(viewElementReceivesFocus(view, inputs[0])).to.equal(true)
       })
     })
@@ -848,9 +849,19 @@ describe('Custom Links', function() {
       buttons = clicksAction.children[1].getElementsByTagName('button')
       buttons.length.should.equal(2)
 
-      // Note that as yet, the Edit button has yet to be implemented.
       buttons[0].textContent.should.equal('Edit')
       buttons[1].textContent.should.equal('Delete')
+    })
+
+    it('changes to the edit page when the edit button is clicked', function() {
+      var links = [{ link: '/foo', target: 'https://foo.com/', count: 3 }],
+          table = cl.createLinksTable(links, linksView),
+          row = table.getElementsByClassName('link')[0],
+          editButton = row.getElementsByTagName('button')[0]
+
+      stubOut(cl, 'setLocationHref')
+      editButton.click()
+      cl.setLocationHref.calledWith(window, '#edit-/foo').should.be.true
     })
 
     it('launches a dialog box to confirm deletion', function() {
@@ -1022,9 +1033,8 @@ describe('Custom Links', function() {
       event = {
         keyCode: null,
         shiftKey: false,
-        preventDefault: function() { }
+        preventDefault: sinon.spy()
       }
-      sinon.stub(event, 'preventDefault')
     })
 
     afterEach(function() {
@@ -1271,6 +1281,193 @@ describe('Custom Links', function() {
 
     it('focuses the first nav link', function() {
       document.activeElement.should.equal(nav.getElementsByTagName('a')[0])
+    })
+  })
+
+  describe('editLinkView', function() {
+    beforeEach(function() {
+      stubOut(cl, 'setLocationHref')
+      stubOut(cl.backend, 'getLink')
+      useFakeFade()
+    })
+
+    describe('redirects to the "My links" view', function() {
+      var errorMessage = 'no link parameter supplied'
+
+      it('if no argument specified', function() {
+        return cl.editLinkView().should.be.rejectedWith(Error, errorMessage)
+          .then(function() {
+            cl.setLocationHref.calledWith(window, '#').should.be.true
+            cl.backend.getLink.called.should.be.false
+          })
+      })
+
+      it('if the argument is empty', function() {
+        return cl.editLinkView('').should.be.rejectedWith(Error, errorMessage)
+          .then(function() {
+            cl.setLocationHref.calledWith(window, '#').should.be.true
+            cl.backend.getLink.called.should.be.false
+          })
+      })
+
+      it('if the argument is only a slash', function() {
+        return cl.editLinkView('/').should.be.rejectedWith(Error, errorMessage)
+          .then(function() {
+            cl.setLocationHref.calledWith(window, '#').should.be.true
+            cl.backend.getLink.called.should.be.false
+          })
+      })
+    })
+
+    it('redirects to the "New link" view for a nonexistent link', function() {
+      cl.backend.getLink.withArgs('foo')
+        .returns(Promise.reject({ status: 404 }))
+      return cl.editLinkView('/foo')
+        .should.be.rejectedWith(Error, '/foo doesn\'t exist')
+        .then(function() {
+          cl.setLocationHref.calledWith(window, '#create-/foo').should.be.true
+        })
+    })
+
+    it('shows an error message if the backend call failed', function() {
+      var element
+
+      cl.backend.getLink.withArgs('foo')
+        .returns(Promise.reject({ status: 403, statusText: 'Forbidden' }))
+
+      return cl.editLinkView('/foo')
+        .then(function(view) {
+          element = view.element
+          return view.done()
+        })
+        .then(function() {
+          element.textContent.should.equal(
+            'Failed to get link info for /foo: Forbidden')
+        })
+    })
+
+    it('shows an error message if someone else owns the link', function() {
+      var element
+
+      cl.backend.getLink.withArgs('foo')
+        .returns(Promise.resolve({ response: { owner: 'msb' } }))
+
+      return cl.editLinkView('/foo')
+        .then(function(view) {
+          element = view.element
+          return view.done()
+        })
+        .then(function() {
+          element.textContent.should.equal(HOST_PREFIX + '/foo is owned by msb')
+        })
+    })
+
+    it('returns the edit view if the link is valid', function() {
+      var link = { owner: USER_ID, target: LINK_TARGET, clicks: 27 }
+
+      cl.backend.getLink.withArgs('foo')
+        .returns(Promise.resolve({ response: link }))
+      stubOut(cl, 'completeEditLinkView')
+      cl.completeEditLinkView.withArgs(link, cl.createLinkInfo('foo'))
+        .returns(Promise.resolve())
+
+      return cl.editLinkView('/foo').should.be.fulfilled
+    })
+  })
+
+  describe('updateTargetClick', function() {
+    var event
+
+    beforeEach(function() {
+      event = { preventDefault: sinon.spy() }
+    })
+
+    it('should prevent the default event action', function() {
+      cl.updateTargetClick(event)
+      event.preventDefault.called.should.be.true
+    })
+  })
+
+  describe('changeOwnerClick', function() {
+    var event
+
+    beforeEach(function() {
+      event = { preventDefault: sinon.spy() }
+    })
+
+    it('should prevent the default event action', function() {
+      cl.changeOwnerClick(event)
+      event.preventDefault.called.should.be.true
+    })
+  })
+
+  describe('completeEditLinkView', function() {
+    var view, data, link
+
+    before(function() {
+      data = {
+        target: LINK_TARGET,
+        owner: USER_ID,
+        clicks: 27,
+        created: '1234567890',
+        updated: '1234567890'
+      }
+      link = cl.createLinkInfo('foo')
+      return cl.completeEditLinkView(data, link).then(function(result) {
+        view = result
+        document.body.appendChild(view.element)
+        view.done()
+      })
+    })
+
+    after(function() {
+      clTest.removeElement(view.element)
+    })
+
+    it('fills in the link information', function() {
+      var info = view.element.getElementsByClassName('info')[0]
+
+      expect(info).to.not.be.undefined
+      expect(info.querySelector('[data-name=link]').textContent)
+        .to.equal(link.relative)
+      expect(info.querySelector('[data-name=clicks]').textContent)
+        .to.equal(data.clicks + '')
+      expect(info.querySelector('[data-name=created]').textContent)
+        .to.equal(cl.dateStamp(data.created))
+      expect(info.querySelector('[data-name=updated]').textContent)
+        .to.equal(cl.dateStamp(data.updated))
+    })
+
+    it('prepares the target update form', function() {
+      var updateTarget = view.element.getElementsByTagName('form')[0],
+          targetField,
+          submitButton
+
+      expect(updateTarget).to.not.be.undefined
+      targetField = updateTarget.getElementsByTagName('input')[0],
+      expect(targetField).to.not.be.undefined
+      submitButton = updateTarget.getElementsByTagName('button')[0]
+      expect(submitButton).to.not.be.undefined
+
+      document.activeElement.should.equal(targetField)
+      document.activeElement.value.should.equal(data.target)
+      clTest.getSelection().should.equal(data.target)
+      submitButton.onclick.should.equal(cl.updateTargetClick)
+    })
+
+    it('prepares the change owner form', function() {
+      var changeOwner = view.element.getElementsByTagName('form')[1],
+          ownerField,
+          submitButton
+
+      expect(changeOwner).to.not.be.undefined
+      ownerField = changeOwner.getElementsByTagName('input')[0],
+      expect(ownerField).to.not.be.undefined
+      submitButton = changeOwner.getElementsByTagName('button')[0]
+      expect(submitButton).to.not.be.undefined
+
+      ownerField.value.should.equal(data.owner)
+      submitButton.onclick.should.equal(cl.changeOwnerClick)
     })
   })
 })

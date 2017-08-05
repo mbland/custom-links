@@ -45,6 +45,20 @@
       console.log('failed to ' + description + ': ' + (err.message || err))
     }
   }
+
+  // For some reason, Firefox's window.getSelection() returns the empty string,
+  // hence we can't just do:
+  //
+  //   document.getSelection().toString().should.equal(data.target)
+  //
+  // See:
+  // - https://stackoverflow.com/a/20427804
+  // - https://stackoverflow.com/a/10596963
+  // - https://bugzilla.mozilla.org/show_bug.cgi?id=85686
+  clTest.getSelection = function() {
+    var element = document.activeElement
+    return element.value.substring(element.selectionStart, element.selectionEnd)
+  }
 })
 
 before(function() {

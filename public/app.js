@@ -149,7 +149,8 @@
         container = document.getElementsByClassName('view-container')[0],
         routes = {
           '#': cl.linksView,
-          '#create': cl.createLinkView
+          '#create': cl.createLinkView,
+          '#edit': cl.editLinkView
         },
         renderView = routes[viewId]
 
@@ -217,6 +218,33 @@
     }))
   }
 
+  cl.editLinkView = function(link) {
+    link = cl.createLinkInfo(link)
+
+    if (link.trimmed === '') {
+      cl.setLocationHref(window, '#')
+      return Promise.reject(new Error('no link parameter supplied'))
+    }
+    return cl.backend.getLink(link.trimmed)
+      .then(function(xhr) {
+        var data = xhr.response
+
+        if (data.owner !== cl.userId) {
+          return Promise.resolve(new cl.errorView(
+            link.anchor + ' is owned by ' + data.owner))
+        }
+        return cl.completeEditLinkView(data, link)
+      })
+      .catch(function(xhrOrErr) {
+        if (xhrOrErr.status === 404) {
+          cl.setLocationHref(window, '#create-' + link.relative)
+          return Promise.reject(new Error(link.relative + ' doesn\'t exist'))
+        }
+        return Promise.resolve(cl.errorView(cl.apiErrorMessage(xhrOrErr, link,
+          'Failed to get link info for ' + link.relative)))
+      })
+  }
+
   cl.errorView = function(message) {
     var placeholder = document.createElement('div'),
         error = cl.getTemplate('result failure')
@@ -226,6 +254,38 @@
       cl.focusFirstElement(document.getElementsByClassName('nav')[0], 'a')
       return cl.flashElement(placeholder, error.outerHTML)
     })
+  }
+
+  cl.completeEditLinkView = function(origData, link) {
+    var view = cl.getTemplate('edit-view'),
+        buttons = view.getElementsByTagName('button'),
+        targetButton = buttons[0],
+        ownerButton = buttons[1],
+        data = {
+          link: link.relative,
+          target: origData.target,
+          clicks: origData.clicks,
+          created: cl.dateStamp(origData.created),
+          updated: cl.dateStamp(origData.updated),
+          owner: origData.owner
+        }
+
+    cl.applyData(data, view)
+    targetButton.onclick = cl.updateTargetClick
+    ownerButton.onclick = cl.changeOwnerClick
+
+    return Promise.resolve(new cl.View(view, function() {
+      cl.focusFirstElement(view, 'input')
+      document.activeElement.setSelectionRange(0, data.target.length)
+    }))
+  }
+
+  cl.updateTargetClick = function(e) {
+    e.preventDefault()
+  }
+
+  cl.changeOwnerClick = function(e) {
+    e.preventDefault()
   }
 
   cl.linksView = function() {
@@ -297,6 +357,9 @@
       cells[2].textContent = cl.dateStamp(link.created)
       cells[3].textContent = cl.dateStamp(link.updated)
       cells[4].textContent = link.clicks
+      actions[0].onclick = function() {
+        cl.setLocationHref(window, '#edit-' + link.link)
+      }
       actions[1].onclick = function() {
         cl.confirmDelete(link.link, current, linksView).open()
       }
