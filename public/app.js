@@ -69,12 +69,6 @@
     return prefix + xhrOrErr.statusText
   }
 
-  cl.rejectOnApiError = function(linkInfo, prefix) {
-    return function(xhrOrErr) {
-      return Promise.reject(cl.apiErrorMessage(xhrOrErr, linkInfo, prefix))
-    }
-  }
-
   cl.Backend = function(xhr) {
     this.xhr = xhr
   }
@@ -83,6 +77,19 @@
     return this.xhr('GET', '/id')
       .then(function(xhr) { return xhr.response })
       .catch(function() { return cl.UNKNOWN_USER })
+  }
+
+  cl.Backend.prototype.makeApiCall = function(method, endpoint, linkInfo,
+    params, okMsg, errPrefix) {
+    return this.xhr(method, '/api/' + endpoint + linkInfo.relative, params)
+      .then(function(xhr) {
+        return xhr.response || okMsg
+      })
+      .catch(function(xhrOrErr) {
+        var err = new Error(cl.apiErrorMessage(xhrOrErr, linkInfo, errPrefix))
+        err.xhr = xhrOrErr.status !== undefined ? xhrOrErr : undefined
+        return Promise.reject(err)
+      })
   }
 
   cl.Backend.prototype.getUserInfo = function(userId) {
@@ -101,11 +108,8 @@
 
   cl.Backend.prototype.createLink = function(link, target) {
     link = cl.createLinkInfo(link)
-    return this.xhr('POST', '/api/create/' + link.trimmed, { target: target })
-      .then(function() {
-        return link.anchor + ' now redirects to ' + target
-      })
-      .catch(cl.rejectOnApiError(link, 'The link wasn\'t created'))
+    return this.makeApiCall('POST', 'create', link, { target: target },
+      link.anchor + ' now redirects to ' + target, 'The link wasn\'t created')
   }
 
   cl.Backend.prototype.getLink = function(link) {
@@ -115,11 +119,8 @@
 
   cl.Backend.prototype.deleteLink = function(link) {
     link = cl.createLinkInfo(link)
-    return this.xhr('DELETE', '/api/delete/' + link.trimmed)
-      .then(function() {
-        return link.relative + ' has been deleted'
-      })
-      .catch(cl.rejectOnApiError(link, link.relative + ' wasn\'t deleted'))
+    return this.makeApiCall('DELETE', 'delete', link, undefined,
+      link.relative + ' has been deleted', link.relative + ' wasn\'t deleted')
   }
 
   cl.backend = new cl.Backend(cl.xhr)

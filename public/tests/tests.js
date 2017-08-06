@@ -12,7 +12,6 @@ describe('Custom Links', function() {
       prepareFlashingElement,
       useFakeFade,
       USER_ID = 'mbland@acm.org',
-      HOST_PREFIX = window.location.protocol + '//' + window.location.host,
       LINK_TARGET = 'https://mike-bland.com/'
 
   beforeEach(function() {
@@ -151,12 +150,24 @@ describe('Custom Links', function() {
   })
 
   describe('Backend', function() {
-    var backend, xhr
+    var backend, xhr, checkMakeApiCallArgs
 
     beforeEach(function() {
       xhr = sinon.stub()
       backend = new cl.Backend(xhr)
     })
+
+    checkMakeApiCallArgs = function(method, endpoint, link, params, ok, err) {
+      var args = backend.makeApiCall.args[0]
+
+      args[0].should.equal(method)
+      args[1].should.equal(endpoint)
+      args[2].should.eql(cl.createLinkInfo(link))
+      // The params argument may be undefined, hence expect instead of should.
+      expect(args[3]).to.eql(params)
+      args[4].should.equal(ok)
+      args[5].should.equal(err)
+    }
 
     describe('getLoggedInUserId', function() {
       it('returns the user ID from a successful response', function() {
@@ -168,6 +179,47 @@ describe('Custom Links', function() {
       it('returns cl.UNKNOWN_USER if the request fails', function() {
         xhr.withArgs('GET', '/id').returns(Promise.reject())
         return backend.getLoggedInUserId().should.become(cl.UNKNOWN_USER)
+      })
+    })
+
+    describe('makeApiCall', function() {
+      var makeApiCall = function(response) {
+        xhr.withArgs('POST', '/api/create/foo', { target: LINK_TARGET })
+          .returns(response)
+        return backend.makeApiCall('POST', 'create', cl.createLinkInfo('foo'),
+          { target: LINK_TARGET }, '/foo created', '/foo failed')
+      }
+
+      it('returns a success message on success', function() {
+        return makeApiCall(Promise.resolve({})).should.become('/foo created')
+      })
+
+      it('returns the response on success', function() {
+        var response = {
+          foo: 'bar'
+        }
+        return makeApiCall(Promise.resolve({ response: response }))
+          .should.become(response)
+      })
+
+      it('rejects with an error without the XHR', function() {
+        return makeApiCall(Promise.reject(new Error('simulated error')))
+          .should.be.rejectedWith(Error, '/foo failed: simulated error')
+          .then(function(err) {
+            expect(err.xhr).to.be.undefined
+          })
+      })
+
+      it('rejects with an error including the XHR', function() {
+        var xhr = {
+          status: 403,
+          statusText: 'Forbidden'
+        }
+        return makeApiCall(Promise.reject(xhr))
+          .should.be.rejectedWith(Error, '/foo failed: Forbidden')
+          .then(function(err) {
+            expect(err.xhr).to.equal(xhr)
+          })
       })
     })
 
@@ -208,36 +260,24 @@ describe('Custom Links', function() {
     })
 
     describe('createLink', function() {
-      it('returns a success message after a link is created', function() {
-        xhr
-          .withArgs('POST', '/api/create/foo', { target: 'https://foo.com/' })
-          .returns(Promise.resolve())
-        return backend.createLink('foo', 'https://foo.com/')
-          .should.become('<a href=\'/foo\'>' +
-            window.location.protocol + '//' + window.location.host +
-            '/foo</a> now redirects to https://foo.com/')
-      })
-
-      it('rejects with an error message if a link isn\'t created', function() {
-        xhr
-          .withArgs('POST', '/api/create/foo', { target: 'https://foo.com/' })
-          .returns(Promise.reject('simulated error'))
-        return backend.createLink('foo', 'https://foo.com/')
-          .should.be.rejectedWith('The link wasn\'t created: simulated error')
+      it('calls /api/create', function() {
+        stubOut(backend, 'makeApiCall')
+        backend.createLink('foo', LINK_TARGET)
+        backend.makeApiCall.calledOnce.should.be.true
+        checkMakeApiCallArgs('POST', 'create', 'foo', { target: LINK_TARGET },
+          '<a href=\'/foo\'>' +  window.location.origin +
+            '/foo</a> now redirects to ' + LINK_TARGET,
+          'The link wasn\'t created')
       })
     })
 
     describe('deleteLink', function() {
-      it('returns a success message after a link is deleted', function() {
-        xhr.withArgs('DELETE', '/api/delete/foo').returns(Promise.resolve())
-        return backend.deleteLink('/foo').should.become('/foo has been deleted')
-      })
-
-      it('rejects with an error message if a link isn\'t deleted', function() {
-        xhr.withArgs('DELETE', '/api/delete/foo')
-          .returns(Promise.reject('simulated error'))
-        return backend.deleteLink('/foo')
-          .should.be.rejectedWith('/foo wasn\'t deleted: simulated error')
+      it('calls /api/delete', function() {
+        stubOut(backend, 'makeApiCall')
+        backend.deleteLink('foo')
+        backend.makeApiCall.calledOnce.should.be.true
+        checkMakeApiCallArgs('DELETE', 'delete', 'foo', undefined,
+          '/foo has been deleted', '/foo wasn\'t deleted')
       })
     })
 
@@ -306,9 +346,9 @@ describe('Custom Links', function() {
 
         navLinks = navBar.getElementsByTagName('A')
         navLinks.length.should.equal(3)
-        navLinks[0].href.should.equal(HOST_PREFIX + '/#')
-        navLinks[1].href.should.equal(HOST_PREFIX + '/#create')
-        navLinks[2].href.should.equal(HOST_PREFIX + '/logout')
+        navLinks[0].href.should.equal(window.location.origin + '/#')
+        navLinks[1].href.should.equal(window.location.origin + '/#create')
+        navLinks[2].href.should.equal(window.location.origin + '/logout')
       })
     })
   })
@@ -547,15 +587,6 @@ describe('Custom Links', function() {
     it('returns the failure message and the statusText', function() {
       expect(cl.apiErrorMessage(xhr, linkInfo, prefix))
         .to.equal('The operation failed: Permission denied')
-    })
-  })
-
-  describe('rejectOnApiError', function() {
-    it('creates a rejected Promise handler for a failed API call', function() {
-      var rejectionHandler = cl.rejectOnApiError(cl.createLinkInfo('foo'),
-        'API call failed')
-      return rejectionHandler(new Error('Error!'))
-        .should.be.rejectedWith('API call failed: Error!')
     })
   })
 
@@ -834,7 +865,7 @@ describe('Custom Links', function() {
       anchors = linkTarget.getElementsByTagName('a')
       anchors.length.should.equal(2)
       anchors[0].textContent.should.equal('/foo')
-      anchors[0].href.should.equal(HOST_PREFIX + '/foo')
+      anchors[0].href.should.equal(window.location.origin + '/foo')
       anchors[1].textContent.should.equal('https://foo.com/')
       anchors[1].href.should.equal('https://foo.com/')
 
@@ -1358,7 +1389,8 @@ describe('Custom Links', function() {
           return view.done()
         })
         .then(function() {
-          element.textContent.should.equal(HOST_PREFIX + '/foo is owned by msb')
+          element.textContent.should.equal(window.location.origin +
+            '/foo is owned by msb')
         })
     })
 
