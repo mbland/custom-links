@@ -81,7 +81,8 @@
 
   cl.Backend.prototype.makeApiCall = function(method, endpoint, linkInfo,
     params, okMsg, errPrefix) {
-    return this.xhr(method, '/api/' + endpoint + linkInfo.relative, params)
+    endpoint = '/api/' + endpoint + (linkInfo.relative || '')
+    return this.xhr(method, endpoint, params)
       .then(function(xhr) {
         return xhr.response || okMsg
       })
@@ -96,14 +97,8 @@
     if (userId === cl.UNKNOWN_USER) {
       return Promise.resolve({})
     }
-    return this.xhr('GET', '/api/user/' + userId)
-      .catch(function(err) {
-        throw new Error('Request for user info failed: ' +
-          (err.message || err.statusText))
-      })
-      .then(function(xhr) {
-        return xhr.response
-      })
+    return this.makeApiCall('GET', 'user/' + userId, {}, undefined, undefined,
+      'Request for user info failed')
   }
 
   cl.Backend.prototype.createLink = function(link, target) {
