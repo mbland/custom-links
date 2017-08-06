@@ -12,7 +12,6 @@ describe('Custom Links', function() {
       prepareFlashingElement,
       useFakeFade,
       USER_ID = 'mbland@acm.org',
-      HOST_PREFIX = window.location.protocol + '//' + window.location.host,
       LINK_TARGET = 'https://mike-bland.com/'
 
   beforeEach(function() {
@@ -213,8 +212,7 @@ describe('Custom Links', function() {
           .withArgs('POST', '/api/create/foo', { target: 'https://foo.com/' })
           .returns(Promise.resolve())
         return backend.createLink('foo', 'https://foo.com/')
-          .should.become('<a href=\'/foo\'>' +
-            window.location.protocol + '//' + window.location.host +
+          .should.become('<a href=\'/foo\'>' +  window.location.origin +
             '/foo</a> now redirects to https://foo.com/')
       })
 
@@ -306,9 +304,9 @@ describe('Custom Links', function() {
 
         navLinks = navBar.getElementsByTagName('A')
         navLinks.length.should.equal(3)
-        navLinks[0].href.should.equal(HOST_PREFIX + '/#')
-        navLinks[1].href.should.equal(HOST_PREFIX + '/#create')
-        navLinks[2].href.should.equal(HOST_PREFIX + '/logout')
+        navLinks[0].href.should.equal(window.location.origin + '/#')
+        navLinks[1].href.should.equal(window.location.origin + '/#create')
+        navLinks[2].href.should.equal(window.location.origin + '/logout')
       })
     })
   })
@@ -834,7 +832,7 @@ describe('Custom Links', function() {
       anchors = linkTarget.getElementsByTagName('a')
       anchors.length.should.equal(2)
       anchors[0].textContent.should.equal('/foo')
-      anchors[0].href.should.equal(HOST_PREFIX + '/foo')
+      anchors[0].href.should.equal(window.location.origin + '/foo')
       anchors[1].textContent.should.equal('https://foo.com/')
       anchors[1].href.should.equal('https://foo.com/')
 
@@ -1358,7 +1356,8 @@ describe('Custom Links', function() {
           return view.done()
         })
         .then(function() {
-          element.textContent.should.equal(HOST_PREFIX + '/foo is owned by msb')
+          element.textContent.should.equal(window.location.origin +
+            '/foo is owned by msb')
         })
     })
 
