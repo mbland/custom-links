@@ -81,7 +81,8 @@
 
   cl.Backend.prototype.makeApiCall = function(method, endpoint, linkInfo,
     params, okMsg, errPrefix) {
-    return this.xhr(method, '/api/' + endpoint + linkInfo.relative, params)
+    endpoint = '/api/' + endpoint + (linkInfo.relative || '')
+    return this.xhr(method, endpoint, params)
       .then(function(xhr) {
         return xhr.response || okMsg
       })
@@ -96,14 +97,8 @@
     if (userId === cl.UNKNOWN_USER) {
       return Promise.resolve({})
     }
-    return this.xhr('GET', '/api/user/' + userId)
-      .catch(function(err) {
-        throw new Error('Request for user info failed: ' +
-          (err.message || err.statusText))
-      })
-      .then(function(xhr) {
-        return xhr.response
-      })
+    return this.makeApiCall('GET', 'user/' + userId, {}, undefined, undefined,
+      'Request for user info failed')
   }
 
   cl.Backend.prototype.createLink = function(link, target) {
@@ -114,7 +109,8 @@
 
   cl.Backend.prototype.getLink = function(link) {
     link = cl.createLinkInfo(link)
-    return this.xhr('GET', '/api/info/' + link.trimmed)
+    return this.makeApiCall('GET', 'info', link, undefined, undefined,
+      'Failed to get link info for ' + link.relative)
   }
 
   cl.Backend.prototype.deleteLink = function(link) {
@@ -227,22 +223,19 @@
       return Promise.reject(new Error('no link parameter supplied'))
     }
     return cl.backend.getLink(link.trimmed)
-      .then(function(xhr) {
-        var data = xhr.response
-
+      .then(function(data) {
         if (data.owner !== cl.userId) {
           return Promise.resolve(new cl.errorView(
             link.anchor + ' is owned by ' + data.owner))
         }
         return cl.completeEditLinkView(data, link)
       })
-      .catch(function(xhrOrErr) {
-        if (xhrOrErr.status === 404) {
+      .catch(function(err) {
+        if (err.xhr.status === 404) {
           cl.setLocationHref(window, '#create-' + link.relative)
           return Promise.reject(new Error(link.relative + ' doesn\'t exist'))
         }
-        return Promise.resolve(cl.errorView(cl.apiErrorMessage(xhrOrErr, link,
-          'Failed to get link info for ' + link.relative)))
+        return Promise.resolve(cl.errorView(err.message))
       })
   }
 

@@ -160,12 +160,12 @@ describe('Custom Links', function() {
     checkMakeApiCallArgs = function(method, endpoint, link, params, ok, err) {
       var args = backend.makeApiCall.args[0]
 
+      // Some arguments may be undefined, hence expect instead of should.
       args[0].should.equal(method)
       args[1].should.equal(endpoint)
-      args[2].should.eql(cl.createLinkInfo(link))
-      // The params argument may be undefined, hence expect instead of should.
+      args[2].should.eql(link)
       expect(args[3]).to.eql(params)
-      args[4].should.equal(ok)
+      expect(args[4]).to.eql(ok)
       args[5].should.equal(err)
     }
 
@@ -221,41 +221,22 @@ describe('Custom Links', function() {
             expect(err.xhr).to.equal(xhr)
           })
       })
+
+      it('handles the getUserInfo case with empty linkInfo', function() {
+        xhr.withArgs('GET', '/api/user/' + USER_ID)
+          .returns(Promise.resolve({ response: 'OK' }))
+        return backend.makeApiCall('GET', 'user/' + USER_ID, {},
+          undefined, undefined, 'failure').should.become('OK')
+      })
     })
 
     describe('getUserInfo', function() {
-      beforeEach(function() {
-        stubOut(console, 'error')
-      })
-
-      it('returns user info from a successful response', function() {
-        var usersLinks = [
-            { link: '/foo', target: 'https://foo.com/', clicks: 1 },
-            { link: '/bar', target: 'https://bar.com/', clicks: 2 },
-            { link: '/baz', target: 'https://baz.com/', clicks: 3 }
-        ]
-
-        xhr.withArgs('GET', '/api/user/' + USER_ID).returns(
-          Promise.resolve({ response: { links: usersLinks } }))
-        return backend.getUserInfo(USER_ID).should.become({ links: usersLinks })
-      })
-
-      it('returns an empty response for cl.UNKNOWN_USER', function() {
-        return backend.getUserInfo(cl.UNKNOWN_USER).should.become({})
-      })
-
-      it('rejects with an error message', function() {
-        xhr.withArgs('GET', '/api/user/' + USER_ID).returns(
-          Promise.reject(new Error('simulated error')))
-        return backend.getUserInfo(USER_ID).should.be.rejectedWith(
-          'Request for user info failed: simulated error')
-      })
-
-      it('rejects with status text', function() {
-        xhr.withArgs('GET', '/api/user/' + USER_ID).returns(
-          Promise.reject({ statusText: 'Forbidden' }))
-        return backend.getUserInfo(USER_ID).should.be.rejectedWith(
-          'Request for user info failed: Forbidden')
+      it('calls /api/user', function() {
+        stubOut(backend, 'makeApiCall')
+        backend.getUserInfo(USER_ID)
+        backend.makeApiCall.calledOnce.should.be.true
+        checkMakeApiCallArgs('GET', 'user/' + USER_ID, {}, undefined,
+          undefined, 'Request for user info failed')
       })
     })
 
@@ -264,7 +245,8 @@ describe('Custom Links', function() {
         stubOut(backend, 'makeApiCall')
         backend.createLink('foo', LINK_TARGET)
         backend.makeApiCall.calledOnce.should.be.true
-        checkMakeApiCallArgs('POST', 'create', 'foo', { target: LINK_TARGET },
+        checkMakeApiCallArgs('POST', 'create',
+          cl.createLinkInfo('foo'), { target: LINK_TARGET },
           '<a href=\'/foo\'>' +  window.location.origin +
             '/foo</a> now redirects to ' + LINK_TARGET,
           'The link wasn\'t created')
@@ -276,16 +258,18 @@ describe('Custom Links', function() {
         stubOut(backend, 'makeApiCall')
         backend.deleteLink('foo')
         backend.makeApiCall.calledOnce.should.be.true
-        checkMakeApiCallArgs('DELETE', 'delete', 'foo', undefined,
-          '/foo has been deleted', '/foo wasn\'t deleted')
+        checkMakeApiCallArgs('DELETE', 'delete', cl.createLinkInfo('foo'),
+          undefined, '/foo has been deleted', '/foo wasn\'t deleted')
       })
     })
 
     describe('getLink', function() {
-      it('returns the link info', function() {
-        xhr.withArgs('GET', '/api/info/foo')
-          .returns(Promise.resolve({ link: '/foo' }))
-        return backend.getLink('foo').should.become({ link: '/foo' })
+      it('calls /api/info', function() {
+        stubOut(backend, 'makeApiCall')
+        backend.getLink('foo')
+        backend.makeApiCall.calledOnce.should.be.true
+        checkMakeApiCallArgs('GET', 'info', cl.createLinkInfo('foo'), undefined,
+          undefined, 'Failed to get link info for /foo')
       })
     })
   })
@@ -582,6 +566,15 @@ describe('Custom Links', function() {
       expect(cl.apiErrorMessage(xhr, linkInfo, prefix))
         .to.equal('The operation failed: ' +
           'Could not do stuff with ' + linkInfo.anchor + '.')
+    })
+
+    // This case ensures the function behave improperly if the linkInfo is
+    // empty, as when it's called via Backend.getUserInfo.
+    it('returns text without replacing the link if linkInfo empty', function() {
+      xhr.response = { err: 'Could not do stuff with /foo.' }
+      expect(cl.apiErrorMessage(xhr, {}, prefix))
+        .to.equal('The operation failed: ' +
+          'Could not do stuff with ' + linkInfo.relative + '.')
     })
 
     it('returns the failure message and the statusText', function() {
@@ -1351,8 +1344,11 @@ describe('Custom Links', function() {
     })
 
     it('redirects to the "New link" view for a nonexistent link', function() {
-      cl.backend.getLink.withArgs('foo')
-        .returns(Promise.reject({ status: 404 }))
+      var err = new Error
+
+      err.xhr = { status: 404 }
+      cl.backend.getLink.withArgs('foo').returns(Promise.reject(err))
+
       return cl.editLinkView('/foo')
         .should.be.rejectedWith(Error, '/foo doesn\'t exist')
         .then(function() {
@@ -1361,10 +1357,11 @@ describe('Custom Links', function() {
     })
 
     it('shows an error message if the backend call failed', function() {
-      var element
+      var err = new Error('simulated error'),
+          element
 
-      cl.backend.getLink.withArgs('foo')
-        .returns(Promise.reject({ status: 403, statusText: 'Forbidden' }))
+      err.xhr = { status: 403 }
+      cl.backend.getLink.withArgs('foo').returns(Promise.reject(err))
 
       return cl.editLinkView('/foo')
         .then(function(view) {
@@ -1372,8 +1369,7 @@ describe('Custom Links', function() {
           return view.done()
         })
         .then(function() {
-          element.textContent.should.equal(
-            'Failed to get link info for /foo: Forbidden')
+          element.textContent.should.equal('simulated error')
         })
     })
 
@@ -1381,7 +1377,7 @@ describe('Custom Links', function() {
       var element
 
       cl.backend.getLink.withArgs('foo')
-        .returns(Promise.resolve({ response: { owner: 'msb' } }))
+        .returns(Promise.resolve({ owner: 'msb' }))
 
       return cl.editLinkView('/foo')
         .then(function(view) {
@@ -1397,8 +1393,7 @@ describe('Custom Links', function() {
     it('returns the edit view if the link is valid', function() {
       var link = { owner: USER_ID, target: LINK_TARGET, clicks: 27 }
 
-      cl.backend.getLink.withArgs('foo')
-        .returns(Promise.resolve({ response: link }))
+      cl.backend.getLink.withArgs('foo').returns(Promise.resolve(link))
       stubOut(cl, 'completeEditLinkView')
       cl.completeEditLinkView.withArgs(link, cl.createLinkInfo('foo'))
         .returns(Promise.resolve())
