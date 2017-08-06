@@ -207,7 +207,7 @@
     var linkForm = cl.getTemplate('create-view'),
         button = linkForm.getElementsByTagName('button')[0]
 
-    button.onclick = cl.createLinkClick
+    button.onclick = cl.createClickHandler(linkForm, 'createLink')
     link = cl.createLinkInfo(link)
     linkForm = cl.applyData({ link: link.trimmed }, linkForm)
     return Promise.resolve(new cl.View(linkForm, function() {
@@ -428,12 +428,13 @@
     return cl.backend.createLink(link, target)
   }
 
-  cl.createLinkClick = function(e) {
-    var linkForm = this.parentNode,
-        resultFlash = linkForm.getElementsByClassName('result')[0]
+  cl.createClickHandler = function(parent, actionName) {
+    return function(e) {
+      var resultFlash = parent.getElementsByClassName('result')[0]
 
-    e.preventDefault()
-    resultFlash.done = cl.flashResult(resultFlash, cl.createLink(linkForm))
+      e.preventDefault()
+      resultFlash.done = cl.flashResult(resultFlash, cl[actionName](parent))
+    }
   }
 
   cl.flashResult = function(element, action) {
