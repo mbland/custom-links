@@ -163,9 +163,10 @@ describe('Custom Links', function() {
       args[0].should.equal(method)
       args[1].should.equal(endpoint)
       args[2].should.eql(cl.createLinkInfo(link))
-      // The params argument may be undefined, hence expect instead of should.
+      // The params and okMsg arguments may be undefined, hence expect instead
+      // of should.
       expect(args[3]).to.eql(params)
-      args[4].should.equal(ok)
+      expect(args[4]).to.eql(ok)
       args[5].should.equal(err)
     }
 
@@ -282,10 +283,12 @@ describe('Custom Links', function() {
     })
 
     describe('getLink', function() {
-      it('returns the link info', function() {
-        xhr.withArgs('GET', '/api/info/foo')
-          .returns(Promise.resolve({ link: '/foo' }))
-        return backend.getLink('foo').should.become({ link: '/foo' })
+      it('calls /api/info', function() {
+        stubOut(backend, 'makeApiCall')
+        backend.getLink('foo')
+        backend.makeApiCall.calledOnce.should.be.true
+        checkMakeApiCallArgs('GET', 'info', 'foo', undefined, undefined,
+          'Failed to get link info for /foo')
       })
     })
   })
@@ -1351,8 +1354,11 @@ describe('Custom Links', function() {
     })
 
     it('redirects to the "New link" view for a nonexistent link', function() {
-      cl.backend.getLink.withArgs('foo')
-        .returns(Promise.reject({ status: 404 }))
+      var err = new Error
+
+      err.xhr = { status: 404 }
+      cl.backend.getLink.withArgs('foo').returns(Promise.reject(err))
+
       return cl.editLinkView('/foo')
         .should.be.rejectedWith(Error, '/foo doesn\'t exist')
         .then(function() {
@@ -1361,10 +1367,11 @@ describe('Custom Links', function() {
     })
 
     it('shows an error message if the backend call failed', function() {
-      var element
+      var err = new Error('simulated error'),
+          element
 
-      cl.backend.getLink.withArgs('foo')
-        .returns(Promise.reject({ status: 403, statusText: 'Forbidden' }))
+      err.xhr = { status: 403 }
+      cl.backend.getLink.withArgs('foo').returns(Promise.reject(err))
 
       return cl.editLinkView('/foo')
         .then(function(view) {
@@ -1372,8 +1379,7 @@ describe('Custom Links', function() {
           return view.done()
         })
         .then(function() {
-          element.textContent.should.equal(
-            'Failed to get link info for /foo: Forbidden')
+          element.textContent.should.equal('simulated error')
         })
     })
 
@@ -1381,7 +1387,7 @@ describe('Custom Links', function() {
       var element
 
       cl.backend.getLink.withArgs('foo')
-        .returns(Promise.resolve({ response: { owner: 'msb' } }))
+        .returns(Promise.resolve({ owner: 'msb' }))
 
       return cl.editLinkView('/foo')
         .then(function(view) {
@@ -1397,8 +1403,7 @@ describe('Custom Links', function() {
     it('returns the edit view if the link is valid', function() {
       var link = { owner: USER_ID, target: LINK_TARGET, clicks: 27 }
 
-      cl.backend.getLink.withArgs('foo')
-        .returns(Promise.resolve({ response: link }))
+      cl.backend.getLink.withArgs('foo').returns(Promise.resolve(link))
       stubOut(cl, 'completeEditLinkView')
       cl.completeEditLinkView.withArgs(link, cl.createLinkInfo('foo'))
         .returns(Promise.resolve())
