@@ -354,6 +354,7 @@ describe('Custom Links', function() {
 
   describe('createLinkView', function() {
     it('shows a form to create a custom link', function() {
+      stubOut(cl, 'createClickHandler')
       return cl.createLinkView().then(function(view) {
         var form = view.element,
             labels = form.getElementsByTagName('label'),
@@ -365,7 +366,9 @@ describe('Custom Links', function() {
         expect(labels[1].textContent).to.eql('Target URL:')
         expect(inputs[1]).not.to.eql(null)
         expect(button.textContent).to.contain('Create link')
-        expect(button.onclick).to.equal(cl.createLinkClick)
+        cl.createClickHandler.called.should.be.true
+        cl.createClickHandler.args[0][0].should.equal(form)
+        cl.createClickHandler.args[0][1].should.equal('createLink')
         expect(viewElementReceivesFocus(view, inputs[0])).to.equal(true)
       })
     })
@@ -772,7 +775,7 @@ describe('Custom Links', function() {
     })
   })
 
-  describe('createLinkClick', function() {
+  describe('createClickHandler', function() {
     var view, button, result
 
     beforeEach(function() {
