@@ -351,10 +351,12 @@
       cells[2].textContent = cl.dateStamp(link.created)
       cells[3].textContent = cl.dateStamp(link.updated)
       cells[4].textContent = link.clicks
-      actions[0].onclick = function() {
+      actions[0].onclick = function(e) {
+        e.preventDefault()
         cl.setLocationHref(window, '#edit-' + link.link)
       }
-      actions[1].onclick = function() {
+      actions[1].onclick = function(e) {
+        e.preventDefault()
         cl.confirmDelete(link.link, current, linksView).open()
       }
       linkTable.appendChild(current)
@@ -420,20 +422,15 @@
 
     if (link.length === 0) {
       return Promise.reject('Custom link field must not be empty.')
-    } else if (target.length === 0) {
-      return Promise.reject('Target URL field must not be empty.')
-    } else if (target.match(/https?:\/\//) === null) {
-      return Promise.reject('Target URL protocol must be http:// or https://.')
     }
-    return cl.backend.createLink(link, target)
+    return cl.validateTarget(target) || cl.backend.createLink(link, target)
   }
 
-  cl.createClickHandler = function(parent, actionName) {
+  cl.createClickHandler = function(view, actionName, data) {
     return function(e) {
-      var resultFlash = parent.getElementsByClassName('result')[0]
-
       e.preventDefault()
-      resultFlash.done = cl.flashResult(resultFlash, cl[actionName](parent))
+      return cl.flashResult(view.getElementsByClassName('result')[0],
+        cl[actionName](view, data))
     }
   }
 
@@ -578,6 +575,14 @@
     var first = parent.getElementsByTagName(tag)[0]
     if (first !== undefined) {
       first.focus()
+    }
+  }
+
+  cl.validateTarget = function(target) {
+    if (target.length === 0) {
+      return Promise.reject('Target URL field must not be empty.')
+    } else if (target.match(/https?:\/\//) === null) {
+      return Promise.reject('Target URL protocol must be http:// or https://.')
     }
   }
 })
