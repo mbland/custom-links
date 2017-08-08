@@ -101,10 +101,15 @@
       'Request for user info failed')
   }
 
-  cl.Backend.prototype.createLink = function(link, target) {
+  cl.Backend.prototype.createOrUpdate = function(link, target, action, errMsg) {
     link = cl.createLinkInfo(link)
-    return this.makeApiCall('POST', 'create', link, { target: target },
-      link.anchor + ' now redirects to ' + target, 'The link wasn\'t created')
+    return this.makeApiCall('POST', action, link, { target: target },
+      link.anchor + ' now redirects to ' + target, errMsg)
+  }
+
+  cl.Backend.prototype.createLink = function(link, target) {
+    return this.createOrUpdate(link, target, 'create',
+      'The link wasn\'t created')
   }
 
   cl.Backend.prototype.getLink = function(link) {
@@ -120,9 +125,7 @@
   }
 
   cl.Backend.prototype.updateTarget = function(link, target) {
-    link = cl.createLinkInfo(link)
-    return this.makeApiCall('POST', 'target', link, { target: target },
-      link.anchor + ' now redirects to ' + target,
+    return this.createOrUpdate(link, target, 'target',
       'The target URL wasn\'t updated')
   }
 
