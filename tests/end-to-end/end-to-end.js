@@ -2,6 +2,7 @@
 
 var fs = require('fs')
 var redis = require('redis')
+var RedisClient = require('../../lib/redis-client')
 var helpers = require('../helpers')
 var chai = require('chai')
 var chaiAsPromised = require('chai-as-promised')
@@ -39,7 +40,8 @@ test.describe('End-to-end test', function() {
       serverInfo = result
       url = 'http://localhost:' + serverInfo.port + '/'
       targetLocation = url + 'tests/redirect-target.html'
-      redisClient = redis.createClient({ port: serverInfo.redis.port })
+      redisClient = new RedisClient(
+        redis.createClient({ port: serverInfo.redis.port }))
     })
   })
 
@@ -50,7 +52,7 @@ test.describe('End-to-end test', function() {
 
   test.afterEach(function() {
     return new Promise(function(resolve, reject) {
-      redisClient.flushdb(err => err ? reject(err) : resolve())
+      redisClient.client.flushdb(err => err ? reject(err) : resolve())
     })
   })
 
@@ -183,5 +185,57 @@ test.describe('End-to-end test', function() {
       By.xpath('//*[text() = "/foo has been deleted"]')))
     driver.findElement(By.xpath('//*[text() = "0 links"]'))
     driver.findElement(By.linkText('/foo')).should.be.rejected
+  })
+
+  test.it('edits the target URL', function() {
+    var updatedTarget = url + 'tests/updated-target.html'
+
+    createNewLink('foo', targetLocation)
+    driver.findElement(By.linkText('My links')).click()
+    driver.wait(until.urlIs(url + '#'))
+
+    // Tab over to the "Edit" button and open the dialog.
+    waitForActiveLink('/foo')
+    activeElement().sendKeys(Key.TAB, Key.TAB, Key.SPACE)
+    driver.wait(until.urlIs(url + '#edit-/foo'))
+    waitForFormInput().getAttribute('value').should.become(targetLocation)
+
+    // Replace the already-selected target URL, tab to the button, and submit.
+    activeElement().sendKeys(updatedTarget, Key.TAB, Key.SPACE)
+    waitForActiveLink(url + 'foo').sendKeys(Key.ENTER)
+    driver.wait(until.urlIs(updatedTarget))
+  })
+
+  test.it('transfers ownership of the link', function() {
+    createNewLink('foo', targetLocation)
+    driver.findElement(By.linkText('My links')).click()
+    driver.wait(until.urlIs(url + '#'))
+
+    // Tab over to the "Edit" button and open the dialog.
+    waitForActiveLink('/foo')
+    activeElement().sendKeys(Key.TAB, Key.TAB, Key.SPACE)
+    driver.wait(until.urlIs(url + '#edit-/foo'))
+    waitForFormInput()
+
+    // Tab over to the owner input
+    activeElement().sendKeys(Key.TAB, Key.TAB)
+    activeElement().getAttribute('value').should.become('mbland@acm.org')
+
+    // Create a user to which we will transfer ownership.
+    redisClient.findOrCreateUser('foo@example.com')
+
+    // Enter the user ID, tab to the button, submit, then confirm our decision
+    // in the dialog box.
+    activeElement().sendKeys('foo@example.com', Key.TAB, Key.SPACE)
+    activeElement().sendKeys(Key.TAB, Key.SPACE)
+    driver.wait(until.elementLocated(By.css('.result .success'), 3000,
+      'timeout waiting for success element to appear'))
+    driver.findElement(By.css('.result .success')).getText()
+      .should.eventually.contain('foo@example.com')
+
+    // We should no longer see the link in "My links".
+    driver.findElement(By.linkText('My links')).click()
+    driver.wait(until.urlIs(url + '#'))
+    waitForActiveLink('Create a new custom link')
   })
 })

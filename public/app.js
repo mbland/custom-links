@@ -101,10 +101,15 @@
       'Request for user info failed')
   }
 
-  cl.Backend.prototype.createLink = function(link, target) {
+  cl.Backend.prototype.createOrUpdate = function(link, target, action, errMsg) {
     link = cl.createLinkInfo(link)
-    return this.makeApiCall('POST', 'create', link, { target: target },
-      link.anchor + ' now redirects to ' + target, 'The link wasn\'t created')
+    return this.makeApiCall('POST', action, link, { target: target },
+      link.anchor + ' now redirects to ' + target, errMsg)
+  }
+
+  cl.Backend.prototype.createLink = function(link, target) {
+    return this.createOrUpdate(link, target, 'create',
+      'The link wasn\'t created')
   }
 
   cl.Backend.prototype.getLink = function(link) {
@@ -117,6 +122,17 @@
     link = cl.createLinkInfo(link)
     return this.makeApiCall('DELETE', 'delete', link, undefined,
       link.relative + ' has been deleted', link.relative + ' wasn\'t deleted')
+  }
+
+  cl.Backend.prototype.updateTarget = function(link, target) {
+    return this.createOrUpdate(link, target, 'target',
+      'The target URL wasn\'t updated')
+  }
+
+  cl.Backend.prototype.changeOwner = function(link, owner) {
+    link = cl.createLinkInfo(link)
+    return this.makeApiCall('POST', 'owner', link, { owner: owner },
+      owner + ' now owns ' + link.anchor, 'Ownership wasn\'t transferred')
   }
 
   cl.backend = new cl.Backend(cl.xhr)
@@ -252,9 +268,8 @@
 
   cl.completeEditLinkView = function(origData, link) {
     var view = cl.getTemplate('edit-view'),
+        forms = view.getElementsByTagName('form'),
         buttons = view.getElementsByTagName('button'),
-        targetButton = buttons[0],
-        ownerButton = buttons[1],
         data = {
           link: link.relative,
           target: origData.target,
@@ -265,21 +280,47 @@
         }
 
     cl.applyData(data, view)
-    targetButton.onclick = cl.updateTargetClick
-    ownerButton.onclick = cl.changeOwnerClick
-
+    buttons[0].onclick = cl.createClickHandler(forms[0], 'updateTarget',
+      { link: link.trimmed, original: data.target })
+    buttons[1].onclick = function(e) {
+      e.preventDefault()
+      cl.changeOwner(forms[1], link, origData.owner)
+    }
     return Promise.resolve(new cl.View(view, function() {
       cl.focusFirstElement(view, 'input')
       document.activeElement.setSelectionRange(0, data.target.length)
     }))
   }
 
-  cl.updateTargetClick = function(e) {
-    e.preventDefault()
+  cl.updateTarget = function(view, data) {
+    var target = view.querySelector('[data-name=target]').value
+
+    if (target === data.original) {
+      return Promise.resolve('The target URL remains the same.')
+    }
+    return cl.validateTarget(target) ||
+      cl.backend.updateTarget(data.link, target)
   }
 
-  cl.changeOwnerClick = function(e) {
-    e.preventDefault()
+  cl.changeOwner = function(form, link, origOwner) {
+    var owner = form.querySelector('[data-name=owner]').value,
+        result = form.getElementsByClassName('result')[0],
+        noChange
+
+    if (owner === origOwner) {
+      noChange = cl.getTemplate('result success')
+      noChange.innerHTML = 'The owner remains the same.'
+      return cl.flashElement(result, noChange.outerHTML)
+    }
+    cl.confirmTransfer(link, owner, result).open()
+  }
+
+  cl.confirmTransfer = function(link, newOwner, resultElement) {
+    var data = { link: link.relative, owner: newOwner }
+
+    return new cl.Dialog('confirm-transfer', data, function() {
+      return cl.backend.changeOwner(link.trimmed, newOwner)
+    }, resultElement)
   }
 
   cl.linksView = function() {
