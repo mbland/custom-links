@@ -11,6 +11,7 @@ describe('Custom Links', function() {
       viewElementReceivesFocus,
       prepareFlashingElement,
       useFakeFade,
+      stubCreateClickHandler,
       USER_ID = 'mbland@acm.org',
       LINK_TARGET = 'https://mike-bland.com/'
 
@@ -58,6 +59,14 @@ describe('Custom Links', function() {
     stubOut(cl, 'fade').callsFake(function(element, increment) {
       element.style.opacity = increment < 0.0 ? 0 : 1
       return Promise.resolve(element)
+    })
+  }
+
+  stubCreateClickHandler = function() {
+    stubOut(cl, 'createClickHandler').callsFake(function(view, action, data) {
+      return function() {
+        return [view, action, data]
+      }
     })
   }
 
@@ -354,7 +363,7 @@ describe('Custom Links', function() {
 
   describe('createLinkView', function() {
     it('shows a form to create a custom link', function() {
-      stubOut(cl, 'createClickHandler')
+      stubCreateClickHandler()
       return cl.createLinkView().then(function(view) {
         var form = view.element,
             labels = form.getElementsByTagName('label'),
@@ -366,9 +375,7 @@ describe('Custom Links', function() {
         expect(labels[1].textContent).to.eql('Target URL:')
         expect(inputs[1]).not.to.eql(null)
         expect(button.textContent).to.contain('Create link')
-        cl.createClickHandler.called.should.be.true
-        cl.createClickHandler.args[0][0].should.equal(form)
-        cl.createClickHandler.args[0][1].should.equal('createLink')
+        button.onclick().should.eql([form, 'createLink', undefined])
         expect(viewElementReceivesFocus(view, inputs[0])).to.equal(true)
       })
     })
@@ -660,6 +667,22 @@ describe('Custom Links', function() {
     })
   })
 
+  describe('validateTarget', function() {
+    it('returns nothing if the target is valid', function() {
+      expect(cl.validateTarget(LINK_TARGET)).to.be.undefined
+    })
+
+    it('returns a rejected Promise if the target is empty', function() {
+      cl.validateTarget('').should.be.rejectedWith(
+        'Target URL field must not be empty.')
+    })
+
+    it('returns a rejected promise if the protocol is invalid', function() {
+      cl.validateTarget('gopher://foo.com').should.be.rejectedWith(
+        'Target URL protocol must be http:// or https://.')
+    })
+  })
+
   describe('createLink', function() {
     var linkForm, expectBackendCall
 
@@ -711,16 +734,10 @@ describe('Custom Links', function() {
         'Custom link field must not be empty.')
     })
 
-    it('rejects if the target URL value is missing', function() {
+    it('rejects if the target URL value is invalid', function() {
       linkForm.querySelector('[data-name=target]').value = ''
       return cl.createLink(linkForm).should.be.rejectedWith(
         'Target URL field must not be empty.')
-    })
-
-    it('rejects if the target URL has an incorrect protocol', function() {
-      linkForm.querySelector('[data-name=target]').value = 'gopher://bar'
-      return cl.createLink(linkForm).should.be.rejectedWith(
-        'Target URL protocol must be http:// or https://.')
     })
   })
 
@@ -776,30 +793,32 @@ describe('Custom Links', function() {
   })
 
   describe('createClickHandler', function() {
-    var view, button, result
+    var view, result, handler
 
     beforeEach(function() {
-      return cl.showView('#create').then(function() {
-        view = prepareFlashingElement(clTest.getView('create-view')[0])
-        button = view.getElementsByTagName('button')[0]
-        result = view.getElementsByClassName('result')[0]
+      view = prepareFlashingElement(document.createElement('div'))
+      result = document.createElement('div')
+      result.className = 'result'
+      view.appendChild(result)
+
+      cl.handlerTest = sinon.stub()
+      cl.handlerTest.withArgs(view, { foo: 'bar' }).callsFake(function() {
+        return Promise.resolve('success')
       })
+      handler = cl.createClickHandler(view, 'handlerTest', { foo: 'bar' })
     })
 
     afterEach(function() {
+      delete cl.handlerTest
       view.parentNode.removeChild(view)
     })
 
     it('flashes result after API call', function() {
-      stubOut(cl, 'createLink')
-        .returns(Promise.resolve('<a href="/foo">success</a>'))
-      button.click()
-      return result.done.should.be.fulfilled.then(function() {
-        var successDiv = result.getElementsByClassName('success')[0]
-        expect(successDiv).to.not.be.undefined
-        successDiv.textContent.should.equal('success')
-        expect(successDiv.getElementsByTagName('A')[0])
-          .to.equal(document.activeElement)
+      var event = { preventDefault: sinon.spy() }
+
+      return handler(event).should.be.fulfilled.then(function() {
+        event.preventDefault.called.should.be.true
+        result.textContent.should.equal('success')
       })
     })
   })
@@ -884,11 +903,13 @@ describe('Custom Links', function() {
       var links = [{ link: '/foo', target: 'https://foo.com/', count: 3 }],
           table = cl.createLinksTable(links, linksView),
           row = table.getElementsByClassName('link')[0],
-          editButton = row.getElementsByTagName('button')[0]
+          editButton = row.getElementsByTagName('button')[0],
+          event = { preventDefault: sinon.spy() }
 
       stubOut(cl, 'setLocationHref')
-      editButton.click()
+      editButton.onclick(event)
       cl.setLocationHref.calledWith(window, '#edit-/foo').should.be.true
+      event.preventDefault.calledOnce.should.be.true
     })
 
     it('launches a dialog box to confirm deletion', function() {
@@ -896,16 +917,18 @@ describe('Custom Links', function() {
           table = cl.createLinksTable(links, linksView),
           row = table.getElementsByClassName('link')[0],
           deleteButton = row.getElementsByTagName('button')[1],
+          event = { preventDefault: sinon.spy() },
           openSpy = sinon.spy()
 
       stubOut(cl, 'confirmDelete')
       cl.confirmDelete.withArgs('/foo').returns({ open: openSpy })
-      deleteButton.click()
+      deleteButton.onclick(event)
       cl.confirmDelete.called.should.be.true
       cl.confirmDelete.args[0][0].should.equal('/foo')
       cl.confirmDelete.args[0][1].should.not.be.null
       cl.confirmDelete.args[0][2].should.equal(linksView)
-      openSpy.called.should.be.true
+      event.preventDefault.calledOnce.should.be.true
+      openSpy.calledOnce.should.be.true
     })
 
     it('returns a table of multiple elements sorted by link', function() {
@@ -1434,7 +1457,7 @@ describe('Custom Links', function() {
   describe('completeEditLinkView', function() {
     var view, data, link
 
-    before(function() {
+    beforeEach(function() {
       data = {
         target: LINK_TARGET,
         owner: USER_ID,
@@ -1443,6 +1466,8 @@ describe('Custom Links', function() {
         updated: '1234567890'
       }
       link = cl.createLinkInfo('foo')
+      stubCreateClickHandler()
+
       return cl.completeEditLinkView(data, link).then(function(result) {
         view = result
         document.body.appendChild(view.element)
@@ -1450,7 +1475,7 @@ describe('Custom Links', function() {
       })
     })
 
-    after(function() {
+    afterEach(function() {
       clTest.removeElement(view.element)
     })
 
