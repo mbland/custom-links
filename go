@@ -1,9 +1,12 @@
 #! /usr/bin/env bash
 #
-# Serverless system for creating custom URLs
+# System for creating custom URLs
 #
-# Allows authenticated users to create and access custom URLs that redirect to
-# arbitrary targets.
+# Allows authenticated users to create and access custom links that redirect to
+# arbitrary target URLs.
+#
+# See .config/env.template for instructions on setting environment variables to
+# configure your local development environment.
 
 # The path where your command scripts reside
 declare GO_SCRIPTS_DIR="${GO_SCRIPTS_DIR:-scripts}"

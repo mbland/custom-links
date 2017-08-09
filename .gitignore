@@ -6,6 +6,7 @@ coverage/
 dump.rdb
 node_modules/
 npm.log
+redis.log
 public/tests/generated/
 screenshot*.png
 scripts/go-script-bash/

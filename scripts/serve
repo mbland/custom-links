@@ -1,14 +1,30 @@
 #! /usr/local/env bash
 #
-# Runs a local url-pointers server
+# Runs a local Custom Links server
 #
 # Usage:
 #   {{go}} {{cmd}} [<config-file>]
 #
 # Where:
-#   <config-file>  url-pointers configuration file
+#   <config-file>  configuration file; {{root}}/test-config.json by default
 #
-# There must be a redis-server already running.
+# Environment variables:
+#   CUSTOM_LINKS_REDIS_PORT      Port on which redis-server will run/is running
+#   CUSTOM_LINKS_REDIS_LOG_FILE  Log file for automatically-started redis-server
+#
+# If redis-server is already running, it must be running on either the default
+# port or on the port specified by CUSTOM_LINKS_REDIS_PORT (or by REDIS_PORT in
+# the <config-file>; jq must be installed to read it from the <config-file>.)
+#
+# If redis-server isn't already running, it will be started automatically,
+# either on the default port or CUSTOM_LINKS_REDIS_PORT. redis-server log output
+# will then stream to either CUSTOM_LINKS_REDIS_LOG_PATH or {{root}}/redis.log
+# by default. (This variable cannot be defined in the <config-file>.)
+
+export CUSTOM_LINKS_REDIS_LOG_PATH="${CUSTOM_LINKS_REDIS_LOG_PATH:-redis.log}"
+export CUSTOM_LINKS_REDIS_PID=''
+
+. "$_GO_USE_MODULES" 'log'
 
 cl.serve_tab_completion() {
   local word_index="$1"
@@ -18,6 +34,33 @@ cl.serve_tab_completion() {
 
   if [[ "$word_index" -eq '0' ]]; then
     @go.compgen -f -- "$word"
+  fi
+}
+
+cl.serve_launch_redis() {
+  local server_config="$1"
+  local args=('redis-server')
+  local redis_port="${CUSTOM_LINKS_REDIS_PORT:-null}"
+  local redis_regex='[r]edis-server .*:'
+
+  if [[ "$redis_port" == 'null' ]] && command -v jq >/dev/null; then
+    redis_port="$(jq '.REDIS_PORT' "$server_config")"
+  fi
+  if [[ "$redis_port" == 'null' ]]; then
+    redis_port='6379'
+  fi
+  args+=('--port' "$redis_port")
+  redis_regex+="$redis_port"
+
+  if ! grep -q -- "$redis_regex" <(ps aux); then
+    @go.log RUN Launching redis-server on port "$redis_port"
+    "${args[@]}" >> "$CUSTOM_LINKS_REDIS_LOG_PATH" 2>&1 &
+    CUSTOM_LINKS_REDIS_PID="$!"
+
+    if ! grep -q -- "$redis_regex" <(ps aux); then
+      @go.log FATAL Failed to launch redis-server
+    fi
+    @go.log INFO redis-server running as PID "$CUSTOM_LINKS_REDIS_PID"
   fi
 }
 
@@ -33,6 +76,7 @@ cl.serve() {
     ;;
   esac
 
+  cl.serve_launch_redis "$server_config"
   node "$_GO_ROOTDIR/index.js" "$server_config"
 }
 
