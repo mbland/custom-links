@@ -1,0 +1,9 @@
+*
+!go
+!index.js
+!lib
+!package.json
+!package-lock.json
+!public
+!scripts
+!tests

@@ -1,0 +1,30 @@
+#! /usr/local/env bash
+#
+# Access to configuration values
+
+# Sets a variable based on an environment variable or configuration file entry
+#
+# Requires that `jq` is installed on the system.
+#
+# Arguments:
+#   config_file_path:   Path to the configuration file
+#   config_entry_name:  Name of the configuration file entry, e.g. `REDIS_HOST`
+#   result_var_name:    Name of caller's variable into which to store the value 
+#
+# Returns:
+#   Zero if `result_var_name` has been set with the value; nonzero otherwise
+cl.get_config_variable() {
+  local config_file_path="$1"
+  local config_entry_name="$2"
+  local result_var_name="$3"
+  local env_var_name="CUSTOM_LINKS_${config_entry_name}"
+  local config_value="${!env_var_name:-null}"
+
+  if [[ "$config_value" == 'null' ]] && command -v jq >/dev/null; then
+    config_value="$(jq -r ".${config_entry_name}" "$config_file_path")"
+  fi
+  if [[ "$config_value" == 'null' ]]; then
+    return 1
+  fi
+  printf -v "$result_var_name" '%s' "$config_value"
+}

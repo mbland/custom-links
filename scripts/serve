@@ -40,17 +40,29 @@ cl.serve_tab_completion() {
 cl.serve_launch_redis() {
   local server_config="$1"
   local args=('redis-server')
-  local redis_port="${CUSTOM_LINKS_REDIS_PORT:-null}"
+  local redis_host
+  local redis_port
   local redis_regex='[r]edis-server .*:'
 
-  if [[ "$redis_port" == 'null' ]] && command -v jq >/dev/null; then
-    redis_port="$(jq '.REDIS_PORT' "$server_config")"
-  fi
-  if [[ "$redis_port" == 'null' ]]; then
+  . "$_GO_USE_MODULES" 'config'
+
+  if ! cl.get_config_variable "$server_config" 'REDIS_PORT' 'redis_port'; then
     redis_port='6379'
   fi
+
   args+=('--port' "$redis_port")
   redis_regex+="$redis_port"
+
+  if cl.get_config_variable "$server_config" 'REDIS_HOST' 'redis_host'; then
+    @go.log INFO Connecting to Redis server at "${redis_host}:${redis_port}"
+
+    if command -v nc >/dev/null; then
+      until nc -z "$redis_host" "$redis_port"; do
+        sleep 1
+      done
+    fi
+    return
+  fi
 
   if ! grep -q -- "$redis_regex" <(ps aux); then
     @go.log RUN Launching redis-server on port "$redis_port"

@@ -18,6 +18,10 @@ var customLinks = require('./lib')
 var morgan = require('morgan')
 var logger = console
 
+if (config.REDIS_HOST !== undefined) {
+  redisClientOptions.host = config.REDIS_HOST
+  redisStoreOptions.host = config.REDIS_HOST
+}
 if (config.REDIS_PORT !== undefined) {
   redisClientOptions.port = config.REDIS_PORT
   redisStoreOptions.port = config.REDIS_PORT

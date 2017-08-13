@@ -1,0 +1,21 @@
+version: '2'
+services:
+  redis:
+    image: 'redis:4.0-alpine'
+    volumes:
+    - .:/data
+  custom-links:
+    build: .
+    ports:
+    - '3000:3000'
+    depends_on:
+    - redis
+    environment:
+    - CUSTOM_LINKS_SESSION_SECRET
+    - CUSTOM_LINKS_GOOGLE_CLIENT_ID
+    - CUSTOM_LINKS_GOOGLE_CLIENT_SECRET
+    - CUSTOM_LINKS_REDIS_HOST=redis
+    volumes:
+    - .:/home/cl
+    - /home/cl/node_modules
+    command: [ './go', 'serve' ]

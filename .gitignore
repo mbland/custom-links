@@ -1,7 +1,11 @@
 # Are your editor's temp files, OS metadata files, etc. showing up in `git
 # status`? Try adding them to `$HOME/.config/git/ignore` instead.
+.bash_history
+.config/configstore/
 .config/env.local
 .coverage/
+.npm/
+appendonly.aof
 coverage/
 dump.rdb
 node_modules/
