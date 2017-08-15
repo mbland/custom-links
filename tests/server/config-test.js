@@ -2,6 +2,7 @@
 
 var Config = require('../../lib/config')
 var helpers = require('../helpers')
+var EnvVars = require('../helpers/env-vars')
 var path = require('path')
 
 var sinon = require('sinon')
@@ -13,34 +14,16 @@ var TEST_CONFIG_PATH = path.join(
   path.dirname(__dirname), 'helpers', 'test-config.json')
 
 describe('config', function() {
-  var envVarsToRestore, envVarsToDelete, setEnvVar
+  var envVars
 
   beforeEach(function() {
-    envVarsToRestore = {}
-    envVarsToDelete = []
-
-    Object.keys(process.env).forEach(function(envVar) {
-      if (envVar.startsWith('CUSTOM_LINKS_')) {
-        envVarsToRestore[envVar] = process.env[envVar]
-        delete process.env[envVar]
-      }
-    })
+    envVars = new EnvVars('CUSTOM_LINKS_')
+    envVars.saveEnvVars()
   })
 
   afterEach(function() {
-    envVarsToDelete.forEach(function(envVar) {
-      delete process.env[envVar]
-    })
-    Object.keys(envVarsToRestore).forEach(function(envVar) {
-      process.env[envVar] = envVarsToRestore[envVar]
-    })
+    envVars.restoreEnvVars()
   })
-
-  setEnvVar = function(name, value) {
-    name = 'CUSTOM_LINKS_' + name
-    process.env[name] = value
-    envVarsToDelete.push(name)
-  }
 
   it('validates a good config', function() {
     var configData = helpers.baseConfig(),
@@ -118,7 +101,7 @@ describe('config', function() {
 
     properties.forEach(function(name) {
       var value = inputConfig[name]
-      setEnvVar(name, value instanceof Array ? value.join(',') : value)
+      envVars.setEnvVar(name, value instanceof Array ? value.join(',') : value)
       delete inputConfig[name]
     })
 
@@ -137,6 +120,16 @@ describe('config', function() {
       .to.equal(compareConfig.GOOGLE_CLIENT_SECRET)
     expect(config.GOOGLE_CALLBACK_URL)
       .to.equal(compareConfig.GOOGLE_CALLBACK_URL)
+  })
+
+  it('uses environment variables to override config file values', function() {
+    var fileData = helpers.baseConfig(),
+        origPort = fileData.PORT,
+        config
+
+    process.env.CUSTOM_LINKS_PORT = origPort + 1
+    config = new Config(fileData)
+    config.PORT.should.equal(origPort + 1)
   })
 
   it('loads a valid config from a direct file path', function() {

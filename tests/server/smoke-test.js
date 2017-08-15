@@ -2,6 +2,7 @@
 
 var path = require('path')
 var helpers = require('../helpers')
+var EnvVars = require('../helpers/env-vars')
 var chai = require('chai')
 var chaiAsPromised = require('chai-as-promised')
 
@@ -12,17 +13,19 @@ describe('Smoke test', function() {
   var testConfig = path.join(
         path.dirname(__dirname), 'helpers', 'system-test-config.json'),
       doLaunch,
-      serverInfo
+      serverInfo,
+      envVars
 
   this.timeout(5000)
 
   beforeEach(function() {
     serverInfo = null
-    delete process.env.CUSTOM_LINKS_CONFIG_PATH
+    envVars = new EnvVars('CUSTOM_LINKS_')
+    envVars.saveEnvVars()
   })
 
   afterEach(function() {
-    delete process.env.CUSTOM_LINKS_CONFIG_PATH
+    envVars.restoreEnvVars()
     if (serverInfo === null) {
       return
     }
@@ -50,7 +53,7 @@ describe('Smoke test', function() {
   })
 
   it('launches using CUSTOM_LINKS_CONFIG_PATH', function() {
-    process.env.CUSTOM_LINKS_CONFIG_PATH = testConfig
+    envVars.setEnvVar('CUSTOM_LINKS_CONFIG_PATH', testConfig)
     return doLaunch()
   })
 
