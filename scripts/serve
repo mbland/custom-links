@@ -16,10 +16,11 @@
 # port or on the port specified by CUSTOM_LINKS_REDIS_PORT (or by REDIS_PORT in
 # the <config-file>; jq must be installed to read it from the <config-file>.)
 #
-# If redis-server isn't already running, it will be started automatically,
-# either on the default port or CUSTOM_LINKS_REDIS_PORT. redis-server log output
-# will then stream to either CUSTOM_LINKS_REDIS_LOG_PATH or {{root}}/redis.log
-# by default. (This variable cannot be defined in the <config-file>.)
+# If redis-server isn't already running and CUSTOM_LINKS_REDIS_HOST is not set,
+# redis-server will be started automatically, either on the default port or
+# CUSTOM_LINKS_REDIS_PORT. redis-server log output will then stream to either
+# CUSTOM_LINKS_REDIS_LOG_PATH or {{root}}/redis.log by default. (This variable
+# cannot be defined in the <config-file>.)
 
 export CUSTOM_LINKS_REDIS_LOG_PATH="${CUSTOM_LINKS_REDIS_LOG_PATH:-redis.log}"
 export CUSTOM_LINKS_REDIS_PID=''
@@ -43,6 +44,9 @@ cl.serve_launch_redis() {
   local redis_port="${CUSTOM_LINKS_REDIS_PORT:-null}"
   local redis_regex='[r]edis-server .*:'
 
+  if [[ -n "${CUSTOM_LINKS_REDIS_HOST}" ]]; then
+    return
+  fi
   if [[ "$redis_port" == 'null' ]] && command -v jq >/dev/null; then
     redis_port="$(jq '.REDIS_PORT' "$server_config")"
   fi
@@ -52,16 +56,18 @@ cl.serve_launch_redis() {
   args+=('--port' "$redis_port")
   redis_regex+="$redis_port"
 
-  if ! grep -q -- "$redis_regex" <(ps aux); then
-    @go.log RUN Launching redis-server on port "$redis_port"
-    "${args[@]}" >> "$CUSTOM_LINKS_REDIS_LOG_PATH" 2>&1 &
-    CUSTOM_LINKS_REDIS_PID="$!"
-
-    if ! grep -q -- "$redis_regex" <(ps aux); then
-      @go.log FATAL Failed to launch redis-server
-    fi
-    @go.log INFO redis-server running as PID "$CUSTOM_LINKS_REDIS_PID"
+  if grep -q -- "$redis_regex" <(ps aux); then
+    return
   fi
+  @go.log RUN Launching redis-server on port "$redis_port"
+  "${args[@]}" >> "$CUSTOM_LINKS_REDIS_LOG_PATH" 2>&1 &
+  CUSTOM_LINKS_REDIS_PID="$!"
+
+  if ! kill -0 "$CUSTOM_LINKS_REDIS_PID" 2>/dev/null; then
+    @go.log FATAL Failed to launch redis-server
+  fi
+  trap "redis-cli -p $redis_port shutdown save" EXIT
+  @go.log INFO redis-server running as PID "$CUSTOM_LINKS_REDIS_PID"
 }
 
 cl.serve() {
