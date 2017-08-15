@@ -20,6 +20,30 @@ module.exports = exports = {
     return JSON.parse(JSON.stringify(testConfig))
   },
 
+  setEnvVar(name, value, varsToDelete) {
+    name = 'CUSTOM_LINKS_' + name
+    process.env[name] = value
+    varsToDelete.push(name)
+  },
+
+  saveEnvVars(varsToRestore) {
+    Object.keys(process.env).forEach(function(name) {
+      if (name.startsWith('CUSTOM_LINKS_')) {
+        varsToRestore[name] = process.env[name]
+        delete process.env[name]
+      }
+    })
+  },
+
+  restoreEnvVars(varsToDelete, varsToRestore) {
+    varsToDelete.forEach(function(name) {
+      delete process.env[name]
+    })
+    Object.keys(varsToRestore).forEach(function(name) {
+      process.env[name] = varsToRestore[name]
+    })
+  },
+
   pickUnusedPort() {
     return new Promise(resolve => {
       var server = net.createServer()
