@@ -61,4 +61,10 @@ describe('Smoke test', function() {
     return doLaunch(null).should.be.rejectedWith(Error,
       'missing AUTH_PROVIDERS')
   })
+
+  it('fails due to a bad redis host', function() {
+    process.env.CUSTOM_LINKS_REDIS_HOST = 'nonexistent-redis-host'
+    return doLaunch().should.be.rejectedWith(Error,
+      /Redis connection to nonexistent-redis-host:[0-9]+ failed/)
+  })
 })

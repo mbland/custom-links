@@ -31,10 +31,14 @@ customLinks.assembleApp(
   new RedisStore(redisStoreOptions),
   config)
 
-var server = app.listen(config.PORT)
+var server = { close() { } }
+
+redisClient.on('ready', () => {
+  server = app.listen(config.PORT)
+  logger.log(packageInfo.name + ' listening on port ' + config.PORT)
+})
 
 process.on('exit', () => {
   server.close()
   redisClient.quit()
 })
-logger.log(packageInfo.name + ' listening on port ' + config.PORT)
