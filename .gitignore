@@ -3,6 +3,7 @@
 .config/env.local
 .coverage/
 coverage/
+appendonly.aof
 dump.rdb
 node_modules/
 npm.log

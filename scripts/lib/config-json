@@ -1,0 +1,36 @@
+#! /usr/local/env bash
+#
+# Access to configuration values in JSON files
+#
+# Requires that `jq` is installed on the system.
+
+# Sets a variable based on an environment variable or configuration file entry
+#
+# Arguments:
+#   config_file_path:   Path to the configuration file
+#   config_entry_name:  Name of the configuration file entry, e.g. `REDIS_HOST`
+#   result_var_name:    Name of caller's variable into which to store the value 
+#   default_value:      Value to assign if neither env or config var is set
+#
+# Returns:
+#   Zero if `result_var_name` has been set with either an env or config var
+#     value; nonzero if it's been set using the default value
+cl.get_config_variable() {
+  local config_file_path="$1"
+  local config_entry_name="$2"
+  local result_var_name="$3"
+  local default_value="$4"
+  local env_var_name="CUSTOM_LINKS_${config_entry_name}"
+  local config_value="${!env_var_name:-null}"
+  local result='0'
+
+  if [[ "$config_value" == 'null' ]]; then
+    config_value="$(jq -r ".${config_entry_name}" "$config_file_path")"
+  fi
+  if [[ "$config_value" == 'null' ]]; then
+    config_value="$default_value"
+    result='1'
+  fi
+  printf -v "$result_var_name" '%s' "$config_value"
+  return "$result"
+}

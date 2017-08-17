@@ -81,6 +81,9 @@ _test() {
   if ! @go.log_command @go test end-to-end; then
     result='1'
   fi
+  if ! @go.log_command @go test scripts; then
+    result='1'
+  fi
   if [[ -n "$coverage_run" ]] && ! cl.generate_coverage_report "$result"; then
     result='1'
   fi

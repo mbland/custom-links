@@ -6,12 +6,26 @@ export CL_PLATFORM="${CL_PLATFORM:-$(node -e \
   'console.log(process.platform)')}"
 
 cl.check_for_prerequisite_tools() {
+  local required=('redis-server' 'jq' 'nc')
+  local cmd_name
+  local missing=()
+
   if ! command -v node >/dev/null; then
     @go.printf 'Please install Node.js before continuing.\n' >&2
     return 1
-  elif [[ "$CL_PLATFORM" != 'win32' ]] &&
-    ! command -v redis-server >/dev/null; then
-    @go.printf 'Please install redis-server before continuing.\n' >&2
+  elif [[ "$CL_PLATFORM" == 'win32' ]]; then
+    return
+  fi
+
+  for cmd_name in "${required[@]}"; do
+    if ! command -v "$cmd_name" >/dev/null; then
+      missing+=("$cmd_name")
+    fi
+  done
+
+  if [[ "${#missing[@]}" -ne '0' ]]; then
+    @go.printf 'Please install the following programs before continuing:\n' >&2
+    printf '  %s\n' "${missing[@]}" >&2
     return 1
   fi
 }
