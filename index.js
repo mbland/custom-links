@@ -2,7 +2,9 @@
 
 var Config = require('./lib/config')
 var configFile = process.argv[2] || process.env.CUSTOM_LINKS_CONFIG_PATH
-var config = configFile ? Config.fromFile(configFile, console) : new Config({})
+var Log = require('log')
+var log = new Log('info')
+var config = configFile ? Config.fromFile(configFile, log) : new Config({})
 
 var packageInfo = require('./package.json')
 var express = require('express')
@@ -16,7 +18,6 @@ var RedisStore = require('connect-redis')(session)
 var redisStoreOptions = {}
 var customLinks = require('./lib')
 var morgan = require('morgan')
-var logger = console
 
 redisClientOptions.host = redisStoreOptions.host = config.REDIS_HOST
 redisClientOptions.port = redisStoreOptions.port = config.REDIS_PORT
@@ -27,7 +28,7 @@ app.use(morgan('combined'))
 customLinks.assembleApp(
   app,
   new LinkDb(new RedisClient(redisClient)),
-  logger,
+  log,
   new RedisStore(redisStoreOptions),
   config)
 
@@ -35,7 +36,7 @@ var server = { close() { } }
 
 redisClient.on('ready', () => {
   server = app.listen(config.PORT)
-  logger.log(packageInfo.name + ' listening on port ' + config.PORT)
+  log.info(packageInfo.name + ' listening on port ' + config.PORT)
 })
 
 process.on('exit', () => {
