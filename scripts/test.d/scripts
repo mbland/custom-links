@@ -1,8 +1,6 @@
 #! /usr/bin/env bash
 #
 # Tests `./go` scripts
-#
-# 
 
 # Passes all arguments through to `@go.bats_main` from `lib/bats-main`.
 _test_main() {
@@ -12,7 +10,9 @@ _test_main() {
 
   . "$_GO_USE_MODULES" 'bats-main'
   # Tab completions
-  @go.bats_main "$@"
+
+  # Coverage is temporarily disabled.
+  _GO_COLLECT_BATS_COVERAGE= @go.bats_main "$@"
 }
 
 _test_main "$@"
