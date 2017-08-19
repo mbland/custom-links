@@ -48,7 +48,8 @@ cl.serve_ensure_redis_is_running() {
   cl.get_config_variable "$server_config" 'REDIS_HOST' 'redis_host'
   cl.get_config_variable "$server_config" 'REDIS_PORT' 'redis_port' '6379'
 
-  if [[ -n "$redis_host" ]] || pgrep -fq "redis-server .*:$redis_port"; then
+  if [[ -n "$redis_host" ]] ||
+    pgrep -f "redis-server .*:$redis_port" >/dev/null 2>&1; then
     cl.serve_wait_for_redis "$redis_host" "$redis_port"
   else
     cl.serve_launch_redis "$redis_port"
