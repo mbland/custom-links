@@ -15,6 +15,8 @@ setup() {
   export CUSTOM_LINKS_TEST_AUTH='mbland@acm.org'
   export CUSTOM_LINKS_REDIS_DIR="${BATS_TEST_ROOTDIR}/redis-test"
   export CUSTOM_LINKS_REDIS_LOG_PATH="${CUSTOM_LINKS_REDIS_DIR}/redis.log"
+
+  export _GO_LOG_FORMATTING=
   create_bats_test_dirs 'redis-test'
   create_config_file
 }
@@ -155,13 +157,10 @@ stop_background_run() {
 }
 
 @test "$SUITE: tab completion" {
-  run ./go complete 1 serve 'test'
-  assert_success 'test-config.json' 'tests/'
+  run ./go complete 1 serve 'tests'
+  assert_success 'tests/'
 
-  run ./go complete 1 serve 'test-'
-  assert_success 'test-config.json '
-
-  run ./go complete 2 serve 'test-config.json' ''
+  run ./go complete 2 serve 'tests/' ''
   assert_failure ''
 }
 
@@ -202,7 +201,7 @@ stop_background_run() {
   stop_background_run
 
   fail_if output_matches 'INFO +redis-server running'
-  assert_output_matches 'INFO +custom-links server shutdown complete'
+  assert_output_matches  'INFO +custom-links server shutdown complete'
   fail_if output_matches 'RUN  +Shutting down redis-server'
   fail_if output_matches 'INFO +redis-server shutdown complete'
 }
@@ -217,7 +216,7 @@ stop_background_run() {
   stop_background_run
 
   fail_if output_matches 'INFO +redis-server running'
-  assert_output_matches 'INFO +custom-links server shutdown complete'
+  assert_output_matches  'INFO +custom-links server shutdown complete'
 }
 
 @test "$SUITE: error when redis-server launch fails" {
