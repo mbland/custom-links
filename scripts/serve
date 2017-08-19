@@ -10,7 +10,9 @@
 #
 # Environment variables:
 #   CUSTOM_LINKS_REDIS_PORT      Port on which redis-server will run/is running
-#   CUSTOM_LINKS_REDIS_LOG_FILE  Log file for automatically-started redis-server
+#   CUSTOM_LINKS_REDIS_DIR       Directory in which redis-server will save files
+#   CUSTOM_LINKS_REDIS_LOG_PATH  Log file for automatically-started redis-server
+#   CUSTOM_LINKS_REDIS_TIMEOUT   Max seconds to wait for redis to start
 #
 # If redis-server is already running, it must be running on either the default
 # port or on the port specified by CUSTOM_LINKS_REDIS_PORT (or by REDIS_PORT in
@@ -22,10 +24,10 @@
 # CUSTOM_LINKS_REDIS_LOG_PATH or {{root}}/redis.log by default. (This variable
 # cannot be defined in the <config-file>.)
 
+export CUSTOM_LINKS_CONFIG_PATH="${CUSTOM_LINKS_CONFIG_PATH:-test-config.json}"
 export CUSTOM_LINKS_REDIS_LOG_PATH="${CUSTOM_LINKS_REDIS_LOG_PATH:-redis.log}"
-export CUSTOM_LINKS_REDIS_PID=''
 
-. "$_GO_USE_MODULES" 'log'
+. "$_GO_USE_MODULES" 'log' 'config-json'
 
 cl.serve_tab_completion() {
   local word_index="$1"
@@ -38,40 +40,94 @@ cl.serve_tab_completion() {
   fi
 }
 
+cl.serve_ensure_redis_is_running() {
+  local server_config="${1:-$CUSTOM_LINKS_CONFIG_PATH}"
+  local redis_host
+  local redis_port
+
+  cl.get_config_variable "$server_config" 'REDIS_HOST' 'redis_host'
+  cl.get_config_variable "$server_config" 'REDIS_PORT' 'redis_port' '6379'
+
+  if [[ -n "$redis_host" ]] ||
+    pgrep -f "redis-server .*:$redis_port" >/dev/null 2>&1; then
+    cl.serve_wait_for_redis "$redis_host" "$redis_port"
+  else
+    cl.serve_launch_redis "$redis_port"
+  fi
+}
+
 cl.serve_launch_redis() {
-  local server_config="$1"
-  local args=('redis-server')
-  local redis_port="${CUSTOM_LINKS_REDIS_PORT:-null}"
-  local redis_regex='[r]edis-server .*:'
+  local redis_port="$1"
+  local redis_pid
 
-  if [[ -n "${CUSTOM_LINKS_REDIS_HOST}" ]]; then
-    return
-  fi
-  if [[ "$redis_port" == 'null' ]] && command -v jq >/dev/null; then
-    redis_port="$(jq '.REDIS_PORT' "$server_config")"
-  fi
-  if [[ "$redis_port" == 'null' ]]; then
-    redis_port='6379'
-  fi
-  args+=('--port' "$redis_port")
-  redis_regex+="$redis_port"
-
-  if grep -q -- "$redis_regex" <(ps aux); then
-    return
-  fi
   @go.log RUN Launching redis-server on port "$redis_port"
-  "${args[@]}" >> "$CUSTOM_LINKS_REDIS_LOG_PATH" 2>&1 &
-  CUSTOM_LINKS_REDIS_PID="$!"
+  args=('redis-server' '--port' "$redis_port" '--appendonly' 'yes')
+  args+=('--dir' "${CUSTOM_LINKS_REDIS_DIR:-$_GO_ROOTDIR}")
 
-  if ! kill -0 "$CUSTOM_LINKS_REDIS_PID" 2>/dev/null; then
+  # Setting monitor mode launches redis-server in a separate process group,
+  # preventing signals sent to this process from terminating it.
+  set -m
+  "${args[@]}" >>"$CUSTOM_LINKS_REDIS_LOG_PATH" 2>&1 &
+  set +m
+  redis_pid="$!"
+
+  if ! cl.serve_wait_for_redis '' "$redis_pid"; then
+    kill "$redis_pid" >/dev/null 2>&1
     @go.log FATAL Failed to launch redis-server
   fi
-  trap "redis-cli -p $redis_port shutdown save" EXIT
-  @go.log INFO redis-server running as PID "$CUSTOM_LINKS_REDIS_PID"
+  trap "cl.serve_exit_trap $redis_pid $redis_port" EXIT
+  @go.log INFO redis-server running as PID "$redis_pid"
+}
+
+cl.serve_wait_for_redis() {
+  local redis_host="${1:-localhost}"
+  local redis_pid="$2"
+  local timeout="${CUSTOM_LINKS_REDIS_TIMEOUT:-5}"
+
+  @go.log INFO "Waiting for Redis server at ${redis_host:-*}:${redis_port}"
+  # Sleep for a quarter-second as this is enough for small installations.
+  sleep 0.25
+
+  while ! nc -z "$redis_host" "$redis_port" >/dev/null 2>&1; do
+    if [[ "$((--timeout))" -lt '0' ]]; then
+      return 1
+    fi
+    sleep 1
+  done
+}
+
+cl.serve_exit_trap() {
+  local redis_pid="$1"
+  local redis_port="$2"
+
+  @go.log RUN Shutting down redis-server
+  redis-cli -p "$redis_port" shutdown save
+  wait "$redis_pid"
+  @go.log INFO redis-server shutdown complete
+}
+
+cl.serve_run_custom_links_server() {
+  local server_pid
+
+  @go.log RUN Launching custom-links server
+  node "$_GO_ROOTDIR/index.js" "$server_config" &
+  server_pid="$!"
+
+  if ! kill -0 "$server_pid" 2>/dev/null; then
+    @go.log FATAL Failed to launch custom-links server
+  fi
+  @go.log INFO custom-links server running as pid "$server_pid"
+
+  # Inspired by: https://veithen.github.io/2014/11/16/sigterm-propagation.html
+  trap "kill -TERM $server_pid" TERM INT HUP
+  wait "$server_pid"
+  trap - TERM INT HUP
+  wait "$server_pid"
+  @go.log INFO custom-links server shutdown complete
 }
 
 cl.serve() {
-  local server_config="${1:-$_GO_ROOTDIR/test-config.json}"
+  local server_config="$1"
 
   case "$1" in
   --complete)
@@ -82,8 +138,8 @@ cl.serve() {
     ;;
   esac
 
-  cl.serve_launch_redis "$server_config"
-  node "$_GO_ROOTDIR/index.js" "$server_config"
+  cl.serve_ensure_redis_is_running "$server_config"
+  cl.serve_run_custom_links_server "$server_config"
 }
 
 cl.serve "$@"

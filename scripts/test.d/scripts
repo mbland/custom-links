@@ -1,0 +1,18 @@
+#! /usr/bin/env bash
+#
+# Tests `./go` scripts
+
+# Passes all arguments through to `@go.bats_main` from `lib/bats-main`.
+_test_main() {
+  local _GO_BATS_COVERAGE_INCLUDE
+  _GO_BATS_COVERAGE_INCLUDE=('scripts/')
+  local _GO_COVERALLS_URL='https://coveralls.io/github/mbland/custom-links'
+
+  . "$_GO_USE_MODULES" 'bats-main'
+  # Tab completions
+
+  # Coverage is temporarily disabled.
+  _GO_COLLECT_BATS_COVERAGE= @go.bats_main "$@"
+}
+
+_test_main "$@"
