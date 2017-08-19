@@ -16,7 +16,6 @@ setup() {
   export CUSTOM_LINKS_REDIS_DIR="${BATS_TEST_ROOTDIR}/redis-test"
   export CUSTOM_LINKS_REDIS_LOG_PATH="${CUSTOM_LINKS_REDIS_DIR}/redis.log"
 
-  export _GO_LOG_FORMATTING=
   create_bats_test_dirs 'redis-test'
   create_config_file
 }
@@ -173,10 +172,10 @@ stop_background_run() {
     fail 'Append only file not created'
   fi
 
-  assert_output_matches 'INFO +redis-server running'
-  assert_output_matches 'INFO +custom-links server shutdown complete'
-  assert_output_matches 'RUN  +Shutting down redis-server'
-  assert_output_matches 'INFO +redis-server shutdown complete'
+  assert_output_matches 'INFO.* redis-server running'
+  assert_output_matches 'INFO.* custom-links server shutdown complete'
+  assert_output_matches 'RUN.*  Shutting down redis-server'
+  assert_output_matches 'INFO.* redis-server shutdown complete'
 }
 
 @test "$SUITE: launches redis-server in background from config file" {
@@ -190,8 +189,8 @@ stop_background_run() {
   wait_for_background_output "custom-links listening on port $CUSTOM_LINKS_PORT"
   stop_background_run
 
-  assert_output_matches 'INFO +custom-links server shutdown complete'
-  assert_output_matches 'INFO +redis-server shutdown complete'
+  assert_output_matches 'INFO.* custom-links server shutdown complete'
+  assert_output_matches 'INFO.* redis-server shutdown complete'
 }
 
 @test "$SUITE: uses redis-server that's already running" {
@@ -200,10 +199,10 @@ stop_background_run() {
   wait_for_background_output "custom-links listening on port $CUSTOM_LINKS_PORT"
   stop_background_run
 
-  fail_if output_matches 'INFO +redis-server running'
-  assert_output_matches  'INFO +custom-links server shutdown complete'
-  fail_if output_matches 'RUN  +Shutting down redis-server'
-  fail_if output_matches 'INFO +redis-server shutdown complete'
+  fail_if output_matches 'INFO.* redis-server running'
+  assert_output_matches  'INFO.* custom-links server shutdown complete'
+  fail_if output_matches 'RUN.*  Shutting down redis-server'
+  fail_if output_matches 'INFO.* redis-server shutdown complete'
 }
 
 @test "$SUITE: waits for redis-server on another host" {
@@ -215,14 +214,14 @@ stop_background_run() {
   wait_for_background_output "custom-links listening on port $CUSTOM_LINKS_PORT"
   stop_background_run
 
-  fail_if output_matches 'INFO +redis-server running'
-  assert_output_matches  'INFO +custom-links server shutdown complete'
+  fail_if output_matches 'INFO.* redis-server running'
+  assert_output_matches  'INFO.* custom-links server shutdown complete'
 }
 
 @test "$SUITE: error when redis-server launch fails" {
   stub_program_in_path 'redis-server' 'exit 1'
   CUSTOM_LINKS_REDIS_TIMEOUT='0' run_in_background ./go serve
-  wait_for_background_output "FATAL +Failed to launch redis-server"
+  wait_for_background_output "FATAL.* Failed to launch redis-server"
   restore_program_in_path 'redis-server'
   stop_background_run
   assert_failure

@@ -80,7 +80,7 @@ cl.serve_launch_redis() {
 }
 
 cl.serve_wait_for_redis() {
-  local redis_host="$1"
+  local redis_host="${1:-localhost}"
   local redis_pid="$2"
   local timeout="${CUSTOM_LINKS_REDIS_TIMEOUT:-5}"
 
