@@ -17,12 +17,6 @@ if [[ -z "$DISABLE_KARMA" ]] &&
   export DISABLE_KARMA='true'
 fi
 
-# Don't run Chrome on Travis CI due to the "Some of your tests did a full page
-# reload!" bug.
-if [[ "$CI" == 'true' ]]; then
-  export KARMA_BROWSERS=Firefox,PhantomJS
-fi
-
 _test_tab_completion() {
   local word_index="$1"
   shift

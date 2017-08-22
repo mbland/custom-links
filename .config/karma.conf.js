@@ -59,8 +59,6 @@ module.exports = function(config) {
   if (process.env.CI === 'true') {
     options.autoWatch = false
     options.singleRun = true
-    options.browsers = [ 'Chrome', 'Firefox' ]
-    options.detectBrowsers.enabled = false
   }
 
   if (process.env.KARMA_BROWSERS !== undefined) {
