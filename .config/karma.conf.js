@@ -42,8 +42,9 @@ module.exports = function(config) {
     detectBrowsers: {
       // Work around karma-detect-browsers adding multiple Firefox builds, and
       // force Chrome to run in headless mode by default on integration systems:
-      // https://developers.google.com/web/updates/2017/04/headless-chrome
-      // https://developers.google.com/web/updates/2017/06/headless-karma-mocha-chai
+      // - https://developers.google.com/web/updates/2017/04/headless-chrome
+      // eslint-disable-next-line max-len
+      // - https://developers.google.com/web/updates/2017/06/headless-karma-mocha-chai
       postDetection(browsers) {
         return browsers
           .filter(b => !b.startsWith('Firefox') || b === 'Firefox')
