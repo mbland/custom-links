@@ -54,7 +54,7 @@ _test_browser_run_tests() {
   fi
 
   if [[ "$__single_run" == 'true' ]]; then
-    _test_browser_run_in_phantomjs
+    _test_browser_run_in_headless_browsers
   else
     _test_browser_run_in_browser
   fi
@@ -69,12 +69,12 @@ _test_browser_run_in_browser() {
   live-server "${test_args[@]}" public/
 }
 
-_test_browser_run_in_phantomjs() {
+_test_browser_run_in_headless_browsers() {
   local port
   local test_server_url
   local sleep_seconds='1'
   local server_pid
-  local result
+  local result='0'
 
   port="$(tests/helpers/pick-unused-port)"
   if [[ "$?" -ne '0' ]]; then
@@ -97,14 +97,28 @@ _test_browser_run_in_phantomjs() {
   sleep "$sleep_seconds"
   server_pid="$!"
 
-  phantomjs node_modules/mocha-phantomjs-core/mocha-phantomjs-core.js \
-    "$test_server_url/tests/" 'spec' "{ \"useColors\": true }"
-  result="$?"
+  if ! _test_browser_run_in_chrome_headless; then
+    result='1'
+  fi
+  if ! _test_browser_run_in_phantomjs; then
+    result='1'
+  fi
   _test_browser_download_coverage
 
   kill -INT "$server_pid"
   set +m
   return "$result"
+}
+
+_test_browser_run_in_chrome_headless() {
+  @go.log INFO 'Running browser tests in headless Chrome'
+  mocha-chrome --reporter spec "$test_server_url/tests/"
+}
+
+_test_browser_run_in_phantomjs() {
+  @go.log INFO 'Running browser tests in PhantomJS'
+  phantomjs node_modules/mocha-phantomjs-core/mocha-phantomjs-core.js \
+    "$test_server_url/tests/" 'spec' "{ \"useColors\": true }"
 }
 
 _test_browser_download_coverage() {

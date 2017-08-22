@@ -8,6 +8,7 @@ var chai = require('chai')
 var chaiAsPromised = require('chai-as-promised')
 var test = require('selenium-webdriver/testing')
 var webdriver = require('selenium-webdriver')
+var chrome = require('selenium-webdriver/chrome')
 var By = webdriver.By
 var Key = webdriver.Key
 var until = webdriver.until
@@ -32,9 +33,12 @@ test.describe('End-to-end test', function() {
   this.timeout(5000)
 
   test.before(function() {
-    driver = new webdriver.Builder()
-      .forBrowser('chrome')
-      .build()
+    driver = new webdriver.Builder().forBrowser('chrome')
+
+    if (process.env.CI) {
+      driver = driver.setChromeOptions(new chrome.Options().headless())
+    }
+    driver = driver.build()
 
     return helpers.launchAll().then(result => {
       serverInfo = result

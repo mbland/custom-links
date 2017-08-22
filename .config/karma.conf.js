@@ -40,12 +40,14 @@ module.exports = function(config) {
     // karma-detect-browsers.
     browsers: [],
     detectBrowsers: {
-      // Work around karma-detect-browsers adding multiple Firefox builds.
+      // Work around karma-detect-browsers adding multiple Firefox builds, and
+      // force Chrome to run in headless mode by default on integration systems:
+      // https://developers.google.com/web/updates/2017/04/headless-chrome
+      // https://developers.google.com/web/updates/2017/06/headless-karma-mocha-chai
       postDetection(browsers) {
-        if (process.platform !== 'linux') {
-          return browsers
-        }
-        return browsers.filter(b => !b.startsWith('Firefox') || b === 'Firefox')
+        return browsers
+          .filter(b => !b.startsWith('Firefox') || b === 'Firefox')
+          .map(b => (b === 'Chrome' && process.env.CI) ? 'ChromeHeadless' : b)
       }
     },
 
