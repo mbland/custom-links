@@ -1,9 +1,18 @@
 ## Custom Links
 
-[![License](https://img.shields.io/github/license/mbland/custom-links.svg)](https://github.com/mbland/custom-links/blob/master/LICENSE.md)
-[![Continuous integration status](https://img.shields.io/travis/mbland/custom-links/master.svg)](https://travis-ci.org/mbland/custom-links)
-[![Coverage Status](https://img.shields.io/coveralls/mbland/custom-links/master.svg)](https://coveralls.io/github/mbland/custom-links?branch=master)
-[![Static analysis status](https://img.shields.io/codeclimate/github/mbland/custom-links.svg)](https://codeclimate.com/github/mbland/custom-links)
+[![License][lic-img]][lic]
+[![Continuous integration status][ci-img]][ci]
+[![Coverage Status][cov-img]][cov]
+[![Static analysis status][sa-img]][sa]
+
+[lic-img]: https://img.shields.io/github/license/mbland/custom-links.svg
+[lic]:     https://github.com/mbland/custom-links/blob/master/LICENSE.md
+[ci-img]:  https://img.shields.io/travis/mbland/custom-links/master.svg
+[ci]:      https://travis-ci.org/mbland/custom-links
+[cov-img]: https://img.shields.io/coveralls/mbland/custom-links/master.svg
+[cov]:     https://coveralls.io/github/mbland/custom-links?branch=master
+[sa-img]:  https://img.shields.io/codeclimate/github/mbland/custom-links.svg
+[sa]:      https://codeclimate.com/github/mbland/custom-links
 
 Source: https://github.com/mbland/custom-links
 
