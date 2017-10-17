@@ -135,6 +135,14 @@ describe('auth', function() {
 
   describe('strategies', function() {
     var passport = { use: function() { } }
+    var doVerify = function(authProvider, userObj, config) {
+      var verify = authProvider.verify(linkDb, config)
+      return new Promise(function(resolve, reject) {
+        verify('access token', 'refresh token', userObj, function(err, user) {
+          err ? reject(err) : resolve(user)
+        })
+      })
+    }
 
     beforeEach(function() {
       sinon.spy(passport, 'use')
@@ -225,7 +233,7 @@ describe('auth', function() {
     })
 
     describe('google', function() {
-      var doVerify, userInfo
+      var userInfo
 
       beforeEach(function() {
         userInfo = {
@@ -235,15 +243,6 @@ describe('auth', function() {
           ]
         }
       })
-
-      doVerify = function(userObj, config) {
-        var verify = googleAuth.verify(linkDb, config)
-        return new Promise(function(resolve, reject) {
-          verify('access token', 'refresh token', userObj, function(err, user) {
-            err ? reject(err) : resolve(user)
-          })
-        })
-      }
 
       it('registers the strategy with passport.use', function() {
         googleAuth.assemble(passport, linkDb, {
@@ -258,13 +257,13 @@ describe('auth', function() {
         stubDbMethod('findOrCreateUser').withArgs('mbland@acm.org')
           .returns(Promise.resolve({ id: 'mbland@acm.org' }))
 
-        return doVerify(userInfo, { users: [ 'mbland@acm.org' ]})
+        return doVerify(googleAuth, userInfo, { users: [ 'mbland@acm.org' ]})
           .should.become({ id: 'mbland@acm.org' })
       })
     })
 
     describe('okta', function() {
-      var doVerify, userInfo
+      var userInfo
 
       beforeEach(function() {
         userInfo = {
@@ -273,15 +272,6 @@ describe('auth', function() {
           }
         }
       })
-
-      doVerify = function(userObj, config) {
-        var verify = oktaAuth.verify(linkDb, config)
-        return new Promise(function(resolve, reject) {
-          verify('access token', 'refresh token', userObj, function(err, user) {
-            err ? reject(err) : resolve(user)
-          })
-        })
-      }
 
       it('registers the strategy with passport.use', function() {
         oktaAuth.assemble(passport, linkDb, {
@@ -300,7 +290,7 @@ describe('auth', function() {
         stubDbMethod('findOrCreateUser').withArgs('akash@example.com')
           .returns(Promise.resolve({ id: 'akash@example.com' }))
 
-        return doVerify(userInfo, { users: [ 'akash@example.com' ]})
+        return doVerify(oktaAuth, userInfo, { users: [ 'akash@example.com' ]})
           .should.become({ id: 'akash@example.com' })
       })
     })
