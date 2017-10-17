@@ -271,7 +271,8 @@ describe('auth', function() {
           _json : {
             email: 'akash@example.com'
           }
-      }})
+        }
+      })
 
       doVerify = function(userObj, config) {
         var verify = oktaAuth.verify(linkDb, config)
