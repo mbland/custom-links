@@ -3,6 +3,7 @@
 var auth = require('../../lib/auth')
 var testAuth = require('../../lib/auth/test')
 var googleAuth = require('../../lib/auth/google')
+var oktaAuth = require('../../lib/auth/openidconnect')
 var LinkDb = require('../../lib/link-db')
 
 var sinon = require('sinon')
@@ -259,6 +260,47 @@ describe('auth', function() {
 
         return doVerify(userInfo, { users: [ 'mbland@acm.org' ]})
           .should.become({ id: 'mbland@acm.org' })
+      })
+    })
+
+    describe('okta', function() {
+      var doVerify, userInfo
+
+      beforeEach(function() {
+        userInfo = {
+          _json : {
+            email: 'akash@example.com'
+          }
+      }})
+
+      doVerify = function(userObj, config) {
+        var verify = oktaAuth.verify(linkDb, config)
+        return new Promise(function(resolve, reject) {
+          verify('access token', 'refresh token', userObj, function(err, user) {
+            err ? reject(err) : resolve(user)
+          })
+        })
+      }
+
+      it('registers the strategy with passport.use', function() {
+        oktaAuth.assemble(passport, linkDb, {
+          OKTA_CLIENT_ID: '<client-id>',
+          OKTA_CLIENT_SECRET: '<client-secret>',
+          OKTA_ISSUER: '<issuer>',
+          OKTA_AUTHORIZATION_URL: '<authorization-url>',
+          OKTA_TOKEN_URL: '<okta-token-url>',
+          OKTA_USER_INFO_URL: '<okta-user-info-url>',
+          OKTA_CALLBACK_URL: '<okta-callback-url>'
+        })
+        expect(passport.use.getCall(0).args[0].name).to.equal('openidconnect')
+      })
+
+      it('successfully verifies the user', function() {
+        stubDbMethod('findOrCreateUser').withArgs('akash@example.com')
+          .returns(Promise.resolve({ id: 'akash@example.com' }))
+
+        return doVerify(userInfo, { users: [ 'akash@example.com' ]})
+          .should.become({ id: 'akash@example.com' })
       })
     })
   })
