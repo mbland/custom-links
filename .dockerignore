@@ -1,0 +1,10 @@
+*
+!package.json
+!package-lock.json
+!go
+!index.js
+!lib/
+!public/
+public/tests/
+!scripts/
+scripts/go-script-bash/

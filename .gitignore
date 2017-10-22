@@ -16,3 +16,4 @@ tests/bats/
 tests/coverage/
 tests/kcov/
 tmp/
+variables.env
