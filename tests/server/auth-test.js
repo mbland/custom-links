@@ -56,6 +56,12 @@ describe('auth', function() {
         { domains: [ 'foo.com', 'acm.org' ]})
         .should.equal('mbland@acm.org')
     })
+
+    it('converts user IDs to lowercase', function() {
+      auth.findVerifiedId(['MBland@acm.org'],
+        { users: [ 'mbland@acm.org' ], domains: [ 'acm.org' ]})
+        .should.equal('mbland@acm.org')
+    })
   })
 
   describe('verify', function() {
