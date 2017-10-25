@@ -31,6 +31,17 @@ describe('config', function() {
     expect(JSON.stringify(config)).to.equal(JSON.stringify(configData))
   })
 
+  it('converts users and domains to lowercase', function() {
+    var configData = helpers.baseConfig(),
+        config
+
+    configData.users = ['MBland@acm.org']
+    configData.domains = ['ACM.org']
+    config = new Config(configData)
+    expect(config.users).to.eql(['mbland@acm.org'])
+    expect(config.domains).to.eql(['acm.org'])
+  })
+
   it('raises errors for missing fields', function() {
     var errors = [
       'missing PORT',

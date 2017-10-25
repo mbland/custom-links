@@ -127,9 +127,9 @@ following required fields:
 You must also provide at least one of the following fields:
 
 * **users**: A list of specific user account names (usually email addresses)
-  that are authorized to access the server.
+  that are authorized to access the server. (Case insensitive)
 * **domains**: A list of user domains (i.e. email address domains) that are
-  authorized to access the server.
+  authorized to access the server. (Case insensitive)
 
 You may define both of these fields if you wish.
 
