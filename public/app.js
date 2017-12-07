@@ -118,10 +118,6 @@
       'Failed to get link info for ' + link.relative)
   }
 
-  cl.Backend.prototype.getLinks = function() {
-    return this.makeApiCall('GET', 'links', {})
-  }
-
   cl.Backend.prototype.deleteLink = function(link) {
     link = cl.createLinkInfo(link)
     return this.makeApiCall('DELETE', 'delete', link, undefined,

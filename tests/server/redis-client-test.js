@@ -427,6 +427,4 @@ describe('RedisClient', function() {
       })
     })
   })
-
-
 })
