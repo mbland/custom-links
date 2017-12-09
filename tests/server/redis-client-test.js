@@ -409,4 +409,22 @@ describe('RedisClient', function() {
         .should.be.rejectedWith(Error, 'forced error for /foo')
     })
   })
+
+  describe('getLinks', function() {
+    it('should return nothing if there are no links', function() {
+      return redisClient.getLinks().should.become([])
+    })
+
+    it('should return all links', function() {
+      return Promise.all([
+        redisClient.createLink('/foo', LINK_TARGET, 'mbland'),
+        redisClient.createLink('/bar', LINK_TARGET, 'mbland'),
+        redisClient.createLink('/baz', LINK_TARGET, 'mbland')
+      ]).should.be.fulfilled.then(function() {
+        return redisClient.getLinks()
+      }).should.be.fulfilled.then(function(links) {
+        links.map(l => l.link).sort().should.eql(['/bar', '/baz', '/foo'])
+      })
+    })
+  })
 })
