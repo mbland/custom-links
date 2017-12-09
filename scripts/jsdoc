@@ -1,0 +1,12 @@
+#! /usr/bin/env bash
+#
+# Generates code documentation using JSDoc
+
+JSDOC_OUTPUT="${JSDOC_OUTPUT:-$_GO_ROOTDIR/jsdoc}"
+
+_jsdoc() {
+  jsdoc -c "$_GO_ROOTDIR/.config/jsdoc.json" "$@" &&
+    live-server "$JSDOC_OUTPUT"
+}
+
+_jsdoc "$@"

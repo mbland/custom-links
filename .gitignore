@@ -5,6 +5,7 @@
 coverage/
 appendonly.aof
 dump.rdb
+jsdoc/
 node_modules/
 npm.log
 redis.log

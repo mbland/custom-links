@@ -1,0 +1,11 @@
+{
+  "source": {
+    "include": ["index.js", "lib", "public/app.js"]
+  },
+  "opts": {
+    "recurse": true,
+    "destination": "./jsdoc",
+    "encoding": "utf8",
+    "readme": "./README.md"
+  }
+}

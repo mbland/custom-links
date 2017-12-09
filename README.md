@@ -228,6 +228,14 @@ browser` to collect coverage using [NYC][]/[Istanbul][].
 Also see the [Caveat: Karma and Safari](#caveat-karma-and-safari) section below
 if you plan to test against Apple's Safari browser.
 
+#### Generating and viewing code documentation
+
+Run `cl jsdoc` to generate documentation using [JSDoc][] and automatically view
+it in your browser via [live-server][].
+
+[JSDoc]:       http://usejsdoc.org/
+[live-server]: https://www.npmjs.com/package/live-server
+
 #### Local environment variables
 
 Read through the `.config/env.template` file, and consider making a copy as
