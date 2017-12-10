@@ -7,5 +7,6 @@
     "destination": "./jsdoc",
     "encoding": "utf8",
     "readme": "./README.md"
-  }
+  },
+  "plugins": ["plugins/markdown"]
 }
