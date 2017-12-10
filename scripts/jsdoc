@@ -1,12 +1,48 @@
 #! /usr/bin/env bash
 #
 # Generates code documentation using JSDoc
+#
+# Usage:
+#   {{go}} {{cmd}} [jsdoc options]
+#
+# Where:
+#   [jsdoc options]  any options accepted by the `jsdoc` program
+#
+# The JSDoc configuration is defined in the {{root}}/.config/jsdoc.json file.
+#
+# The output is generated into {{root}}/jsdoc by default; override this using
+# the `-d, --destination <value>` JSDoc option.
 
-JSDOC_OUTPUT="${JSDOC_OUTPUT:-$_GO_ROOTDIR/jsdoc}"
+export JSDOC_OUTPUT="${JSDOC_OUTPUT:-$_GO_ROOTDIR/jsdoc}"
 
 _jsdoc() {
-  jsdoc -c "$_GO_ROOTDIR/.config/jsdoc.json" "$@" &&
-    live-server "$JSDOC_OUTPUT"
+  local argv=("$@")
+  local arg
+  local show_help
+  local destination="$JSDOC_OUTPUT"
+
+  while [[ "$#" -ne '0' ]]; do
+    arg="$1"
+    shift
+
+    case "$arg" in
+    -d|--destination)
+      destination="$1"
+      shift
+      ;;
+    -h|--help)
+      show_help='true'
+      ;;
+    *)
+      ;;
+    esac
+  done
+
+  if ! jsdoc -c "$_GO_ROOTDIR/.config/jsdoc.json" "${argv[@]}"; then
+    return 1
+  elif [[ "$show_help" != 'true' ]]; then
+    live-server "$destination"
+  fi
 }
 
 _jsdoc "$@"
