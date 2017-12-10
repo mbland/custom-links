@@ -27,9 +27,10 @@
     ],
     "no-console": [ 0 ],
     "max-len": [
-      2,
-      80,
-      2
+      "error",
+      { "code": 80 },
+      { "tabWidth": 2 },
+      { "ignoreUrls": true }
     ],
     "camelcase": [
       2,

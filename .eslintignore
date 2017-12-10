@@ -1,5 +1,6 @@
 **/vendor/*.js
 coverage/*
+jsdoc/**/*
 public/tests/generated/**/*
 public/tests/vendor/**/*
 tmp/
