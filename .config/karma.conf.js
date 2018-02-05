@@ -48,7 +48,22 @@ module.exports = function(config) {
       postDetection(browsers) {
         return browsers
           .filter(b => !b.startsWith('Firefox') || b === 'Firefox')
-          .map(b => (b === 'Chrome' && process.env.CI) ? 'ChromeHeadless' : b)
+          .map(browser => {
+            if ((browser === 'Chrome' || browser.startsWith('Chrome')) &&
+                process.env.CI === 'true') {
+              return 'ChromeHeadlessNoSandbox'
+            }
+            return browser
+          })
+      }
+    },
+
+    // See https://docs.travis-ci.com/user/chrome#Sandboxing for details on why
+    // sandboxing is disabled.
+    customLaunchers: {
+      ChromeHeadlessNoSandbox: {
+        base: 'ChromeHeadless',
+        flags: [ '--no-sandbox' ]
       }
     },
 
