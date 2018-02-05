@@ -113,23 +113,22 @@ _test_browser_run_in_headless_browsers() {
 _test_browser_run_in_chrome_headless() {
   local node_version="$(node --version)"
   local major_version
-  local minor_version
-  local patch_version
 
-  if [[ "$node_version" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+) ]]; then
+  if [[ "$node_version" =~ ^v([0-9]+)\.[0-9]+\.[0-9]+ ]]; then
     major_version="${BASH_REMATCH[1]}"
-    minor_version="${BASH_REMATCH[2]}"
-    patch_version="${BASH_REMATCH[3]}"
   fi
 
-  if [[ "$major_version" -lt '7' ||
-      ( "$major_version" -eq '7' && "$minor_version" -lt '10' ) ]]; then
+  if [[ "$major_version" -lt '8' ]]; then
     @go.log INFO "Skipping headless Chrome run on Node ${node_version}," \
-      "since mocha-chrome isn't supported before v7.10.0."
+      "since mocha-chrome isn't supported before v8.0.0."
     return
   fi
   @go.log INFO 'Running browser tests in headless Chrome'
-  mocha-chrome --reporter spec "$test_server_url/tests/"
+
+  # See https://docs.travis-ci.com/user/chrome#Sandboxing for details on why
+  # sandboxing is disabled.
+  mocha-chrome --chrome-flags '["--no-sandbox"]' --reporter spec \
+    "$test_server_url/tests/"
 }
 
 _test_browser_run_in_phantomjs() {

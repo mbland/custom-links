@@ -35,8 +35,12 @@ test.describe('End-to-end test', function() {
   test.before(function() {
     driver = new webdriver.Builder().forBrowser('chrome')
 
-    if (process.env.CI) {
-      driver = driver.setChromeOptions(new chrome.Options().headless())
+    if (process.env.CI === 'true') {
+      // See https://docs.travis-ci.com/user/chrome#Sandboxing for details on
+      // why sandboxing is disabled.
+      driver = driver.setChromeOptions(new chrome.Options()
+        .headless()
+        .addArguments('--no-sandbox'))
     }
     driver = driver.build()
 
