@@ -426,9 +426,7 @@ describe('RedisClient', function() {
         links.map(l => l.link).sort().should.eql(['/bar', '/baz', '/foo'])
       })
     })
-  })
 
-  describe('searchLink', function() {
     it('returns all matching links', function() {
       return Promise.all([
         redisClient.createLink('/foo1', LINK_TARGET, 'akash'),
