@@ -436,8 +436,8 @@ describe('RedisClient', function() {
       ]).should.be.fulfilled.then(function() {
         return redisClient.getLinks('foo')
       }).should.be.fulfilled.then(function(links){
-        links.map(l => l.link).sort().should.eql(['/alphafoo1', '/foo1',
-          '/foo2'])
+        links.map(l => l.link).sort()
+          .should.eql(['/alphafoo1', '/foo1', '/foo2'])
       })
     })
   })
