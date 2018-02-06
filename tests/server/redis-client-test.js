@@ -426,5 +426,19 @@ describe('RedisClient', function() {
         links.map(l => l.link).sort().should.eql(['/bar', '/baz', '/foo'])
       })
     })
+
+    it('returns all matching links', function() {
+      return Promise.all([
+        redisClient.createLink('/foo1', LINK_TARGET, 'akash'),
+        redisClient.createLink('/foo2', LINK_TARGET, 'akash'),
+        redisClient.createLink('/bar1', LINK_TARGET, 'akash'),
+        redisClient.createLink('/alphafoo1', LINK_TARGET, 'akash')
+      ]).should.be.fulfilled.then(function() {
+        return redisClient.getLinks('foo')
+      }).should.be.fulfilled.then(function(links){
+        links.map(l => l.link).sort()
+          .should.eql(['/alphafoo1', '/foo1', '/foo2'])
+      })
+    })
   })
 })
