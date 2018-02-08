@@ -423,7 +423,7 @@ describe('RedisClient', function() {
       ]).should.be.fulfilled.then(function() {
         return redisClient.getLinks()
       }).should.be.fulfilled.then(function(links) {
-        links.map(l => l.link).sort().should.eql(['/bar', '/baz', '/foo'])
+        links.map(l => l.link).should.eql(['/bar', '/baz', '/foo'])
       })
     })
 
@@ -439,6 +439,85 @@ describe('RedisClient', function() {
         links.map(l => l.link).sort()
           .should.eql(['/alphafoo1', '/foo1', '/foo2'])
       })
+    })
+  })
+
+  describe('completeLink', function() {
+    before(function() {
+      return Promise.all([
+        redisClient.createLink('/foo', LINK_TARGET, 'mbland'),
+        redisClient.createLink('/bar', LINK_TARGET, 'mbland'),
+        redisClient.createLink('/baz', LINK_TARGET, 'mbland')
+      ])
+    })
+
+    it('should complete the appropriate links', function() {
+      return redisClient.completeLink('b')
+        .should.be.fulfilled.then(links => links.should.eql(['bar', 'baz']))
+    })
+
+    it('should return nothing if no links start with the prefix', function() {
+      return redisClient.completeLink('bazquux')
+        .should.be.fulfilled.then(links => links.should.be.empty)
+    })
+  })
+
+  describe('completeTarget', function() {
+    before(function() {
+      return Promise.all([
+        redisClient.createLink('/foo', 'https://quux.com/', 'mbland'),
+        redisClient.createLink('/bar', 'https://quux.com/xyzzy', 'mbland'),
+        redisClient.createLink('/baz', 'https://plugh.com/', 'mbland')
+      ])
+    })
+
+    it('should complete the appropriate targets', function() {
+      return redisClient.completeTarget('https://q')
+        .should.be.fulfilled.then(targets => {
+          targets.should.eql(['https://quux.com/', 'https://quux.com/xyzzy'])
+        })
+    })
+
+    it('should return nothing if the target doesn\'t exist', function() {
+      return redisClient.completeTarget('https://nonexistent.com/')
+        .should.be.fulfilled.then(targets => targets.should.be.empty)
+    })
+
+    it ('should return nothing if the prefix is under 7 chars', function() {
+      return redisClient.completeTarget('http:/')
+        .should.be.fulfilled.then(targets => targets.should.be.empty)
+    })
+
+    it ('should return nothing if the prefix is http://', function() {
+      return redisClient.completeTarget('http://')
+        .should.be.fulfilled.then(targets => targets.should.be.empty)
+    })
+
+    it ('should return nothing if the prefix is https://', function() {
+      return redisClient.completeTarget('https://')
+        .should.be.fulfilled.then(targets => targets.should.be.empty)
+    })
+  })
+
+  describe('getLinksToTarget', function() {
+    before(function() {
+      return Promise.all([
+        redisClient.createLink('/foo', LINK_TARGET, 'mbland'),
+        redisClient.createLink('/bar', LINK_TARGET, 'mbland'),
+        redisClient.createLink('/baz', LINK_TARGET, 'mbland')
+      ])
+    })
+
+    it('should return all the links to LINK_TARGET', function() {
+      return redisClient.getLinksToTarget(LINK_TARGET)
+        .should.be.fulfilled.then(links => {
+          links.should.eql(['/bar', '/baz', '/foo'])
+        })
+    })
+
+    it('should return nothing if the target doesn\'t exist', function() {
+      return redisClient.getLinksToTarget('https://nonexistent.com/')
+        .should.be.fulfilled.then(links => links.should.be.empty)
     })
   })
 })
