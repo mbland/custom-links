@@ -62,9 +62,13 @@ describe('Smoke test', function() {
       'missing AUTH_PROVIDERS')
   })
 
-  it('fails due to a bad redis host', function() {
-    process.env.CUSTOM_LINKS_REDIS_HOST = 'nonexistent-redis-host'
-    return doLaunch().should.be.rejectedWith(Error,
-      /Redis connection to nonexistent-redis-host:[0-9]+ failed/)
+  it('fails due to a bad redis connection', function() {
+    // Find an unused port so that the attempt to connect to Redis on that port
+    // fails. This is less flaky than using a bogus hostname, since some DNS
+    // providers may convert the failed name lookup into a search query (such as
+    // those provided by coffee shop WiFi).
+    return helpers.pickUnusedPort()
+      .then(port => helpers.launchServer(port, port))
+      .should.be.rejectedWith(Error, /Redis connection to [^ ]*:[0-9]+ failed/)
   })
 })
