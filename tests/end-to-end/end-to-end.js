@@ -60,7 +60,7 @@ test.describe('End-to-end test', function() {
 
   test.afterEach(function() {
     return new Promise(function(resolve, reject) {
-      redisClient.client.flushdb(err => err ? reject(err) : resolve())
+      redisClient.impl.flushdb(err => err ? reject(err) : resolve())
     })
   })
 
