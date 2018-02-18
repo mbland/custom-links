@@ -301,6 +301,22 @@ describe('RedisClient', function() {
             .should.become({ owner: 'mbland' })
         })
     })
+
+    it('raises an error when adding to the autocomplete index fails', () => {
+      stubClientImplMethod('zadd').callsFake((...args) => {
+        var cb = args.pop()
+        cb(new Error('forced error for ' + args.join(' ')))
+      })
+
+      // Note the link still exists even if autocomplete index insertion fails.
+      return redisClient.createLink('/foo', LINK_TARGET, 'mbland')
+        .should.be.fulfilled.then(result => {
+          result.should.be.an('Error')
+          result.message.should.eql(
+            'forced error for search:links 0 f 0 fo 0 foo 0 foo*')
+        })
+        .then(() => redisClient.getLink('/foo').should.be.fulfilled)
+    })
   })
 
   describe('getOwnedLinks', function() {
