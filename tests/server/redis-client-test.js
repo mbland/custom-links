@@ -17,6 +17,7 @@ describe('RedisClient', function() {
       stubClientImplMethod, fakeTimestamp, getFakeTimestamp, stubs
 
   before(function() {
+    var config = { REDIS_RANGE_SIZE: 2 }
     return helpers.pickUnusedPort()
       .then(helpers.launchRedis)
       .then(function(redisData) {
@@ -24,7 +25,7 @@ describe('RedisClient', function() {
         redisServer = redisData.server
         clientImpl = redis.createClient({ port: serverPort })
         getFakeTimestamp = () => new Date(parseInt(fakeTimestamp)).getTime()
-        redisClient = new RedisClient(clientImpl, getFakeTimestamp)
+        redisClient = new RedisClient(clientImpl, config, getFakeTimestamp)
       })
   })
 
@@ -82,7 +83,7 @@ describe('RedisClient', function() {
 
     it('uses the Date builtin in production', function() {
       var before = new Date().getTime(),
-          prodTime = new RedisClient(clientImpl).getTimestamp()
+          prodTime = new RedisClient(clientImpl, {}).getTimestamp()
 
       prodTime.should.be.within(before, new Date().getTime())
     })
