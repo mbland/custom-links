@@ -444,27 +444,36 @@ describe('RedisClient', function() {
   })
 
   describe('completeLink', function() {
-    before(function() {
+    beforeEach(function() {
       return Promise.all([
-        redisClient.createLink('/foo', LINK_TARGET, 'mbland'),
+        redisClient.createLink('/foobar', LINK_TARGET, 'mbland'),
         redisClient.createLink('/bar', LINK_TARGET, 'mbland'),
+        redisClient.createLink('/barbaz', LINK_TARGET, 'mbland'),
+        redisClient.createLink('/barquux', LINK_TARGET, 'mbland'),
         redisClient.createLink('/baz', LINK_TARGET, 'mbland')
       ])
     })
 
     it('should complete the appropriate links', function() {
-      return redisClient.completeLink('b')
-        .should.be.fulfilled.then(links => links.should.eql(['bar', 'baz']))
+      return redisClient.completeLink('bar')
+        .should.be.fulfilled.then(links => {
+          links.should.eql(['bar', 'barbaz', 'barquux'])
+        })
+    })
+
+    it('should complete nothing if prefix.length < 3', function() {
+      return redisClient.completeLink('ba')
+        .should.be.fulfilled.then(links => links.should.be.empty)
     })
 
     it('should return nothing if no links start with the prefix', function() {
-      return redisClient.completeLink('bazquux')
+      return redisClient.completeLink('plugh')
         .should.be.fulfilled.then(links => links.should.be.empty)
     })
   })
 
   describe('completeTarget', function() {
-    before(function() {
+    beforeEach(function() {
       return Promise.all([
         redisClient.createLink('/foo', 'https://quux.com/', 'mbland'),
         redisClient.createLink('/bar', 'https://quux.com/xyzzy', 'mbland'),
@@ -501,7 +510,7 @@ describe('RedisClient', function() {
   })
 
   describe('getLinksToTarget', function() {
-    before(function() {
+    beforeEach(function() {
       return Promise.all([
         redisClient.createLink('/foo', LINK_TARGET, 'mbland'),
         redisClient.createLink('/bar', LINK_TARGET, 'mbland'),
