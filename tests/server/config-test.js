@@ -102,6 +102,7 @@ describe('config', function() {
           'SESSION_MAX_AGE',
           'REDIS_HOST',
           'REDIS_PORT',
+          'REDIS_RANGE_SIZE',
           'GOOGLE_CLIENT_ID',
           'GOOGLE_CLIENT_SECRET',
           'GOOGLE_CALLBACK_URL'
@@ -110,6 +111,7 @@ describe('config', function() {
 
     inputConfig.REDIS_HOST = compareConfig.REDIS_HOST = 'redis'
     inputConfig.REDIS_PORT = compareConfig.REDIS_PORT = 666
+    inputConfig.REDIS_RANGE_SIZE = compareConfig.REDIS_RANGE_SIZE = 27
 
     properties.forEach(function(name) {
       var value = inputConfig[name]
@@ -128,6 +130,8 @@ describe('config', function() {
       .to.equal(compareConfig.REDIS_HOST)
     expect(config.REDIS_PORT)
       .to.equal(compareConfig.REDIS_PORT)
+    expect(config.REDIS_AUTOCOMPLETE_SIZE)
+      .to.equal(compareConfig.REDIS_AUTOCOMPLETE_SIZE)
     expect(config.GOOGLE_CLIENT_ID)
       .to.equal(compareConfig.GOOGLE_CLIENT_ID)
     expect(config.GOOGLE_CLIENT_SECRET)

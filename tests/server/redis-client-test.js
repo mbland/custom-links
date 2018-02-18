@@ -17,6 +17,7 @@ describe('RedisClient', function() {
       stubClientImplMethod, fakeTimestamp, getFakeTimestamp, stubs
 
   before(function() {
+    var config = { REDIS_RANGE_SIZE: 2 }
     return helpers.pickUnusedPort()
       .then(helpers.launchRedis)
       .then(function(redisData) {
@@ -24,7 +25,7 @@ describe('RedisClient', function() {
         redisServer = redisData.server
         clientImpl = redis.createClient({ port: serverPort })
         getFakeTimestamp = () => new Date(parseInt(fakeTimestamp)).getTime()
-        redisClient = new RedisClient(clientImpl, getFakeTimestamp)
+        redisClient = new RedisClient(clientImpl, config, getFakeTimestamp)
       })
   })
 
@@ -82,7 +83,7 @@ describe('RedisClient', function() {
 
     it('uses the Date builtin in production', function() {
       var before = new Date().getTime(),
-          prodTime = new RedisClient(clientImpl).getTimestamp()
+          prodTime = new RedisClient(clientImpl, {}).getTimestamp()
 
       prodTime.should.be.within(before, new Date().getTime())
     })
@@ -300,6 +301,22 @@ describe('RedisClient', function() {
             .should.become({ owner: 'mbland' })
         })
     })
+
+    it('raises an error when adding to the autocomplete index fails', () => {
+      stubClientImplMethod('zadd').callsFake((...args) => {
+        var cb = args.pop()
+        cb(new Error('forced error for ' + args.join(' ')))
+      })
+
+      // Note the link still exists even if autocomplete index insertion fails.
+      return redisClient.createLink('/foo', LINK_TARGET, 'mbland')
+        .should.be.fulfilled.then(result => {
+          result.should.be.an('Error')
+          result.message.should.eql(
+            'forced error for search:links 0 f 0 fo 0 foo 0 foo*')
+        })
+        .then(() => redisClient.getLink('/foo').should.be.fulfilled)
+    })
   })
 
   describe('getOwnedLinks', function() {
@@ -423,7 +440,7 @@ describe('RedisClient', function() {
       ]).should.be.fulfilled.then(function() {
         return redisClient.getLinks()
       }).should.be.fulfilled.then(function(links) {
-        links.map(l => l.link).sort().should.eql(['/bar', '/baz', '/foo'])
+        links.map(l => l.link).should.eql(['/bar', '/baz', '/foo'])
       })
     })
 
@@ -439,6 +456,57 @@ describe('RedisClient', function() {
         links.map(l => l.link).sort()
           .should.eql(['/alphafoo1', '/foo1', '/foo2'])
       })
+    })
+  })
+
+  describe('completeLink', function() {
+    beforeEach(function() {
+      return Promise.all([
+        redisClient.createLink('/foobar', LINK_TARGET, 'mbland'),
+        redisClient.createLink('/bar', LINK_TARGET, 'mbland'),
+        redisClient.createLink('/barbaz', LINK_TARGET, 'mbland'),
+        redisClient.createLink('/barquux', LINK_TARGET, 'mbland'),
+        redisClient.createLink('/baz', LINK_TARGET, 'mbland')
+      ])
+    })
+
+    it('should complete the appropriate links', function() {
+      return redisClient.completeLink('bar')
+        .should.be.fulfilled.then(links => {
+          links.should.eql(['bar', 'barbaz', 'barquux'])
+        })
+    })
+
+    it('should complete nothing if prefix.length < 3', function() {
+      return redisClient.completeLink('ba')
+        .should.be.fulfilled.then(links => links.should.be.empty)
+    })
+
+    it('should return nothing if no links start with the prefix', function() {
+      return redisClient.completeLink('plugh')
+        .should.be.fulfilled.then(links => links.should.be.empty)
+    })
+  })
+
+  describe('getLinksToTarget', function() {
+    beforeEach(function() {
+      return Promise.all([
+        redisClient.createLink('/foo', LINK_TARGET, 'mbland'),
+        redisClient.createLink('/bar', LINK_TARGET, 'mbland'),
+        redisClient.createLink('/baz', LINK_TARGET, 'mbland')
+      ])
+    })
+
+    it('should return all the links to LINK_TARGET', function() {
+      return redisClient.getLinksToTarget(LINK_TARGET)
+        .should.be.fulfilled.then(links => {
+          links.should.eql(['/bar', '/baz', '/foo'])
+        })
+    })
+
+    it('should return nothing if the target doesn\'t exist', function() {
+      return redisClient.getLinksToTarget('https://nonexistent.com/')
+        .should.be.fulfilled.then(links => links.should.be.empty)
     })
   })
 })
