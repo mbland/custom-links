@@ -276,24 +276,24 @@ describe('LinkDb', function() {
     })
   })
 
-  describe('checkOwnership', function() {
+  describe('getLinkIfOwner', function() {
     it('successfully validates ownership', function() {
       stubClientMethod('getLink').withArgs('/foo')
         .returns(Promise.resolve({ owner: 'mbland' }))
-      return linkDb.checkOwnership('/foo', 'mbland').should.be.fulfilled
+      return linkDb.getLinkIfOwner('/foo', 'mbland').should.be.fulfilled
     })
 
     it('fails if the link doesn\'t exist', function() {
       stubClientMethod('getLink').withArgs('/foo')
         .returns(Promise.resolve(null))
-      return linkDb.checkOwnership('/foo', 'mbland')
+      return linkDb.getLinkIfOwner('/foo', 'mbland')
         .should.be.rejectedWith('/foo does not exist')
     })
 
     it('fails unless invoked by the owner', function() {
       stubClientMethod('getLink').withArgs('/foo')
         .returns(Promise.resolve({ owner: 'msb' }))
-      return linkDb.checkOwnership('/foo', 'mbland')
+      return linkDb.getLinkIfOwner('/foo', 'mbland')
         .should.be.rejectedWith('/foo is owned by msb')
     })
   })
