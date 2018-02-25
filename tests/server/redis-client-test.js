@@ -305,7 +305,7 @@ describe('RedisClient', function() {
 
   describe('indexLink', function() {
     it('should successfully index a link', () => {
-      return redisClient.indexLink('/foobar', LINK_TARGET)
+      return redisClient.indexLink('/foobar', { target: LINK_TARGET })
         .should.be.fulfilled
         .then(() => redisClient.completeLink('foo'))
         .should.become(['foobar'])
@@ -319,7 +319,7 @@ describe('RedisClient', function() {
         cb(new Error('forced error for ' + args.join(' ')))
       })
 
-      return redisClient.indexLink('/foo', LINK_TARGET)
+      return redisClient.indexLink('/foo', { target: LINK_TARGET })
         .should.be.rejectedWith(Error,
           'forced error for search:links 0 f 0 fo 0 foo 0 foo*')
     })
@@ -468,11 +468,11 @@ describe('RedisClient', function() {
   describe('completeLink', function() {
     beforeEach(function() {
       return Promise.all([
-        redisClient.indexLink('/foobar', LINK_TARGET),
-        redisClient.indexLink('/bar', LINK_TARGET),
-        redisClient.indexLink('/barbaz', LINK_TARGET),
-        redisClient.indexLink('/barquux', LINK_TARGET),
-        redisClient.indexLink('/baz', LINK_TARGET)
+        redisClient.indexLink('/foobar', { target: LINK_TARGET }),
+        redisClient.indexLink('/bar', { target: LINK_TARGET }),
+        redisClient.indexLink('/barbaz', { target: LINK_TARGET }),
+        redisClient.indexLink('/barquux', { target: LINK_TARGET }),
+        redisClient.indexLink('/baz', { target: LINK_TARGET })
       ])
     })
 
@@ -497,9 +497,9 @@ describe('RedisClient', function() {
   describe('getLinksToTarget', function() {
     beforeEach(function() {
       return Promise.all([
-        redisClient.indexLink('/foo', LINK_TARGET),
-        redisClient.indexLink('/bar', LINK_TARGET),
-        redisClient.indexLink('/baz', LINK_TARGET)
+        redisClient.indexLink('/foo', { target: LINK_TARGET }),
+        redisClient.indexLink('/bar', { target: LINK_TARGET }),
+        redisClient.indexLink('/baz', { target: LINK_TARGET })
       ])
     })
 
