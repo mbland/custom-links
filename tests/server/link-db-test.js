@@ -277,10 +277,11 @@ describe('LinkDb', function() {
   })
 
   describe('getLinkIfOwner', function() {
-    it('successfully validates ownership', function() {
+    it('returns the link info object if ownership validation succeeds', () => {
       stubClientMethod('getLink').withArgs('/foo')
         .returns(Promise.resolve({ owner: 'mbland' }))
-      return linkDb.getLinkIfOwner('/foo', 'mbland').should.be.fulfilled
+      return linkDb.getLinkIfOwner('/foo', 'mbland')
+        .should.become({ owner: 'mbland' })
     })
 
     it('fails if the link doesn\'t exist', function() {
