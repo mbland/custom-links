@@ -301,21 +301,27 @@ describe('RedisClient', function() {
             .should.become({ owner: 'mbland' })
         })
     })
+  })
 
-    it('raises an error when adding to the autocomplete index fails', () => {
+  describe('indexLink', function() {
+    it('should successfully index a link', () => {
+      return redisClient.indexLink('/foobar', LINK_TARGET)
+        .should.be.fulfilled
+        .then(() => redisClient.completeLink('foo'))
+        .should.become(['foobar'])
+        .then(() => redisClient.getLinksToTarget(LINK_TARGET))
+        .should.become(['/foobar'])
+    })
+
+    it('raises an error when indexing a link fails', () => {
       stubClientImplMethod('zadd').callsFake((...args) => {
         var cb = args.pop()
         cb(new Error('forced error for ' + args.join(' ')))
       })
 
-      // Note the link still exists even if autocomplete index insertion fails.
-      return redisClient.createLink('/foo', LINK_TARGET, 'mbland')
-        .should.be.fulfilled.then(result => {
-          result.should.be.an('Error')
-          result.message.should.eql(
-            'forced error for search:links 0 f 0 fo 0 foo 0 foo*')
-        })
-        .then(() => redisClient.getLink('/foo').should.be.fulfilled)
+      return redisClient.indexLink('/foo', LINK_TARGET)
+        .should.be.rejectedWith(Error,
+          'forced error for search:links 0 f 0 fo 0 foo 0 foo*')
     })
   })
 
@@ -462,11 +468,11 @@ describe('RedisClient', function() {
   describe('completeLink', function() {
     beforeEach(function() {
       return Promise.all([
-        redisClient.createLink('/foobar', LINK_TARGET, 'mbland'),
-        redisClient.createLink('/bar', LINK_TARGET, 'mbland'),
-        redisClient.createLink('/barbaz', LINK_TARGET, 'mbland'),
-        redisClient.createLink('/barquux', LINK_TARGET, 'mbland'),
-        redisClient.createLink('/baz', LINK_TARGET, 'mbland')
+        redisClient.indexLink('/foobar', LINK_TARGET),
+        redisClient.indexLink('/bar', LINK_TARGET),
+        redisClient.indexLink('/barbaz', LINK_TARGET),
+        redisClient.indexLink('/barquux', LINK_TARGET),
+        redisClient.indexLink('/baz', LINK_TARGET)
       ])
     })
 
@@ -491,9 +497,9 @@ describe('RedisClient', function() {
   describe('getLinksToTarget', function() {
     beforeEach(function() {
       return Promise.all([
-        redisClient.createLink('/foo', LINK_TARGET, 'mbland'),
-        redisClient.createLink('/bar', LINK_TARGET, 'mbland'),
-        redisClient.createLink('/baz', LINK_TARGET, 'mbland')
+        redisClient.indexLink('/foo', LINK_TARGET),
+        redisClient.indexLink('/bar', LINK_TARGET),
+        redisClient.indexLink('/baz', LINK_TARGET)
       ])
     })
 
