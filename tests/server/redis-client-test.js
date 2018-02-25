@@ -433,6 +433,29 @@ describe('RedisClient', function() {
     })
   })
 
+  describe('deindexLink', function() {
+    it('should successfully deindex a link', () => {
+      return redisClient.indexLink('/foobar', { target: LINK_TARGET })
+        .should.be.fulfilled
+        .then(() => redisClient.deindexLink('/foobar', { target: LINK_TARGET }))
+        .should.be.fulfilled
+        .then(() => redisClient.completeLink('foo'))
+        .should.become([])
+        .then(() => redisClient.getLinksToTarget(LINK_TARGET))
+        .should.become([])
+    })
+
+    it('resolves to an Error when deindexing a link fails', () => {
+      stubClientImplMethod('zrem').callsFake((...args) => {
+        var cb = args.pop()
+        cb(new Error('forced error for ' + args.join(' ')))
+      })
+
+      return redisClient.deindexLink('/foo', { target: LINK_TARGET })
+        .should.be.rejectedWith(Error, 'forced error for search:links foo*')
+    })
+  })
+
   describe('getLinks', function() {
     it('should return nothing if there are no links', function() {
       return redisClient.getLinks().should.become([])
@@ -492,6 +515,12 @@ describe('RedisClient', function() {
       return redisClient.completeLink('plugh')
         .should.be.fulfilled.then(links => links.should.be.empty)
     })
+
+    it('should not return a link after it\'s been deleted', function() {
+      return redisClient.deindexLink('/barbaz', { target: LINK_TARGET })
+        .should.be.fulfilled.then(() => redisClient.completeLink('bar'))
+        .should.be.fulfilled.then(links => links.should.eql(['bar', 'barquux']))
+    })
   })
 
   describe('getLinksToTarget', function() {
@@ -513,6 +542,14 @@ describe('RedisClient', function() {
     it('should return nothing if the target doesn\'t exist', function() {
       return redisClient.getLinksToTarget('https://nonexistent.com/')
         .should.be.fulfilled.then(links => links.should.be.empty)
+    })
+
+    it('should not return a link after it\'s been deleted', function() {
+      return redisClient.deindexLink('/baz', { target: LINK_TARGET })
+        .should.be.fulfilled.then(() => {
+          return redisClient.getLinksToTarget(LINK_TARGET)
+        })
+        .should.be.fulfilled.then(links => links.should.eql(['/bar', '/foo']))
     })
   })
 })
