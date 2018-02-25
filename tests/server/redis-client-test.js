@@ -405,6 +405,33 @@ describe('RedisClient', function() {
     })
   })
 
+  describe('reindexLink', function() {
+    it('should successfully reindex a link', () => {
+      var prevInfo = { target: LINK_TARGET },
+          newInfo =  { target: LINK_TARGET + 'the-rainbow-of-death' }
+
+      return redisClient.indexLink('/foobar', prevInfo)
+        .should.be.fulfilled
+        .then(() => redisClient.reindexLink('/foobar', prevInfo, newInfo))
+        .should.be.fulfilled
+        .then(() => redisClient.getLinksToTarget(prevInfo.target))
+        .should.become([])
+        .then(() => redisClient.getLinksToTarget(newInfo.target))
+        .should.become(['/foobar'])
+    })
+
+    it('resolves to an Error when reindexing a link fails', () => {
+      stubClientImplMethod('lrem').callsFake((...args) => {
+        var cb = args.pop()
+        cb(new Error('forced error for ' + args.join(' ')))
+      })
+
+      return redisClient.reindexLink('/foo', { target: LINK_TARGET }, {})
+        .should.be.rejectedWith(Error,
+          'forced error for target:' + LINK_TARGET + ' 1 /foo')
+    })
+  })
+
   describe('deleteLink', function() {
     it('successfully deletes the link', function() {
       return redisClient.createLink('/foo', LINK_TARGET, 'mbland')
