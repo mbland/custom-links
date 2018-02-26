@@ -301,21 +301,27 @@ describe('RedisClient', function() {
             .should.become({ owner: 'mbland' })
         })
     })
+  })
 
-    it('raises an error when adding to the autocomplete index fails', () => {
+  describe('indexLink', function() {
+    it('should successfully index a link', () => {
+      return redisClient.indexLink('/foobar', { target: LINK_TARGET })
+        .should.be.fulfilled
+        .then(() => redisClient.completeLink('foo'))
+        .should.become(['foobar'])
+        .then(() => redisClient.getLinksToTarget(LINK_TARGET))
+        .should.become(['/foobar'])
+    })
+
+    it('raises an error when indexing a link fails', () => {
       stubClientImplMethod('zadd').callsFake((...args) => {
         var cb = args.pop()
         cb(new Error('forced error for ' + args.join(' ')))
       })
 
-      // Note the link still exists even if autocomplete index insertion fails.
-      return redisClient.createLink('/foo', LINK_TARGET, 'mbland')
-        .should.be.fulfilled.then(result => {
-          result.should.be.an('Error')
-          result.message.should.eql(
-            'forced error for search:links 0 f 0 fo 0 foo 0 foo*')
-        })
-        .then(() => redisClient.getLink('/foo').should.be.fulfilled)
+      return redisClient.indexLink('/foo', { target: LINK_TARGET })
+        .should.be.rejectedWith(Error,
+          'forced error for search:links 0 f 0 fo 0 foo 0 foo*')
     })
   })
 
@@ -399,6 +405,33 @@ describe('RedisClient', function() {
     })
   })
 
+  describe('reindexLink', function() {
+    it('should successfully reindex a link', () => {
+      var prevInfo = { target: LINK_TARGET },
+          newInfo =  { target: LINK_TARGET + 'the-rainbow-of-death' }
+
+      return redisClient.indexLink('/foobar', prevInfo)
+        .should.be.fulfilled
+        .then(() => redisClient.reindexLink('/foobar', prevInfo, newInfo))
+        .should.be.fulfilled
+        .then(() => redisClient.getLinksToTarget(prevInfo.target))
+        .should.become([])
+        .then(() => redisClient.getLinksToTarget(newInfo.target))
+        .should.become(['/foobar'])
+    })
+
+    it('resolves to an Error when reindexing a link fails', () => {
+      stubClientImplMethod('lrem').callsFake((...args) => {
+        var cb = args.pop()
+        cb(new Error('forced error for ' + args.join(' ')))
+      })
+
+      return redisClient.reindexLink('/foo', { target: LINK_TARGET }, {})
+        .should.be.rejectedWith(Error,
+          'forced error for target:' + LINK_TARGET + ' 1 /foo')
+    })
+  })
+
   describe('deleteLink', function() {
     it('successfully deletes the link', function() {
       return redisClient.createLink('/foo', LINK_TARGET, 'mbland')
@@ -424,6 +457,29 @@ describe('RedisClient', function() {
           return redisClient.deleteLink('/foo')
         })
         .should.be.rejectedWith(Error, 'forced error for /foo')
+    })
+  })
+
+  describe('deindexLink', function() {
+    it('should successfully deindex a link', () => {
+      return redisClient.indexLink('/foobar', { target: LINK_TARGET })
+        .should.be.fulfilled
+        .then(() => redisClient.deindexLink('/foobar', { target: LINK_TARGET }))
+        .should.be.fulfilled
+        .then(() => redisClient.completeLink('foo'))
+        .should.become([])
+        .then(() => redisClient.getLinksToTarget(LINK_TARGET))
+        .should.become([])
+    })
+
+    it('resolves to an Error when deindexing a link fails', () => {
+      stubClientImplMethod('zrem').callsFake((...args) => {
+        var cb = args.pop()
+        cb(new Error('forced error for ' + args.join(' ')))
+      })
+
+      return redisClient.deindexLink('/foo', { target: LINK_TARGET })
+        .should.be.rejectedWith(Error, 'forced error for search:links foo*')
     })
   })
 
@@ -462,11 +518,11 @@ describe('RedisClient', function() {
   describe('completeLink', function() {
     beforeEach(function() {
       return Promise.all([
-        redisClient.createLink('/foobar', LINK_TARGET, 'mbland'),
-        redisClient.createLink('/bar', LINK_TARGET, 'mbland'),
-        redisClient.createLink('/barbaz', LINK_TARGET, 'mbland'),
-        redisClient.createLink('/barquux', LINK_TARGET, 'mbland'),
-        redisClient.createLink('/baz', LINK_TARGET, 'mbland')
+        redisClient.indexLink('/foobar', { target: LINK_TARGET }),
+        redisClient.indexLink('/bar', { target: LINK_TARGET }),
+        redisClient.indexLink('/barbaz', { target: LINK_TARGET }),
+        redisClient.indexLink('/barquux', { target: LINK_TARGET }),
+        redisClient.indexLink('/baz', { target: LINK_TARGET })
       ])
     })
 
@@ -486,14 +542,20 @@ describe('RedisClient', function() {
       return redisClient.completeLink('plugh')
         .should.be.fulfilled.then(links => links.should.be.empty)
     })
+
+    it('should not return a link after it\'s been deleted', function() {
+      return redisClient.deindexLink('/barbaz', { target: LINK_TARGET })
+        .should.be.fulfilled.then(() => redisClient.completeLink('bar'))
+        .should.be.fulfilled.then(links => links.should.eql(['bar', 'barquux']))
+    })
   })
 
   describe('getLinksToTarget', function() {
     beforeEach(function() {
       return Promise.all([
-        redisClient.createLink('/foo', LINK_TARGET, 'mbland'),
-        redisClient.createLink('/bar', LINK_TARGET, 'mbland'),
-        redisClient.createLink('/baz', LINK_TARGET, 'mbland')
+        redisClient.indexLink('/foo', { target: LINK_TARGET }),
+        redisClient.indexLink('/bar', { target: LINK_TARGET }),
+        redisClient.indexLink('/baz', { target: LINK_TARGET })
       ])
     })
 
@@ -507,6 +569,14 @@ describe('RedisClient', function() {
     it('should return nothing if the target doesn\'t exist', function() {
       return redisClient.getLinksToTarget('https://nonexistent.com/')
         .should.be.fulfilled.then(links => links.should.be.empty)
+    })
+
+    it('should not return a link after it\'s been deleted', function() {
+      return redisClient.deindexLink('/baz', { target: LINK_TARGET })
+        .should.be.fulfilled.then(() => {
+          return redisClient.getLinksToTarget(LINK_TARGET)
+        })
+        .should.be.fulfilled.then(links => links.should.eql(['/bar', '/foo']))
     })
   })
 })
