@@ -321,7 +321,7 @@ describe('RedisClient', function() {
 
       return redisClient.indexLink('/foo', { target: LINK_TARGET })
         .should.be.rejectedWith(Error,
-          'forced error for search:links 0 f 0 fo 0 foo 0 foo*')
+          'forced error for complete:links 0 f 0 fo 0 foo 0 foo*')
     })
   })
 
@@ -479,7 +479,7 @@ describe('RedisClient', function() {
       })
 
       return redisClient.deindexLink('/foo', { target: LINK_TARGET })
-        .should.be.rejectedWith(Error, 'forced error for search:links foo*')
+        .should.be.rejectedWith(Error, 'forced error for complete:links foo*')
     })
   })
 
