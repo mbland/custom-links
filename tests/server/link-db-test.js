@@ -1,7 +1,7 @@
 'use strict'
 
 var LinkDb = require('../../lib/link-db')
-var RedisClient = require('../../lib/redis-client')
+var RedisClient = require('../../lib/redis')
 
 var sinon = require('sinon')
 var chai = require('chai')
