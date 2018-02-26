@@ -2,7 +2,7 @@
 
 var fs = require('fs')
 var redis = require('redis')
-var RedisClient = require('../../lib/redis-client')
+var RedisClient = require('../../lib/redis')
 var helpers = require('../helpers')
 var chai = require('chai')
 var chaiAsPromised = require('chai-as-promised')
