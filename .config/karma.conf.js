@@ -48,6 +48,7 @@ module.exports = function(config) {
       postDetection(browsers) {
         return browsers
           .filter(b => !b.startsWith('Firefox') || b === 'Firefox')
+          .filter(b => !b.startsWith('Chromium' || b === 'Chromium'))
           .map(browser => {
             if ((browser === 'Chrome' || browser.startsWith('Chrome')) &&
                 process.env.CI === 'true') {
