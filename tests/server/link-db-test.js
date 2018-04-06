@@ -299,6 +299,34 @@ describe('LinkDb', function() {
     })
   })
 
+  describe('getShortLinksFromTargetLink', function() {
+    it('returns no short links when there are no links', () => {
+      stubClientMethod('getShortLinksFromTargetLink').withArgs('')
+        .returns(Promise.resolve({}))
+      return linkDb.getShortLinksFromTargetLink('').should.become({})
+    })
+
+    it('returns all links', () => {
+      stubClientMethod('getShortLinksFromTargetLink')
+      .withArgs('')
+        .returns(Promise.resolve({
+          'https://mike-bland.com/': ['/baz', '/bar', '/foo'],
+          'https://akash.com': ['/test']
+        }))
+      return linkDb.getShortLinksFromTargetLink('').should.become({
+        'https://mike-bland.com/': ['/baz', '/bar', '/foo'],
+        'https://akash.com': ['/test']
+      })
+    })
+
+    it('returns all matching links and their shortlinks', () => {
+      stubClientMethod('getShortLinksFromTargetLink').withArgs('akash')
+        .returns(Promise.resolve({ 'https://akash.com': ['/test'] }))
+      return linkDb.getShortLinksFromTargetLink('akash')
+        .should.become({ 'https://akash.com': ['/test'] })
+    })
+  })
+
   describe('updateProperty', function() {
     it('successfully changes the target', function() {
       stubClientMethod('getLink').withArgs('/foo')
