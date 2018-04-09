@@ -327,6 +327,34 @@ describe('LinkDb', function() {
     })
   })
 
+  describe('searchTargetLinks', function() {
+    it('return no search results when there are no links', () => {
+      stubClientMethod('searchTargetLinks').withArgs('')
+      .returns(Promise.resolve({}))
+      return linkDb.searchTargetLinks('').should.become({})
+    })
+
+    it('returns all links', () => {
+      stubClientMethod('searchTargetLinks')
+      .withArgs('')
+        .returns(Promise.resolve({
+          'https://mike-bland.com/': ['/baz', '/bar', '/foo'],
+          'https://akash.com': ['/test']
+        }))
+      return linkDb.searchTargetLinks('').should.become({
+        'https://mike-bland.com/': ['/baz', '/bar', '/foo'],
+        'https://akash.com': ['/test']
+      })
+    })
+
+    it('returns all matching links and their shortlinks', () => {
+      stubClientMethod('searchTargetLinks').withArgs('akash')
+        .returns(Promise.resolve({ 'https://akash.com': ['/test'] }))
+      return linkDb.searchTargetLinks('akash')
+        .should.become({ 'https://akash.com': ['/test'] })
+    })
+  })
+
   describe('updateProperty', function() {
     it('successfully changes the target', function() {
       stubClientMethod('getLink').withArgs('/foo')
