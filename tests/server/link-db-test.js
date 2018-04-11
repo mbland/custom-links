@@ -298,22 +298,7 @@ describe('LinkDb', function() {
         .should.be.rejectedWith('/foo is owned by msb')
     })
   })
-
-  describe('getShortLinksFromTargetLink', function() {
-    it('returns all links', () => {
-      stubClientMethod('getShortLinksFromTargetLink')
-      .withArgs('')
-        .returns(Promise.resolve({
-          'https://mike-bland.com/': ['/baz', '/bar', '/foo'],
-          'https://akash.com': ['/test']
-        }))
-      return linkDb.getShortLinksFromTargetLink('').should.become({
-        'https://mike-bland.com/': ['/baz', '/bar', '/foo'],
-        'https://akash.com': ['/test']
-      })
-    })
-  })
-
+  
   describe('searchTargetLinks', function() {
     it('returns all links', () => {
       stubClientMethod('searchTargetLinks')
