@@ -483,9 +483,9 @@ describe('RedisClient', function() {
     })
   })
 
-  describe('getLinks', function() {
+  describe('searchShortLinks', function() {
     it('should return nothing if there are no links', function() {
-      return redisClient.getLinks().should.become([])
+      return redisClient.searchShortLinks().should.become([])
     })
 
     it('should return all links', function() {
@@ -494,7 +494,7 @@ describe('RedisClient', function() {
         redisClient.createLink('/bar', LINK_TARGET, 'mbland'),
         redisClient.createLink('/baz', LINK_TARGET, 'mbland')
       ]).should.be.fulfilled.then(function() {
-        return redisClient.getLinks()
+        return redisClient.searchShortLinks()
       }).should.be.fulfilled.then(function(links) {
         links.map(l => l.link).should.eql(['/bar', '/baz', '/foo'])
       })
@@ -507,10 +507,47 @@ describe('RedisClient', function() {
         redisClient.createLink('/bar1', LINK_TARGET, 'akash'),
         redisClient.createLink('/alphafoo1', LINK_TARGET, 'akash')
       ]).should.be.fulfilled.then(function() {
-        return redisClient.getLinks('foo')
+        return redisClient.searchShortLinks('foo')
       }).should.be.fulfilled.then(function(links){
         links.map(l => l.link).sort()
           .should.eql(['/alphafoo1', '/foo1', '/foo2'])
+      })
+    })
+  })
+
+  describe('searchTargetLinks', function() {
+    it('should return nothing if there are no links', function() {
+      return redisClient.searchTargetLinks().should.become({})
+    })
+
+    it('should return all links', function() {
+      return Promise.all([
+        redisClient.createLink('/foo', LINK_TARGET, 'akash'),
+        redisClient.createLink('/bar', LINK_TARGET, 'akash'),
+        redisClient.createLink('/baz', LINK_TARGET, 'akash'),
+        redisClient.createLink('/test', 'https://akash.com', 'akash')
+      ]).should.be.fulfilled.then(function() {
+        return redisClient.searchTargetLinks()
+      }).should.be.fulfilled.then(function(link) {
+        link.should.eql({
+          'https://mike-bland.com/': ['/baz', '/bar', '/foo'],
+          'https://akash.com': ['/test']
+        })
+      })
+    })
+
+    it('should return all matching links and their shortlinks', function() {
+      return Promise.all([
+        redisClient.createLink('/foo', LINK_TARGET, 'akash'),
+        redisClient.createLink('/bar', LINK_TARGET, 'akash'),
+        redisClient.createLink('/baz', LINK_TARGET, 'akash'),
+        redisClient.createLink('/test', 'https://akash.com', 'akash')
+      ]).should.be.fulfilled.then(function() {
+        return redisClient.searchTargetLinks('akash')
+      }).should.be.fulfilled.then(function(link) {
+        link.should.eql({
+          'https://akash.com': ['/test']
+        })
       })
     })
   })

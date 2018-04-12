@@ -298,6 +298,21 @@ describe('LinkDb', function() {
         .should.be.rejectedWith('/foo is owned by msb')
     })
   })
+  
+  describe('searchTargetLinks', function() {
+    it('returns all links', () => {
+      stubClientMethod('searchTargetLinks')
+      .withArgs('')
+        .returns(Promise.resolve({
+          'https://mike-bland.com/': ['/baz', '/bar', '/foo'],
+          'https://akash.com': ['/test']
+        }))
+      return linkDb.searchTargetLinks('').should.become({
+        'https://mike-bland.com/': ['/baz', '/bar', '/foo'],
+        'https://akash.com': ['/test']
+      })
+    })
+  })
 
   describe('updateProperty', function() {
     it('successfully changes the target', function() {
