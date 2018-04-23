@@ -298,18 +298,44 @@ describe('LinkDb', function() {
         .should.be.rejectedWith('/foo is owned by msb')
     })
   })
-  
+
   describe('searchTargetLinks', function() {
     it('returns all links', () => {
+      const mblandLinks =  [
+        {
+          link: '/baz',
+          owner: 'mbland'
+        },
+        {
+          link: '/bar',
+          owner: 'mbland'
+        },
+        {
+          link: '/foo',
+          owner: 'mbland'
+        }
+      ]
+      const akashLinks = [
+        {
+          link: '/test',
+          owner: 'akash'
+        }
+      ]
+
       stubClientMethod('searchTargetLinks')
       .withArgs('')
         .returns(Promise.resolve({
           'https://mike-bland.com/': ['/baz', '/bar', '/foo'],
           'https://akash.com': ['/test']
         }))
+      stubClientMethod('fetchLinkData')
+      .withArgs(['/baz', '/bar', '/foo'])
+        .returns(Promise.resolve(mblandLinks))
+      .withArgs(['/test'])
+        .returns(Promise.resolve(akashLinks))
       return linkDb.searchTargetLinks('').should.become({
-        'https://mike-bland.com/': ['/baz', '/bar', '/foo'],
-        'https://akash.com': ['/test']
+        'https://mike-bland.com/': mblandLinks,
+        'https://akash.com': akashLinks
       })
     })
   })
