@@ -553,6 +553,71 @@ describe('assembleApp', function() {
       })
     })
   })
+
+  describe('/search', function() {
+    var searchShortLinks
+    var searchTargetLinks
+
+    beforeEach(function() {
+      searchShortLinks = sinon.stub(linkDb, 'searchShortLinks')
+      searchTargetLinks = sinon.stub(linkDb, 'searchTargetLinks')
+    })
+
+    afterEach(function() {
+      searchShortLinks.restore()
+      searchTargetLinks.restore()
+    })
+
+    it('returns all related links for the matched short link', function() {
+      // Not including the owner, though it would be normally.
+      var matchingLinks = [
+        '/bar', '/foobar'
+      ]
+
+      searchShortLinks.withArgs('bar')
+        .returns(Promise.resolve(matchingLinks))
+
+      return request(app)
+        .get('/api/search?link=bar')
+        .set('cookie', sessionCookie)
+        .expect(200)
+        .expect('Content-Type', 'application/json; charset=utf-8')
+        .then(function(res) {
+          expect(res.body).to.eql(matchingLinks)
+        })
+    })
+
+    it('returns all related links for the matched target link', function() {
+      // Not including the owner, though it would be normally.
+      var mblandLinks = [
+        { link: '/foo', target: LINK_TARGET, clicks: 27 },
+        { link: '/bar', target: LINK_TARGET, clicks: 28 },
+        { link: '/baz', target: LINK_TARGET, clicks: 29 }
+      ]
+
+      var mblandLinksObject = { 'https://mbland.com': mblandLinks}
+
+      searchTargetLinks.withArgs('mbland')
+        .returns(Promise.resolve(mblandLinksObject))
+
+      return request(app)
+        .get('/api/search?target=mbland')
+        .set('cookie', sessionCookie)
+        .expect(200)
+        .expect('Content-Type', 'application/json; charset=utf-8')
+        .then(function(res) {
+          expect(res.body).to.eql(mblandLinksObject)
+        })
+    })
+
+    it('returns error when link or target is not provided as query param',
+    function() {
+      return request(app)
+        .get('/api/search')
+        .set('cookie', sessionCookie)
+        .expect(400)
+    })
+  })
 })
 
 describe('sessionParams', function() {
