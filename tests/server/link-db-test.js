@@ -299,6 +299,32 @@ describe('LinkDb', function() {
     })
   })
 
+  describe('searchShortLinks', function() {
+    it('returns all matching links', () => {
+      const links = [
+        {
+          link: '/baz',
+          owner: 'mbland'
+        },
+        {
+          link: '/bar',
+          owner: 'mbland'
+        },
+        {
+          link: '/foo',
+          owner: 'mbland'
+        }
+      ]
+      const matchingLinks = [links[1], links[0]]
+
+      stubClientMethod('searchShortLinks')
+        .withArgs('ba')
+        .returns(Promise.resolve(matchingLinks))
+      return linkDb.searchShortLinks('ba')
+        .should.become({ results: matchingLinks })
+    })
+  })
+
   describe('searchTargetLinks', function() {
     it('returns all links', () => {
       const mblandLinks =  [
