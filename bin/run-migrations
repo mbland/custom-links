@@ -1,0 +1,46 @@
+#! /usr/bin/env node
+//
+// Runs a series of idempotent migration scripts to transform an existing
+// Custom Links database to a new schema.
+//
+// Usage:
+//   REDIS_HOST=<hostname> REDIS_PORT=<port> run-migrations
+//
+// Where:
+//   <hostname>  name of host on which Redis is running (default: localhost)
+//   <port>      port on which Redis is listening (default: 6379)
+
+var Log = require('log')
+var log = new Log('info')
+
+var redis = require('redis')
+var redisClientOptions = {
+  host: process.env.REDIS_HOST,
+  port: process.env.REDIS_PORT
+}
+var redisClient = redis.createClient(redisClientOptions)
+
+var path = require('path')
+
+const MIGRATIONS_DIR = '../lib/redis/migrations/'
+const MIGRATION_NAMES = [
+  '0000-target-search-autocomplete'
+]
+
+Promise
+  .all(MIGRATION_NAMES.map(migrationName => {
+    var Migration = require(path.join(MIGRATIONS_DIR, migrationName))
+
+    log.info(`migration ${migrationName} started`)
+    return new Migration(redisClient, log).migrate()
+      .then(() => {
+        log.info(`migration ${migrationName} complete`)
+      })
+      .catch(err => {
+        log.error(`migration ${migrationName} failed: ${err}`)
+        return err
+      })
+  }))
+  .then(results => {
+    process.exit(results.filter(i => i !== undefined).length)
+  })
