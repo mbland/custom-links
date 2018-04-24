@@ -1,6 +1,8 @@
 instrumentation:
   include-all-sources: true
   excludes:
+  - bin/*
+  - lib/redis/migrations/*
   - public/assets/js/vendor/*
   - public/tests/generated/*
   - public/tests/vendor/*
