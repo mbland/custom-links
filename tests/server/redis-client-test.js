@@ -421,14 +421,14 @@ describe('RedisClient', function() {
     })
 
     it('resolves to an Error when reindexing a link fails', () => {
-      stubClientImplMethod('lrem').callsFake((...args) => {
+      stubClientImplMethod('srem').callsFake((...args) => {
         var cb = args.pop()
         cb(new Error('forced error for ' + args.join(' ')))
       })
 
       return redisClient.reindexLink('/foo', { target: LINK_TARGET }, {})
         .should.be.rejectedWith(Error,
-          'forced error for target:' + LINK_TARGET + ' 1 /foo')
+          'forced error for target:' + LINK_TARGET + ' /foo')
     })
   })
 
@@ -530,7 +530,7 @@ describe('RedisClient', function() {
         return redisClient.searchTargetLinks()
       }).should.be.fulfilled.then(function(link) {
         link.should.eql({
-          'https://mike-bland.com/': ['/baz', '/bar', '/foo'],
+          'https://mike-bland.com/': ['/bar', '/baz', '/foo'],
           'https://akash.com': ['/test']
         })
       })
