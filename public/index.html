@@ -34,7 +34,7 @@ body{margin-top:30px;}
 @media (min-width:850px){
 .timestamp.cell{width:100px;word-break:normal;}
 .link-target{display:flex;flex:1;}
-.links-header .clicks-action{width:215px;}
+.links-row .clicks-action{width:215px;}
 .links .cell{flex:0 0 100px;}
 .links button{margin:2px;}
 .links-data .action{display:flex;flex:0 0 215px;}
@@ -49,6 +49,7 @@ body{margin-top:30px;}
         <span id='userid'></span> |
         <a href='/#'>My&nbsp;links</a> |
         <a href='/#create'>New&nbsp;link</a> |
+        <a href='/#search'>Search</a> |
         <a href='/logout'>Log&nbsp;out</a>
       </div>
       <h3>Custom Links</h3>
@@ -155,6 +156,41 @@ body{margin-top:30px;}
         </p>
         <button class='confirm'>Yes</button>
         <button class='focused cancel button-primary'>No</button>
+      </div>
+      <form class='search-view' action='/api/search'>
+        <input class='u-full-width' data-name='query'/>
+        <button class='button-primary' type='submit'>Search links</button>
+        <button class='button-primary' type='submit'>Search targets</button>
+        <div class='results'></div>
+      </form>
+      <div class='search-results links'>
+        <div class='links-row links-header'>
+          <div class='wrapper link-target'>
+            <div class='label cell link'>Link</div>
+            <div class='label cell target'>Target</div>
+            <div class='label cell timestamp created'>Created</div>
+            <div class='label cell timestamp updated'>Updated</div>
+          </div>
+          <div class='wrapper clicks-action'>
+            <div class='label cell owner'>Owner</div>
+            <div class='label cell clicks'>Clicks</div>
+          </div>
+        </div>
+      </div>
+      <div class='search-result link links-row links-data'>
+        <div class='wrapper link-target'>
+          <div class='cell link'></div>
+          <div class='cell target'></div>
+          <div class='cell timestamp created'></div>
+          <div class='cell timestamp updated'></div>
+        </div>
+        <div class='wrapper clicks-action'>
+          <div class='cell owner'></div>
+          <div class='cell clicks'></div>
+        </div>
+      </div>
+      <div class='search-no-results result success'>
+        <p>No matching links found.</p>
       </div>
     </div>
   </div>

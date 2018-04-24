@@ -7,6 +7,8 @@
   cl.UNKNOWN_USER = '<unknown user>'
   cl.KEY_TAB = 9
   cl.KEY_ESC = 27
+  cl.CUSTOM_LINK_QUERY = 'link'
+  cl.TARGET_URL_QUERY = 'target'
 
   cl.xhr = function(method, url, body) {
     return new Promise(function(resolve, reject) {
@@ -135,6 +137,12 @@
       owner + ' now owns ' + link.anchor, 'Ownership wasn\'t transferred')
   }
 
+  cl.Backend.prototype.searchLinks = function(queryType, searchString) {
+    var query = queryType + '=' + searchString
+    return this.makeApiCall('GET', 'search?' + query, {}, undefined, undefined,
+      'Failed to execute search query: ' + query)
+  }
+
   cl.backend = new cl.Backend(cl.xhr)
 
   cl.loadApp = function() {
@@ -163,7 +171,8 @@
         routes = {
           '#': cl.linksView,
           '#create': cl.createLinkView,
-          '#edit': cl.editLinkView
+          '#edit': cl.editLinkView,
+          '#search': cl.searchLinksView
         },
         renderView = routes[viewId]
 
@@ -253,6 +262,106 @@
         }
         return Promise.resolve(cl.errorView(err.message))
       })
+  }
+
+  cl.searchLinksView = function() {
+    var searchForm = cl.getTemplate('search-view'),
+        buttons = searchForm.getElementsByTagName('button')
+
+    buttons[0].onclick = cl.searchLinksClick(searchForm, cl.CUSTOM_LINK_QUERY)
+    buttons[1].onclick = cl.searchLinksClick(searchForm, cl.TARGET_URL_QUERY)
+
+    return Promise.resolve(new cl.View(searchForm, function() {
+      searchForm.getElementsByTagName('input')[0].focus()
+    }))
+  }
+
+  cl.searchLinksClick = function(searchForm, queryType) {
+    return function(e) {
+      e.preventDefault(e)
+      return cl.searchLinks(searchForm, queryType,
+        cl.getSearchQueryFromForm(searchForm, queryType))
+    }
+  }
+
+  cl.getSearchQueryFromForm = function(searchForm) {
+    var query = searchForm.querySelector('[data-name=query]')
+
+    if (!query) {
+      throw new Error('missing input field in search form: ' +
+        searchForm.outerHTML)
+    }
+    return query.value.replace(/^\/+/, '')
+  }
+
+  cl.searchLinks = function(searchForm, queryType, searchString) {
+    if (searchString.length === 0) {
+      return Promise.resolve()
+    }
+    return cl.backend.searchLinks(queryType, searchString)
+      .then(function(results) {
+        if ((queryType === cl.CUSTOM_LINK_QUERY &&
+            results.results.length === 0) ||
+            Object.keys(results).length === 0) {
+          return cl.getTemplate('search-no-results')
+        }
+        return cl.createSearchResultsTable(queryType, results)
+      })
+      .catch(function(err) {
+        var errMessage = cl.getTemplate('result failure')
+
+        errMessage.innerHTML = err.message
+        return errMessage
+      })
+      .then(function(resultsElement) {
+        var results = searchForm.getElementsByClassName('results')[0]
+        return cl.flashElement(results, resultsElement.outerHTML)
+      })
+  }
+
+  cl.createSearchResultsTable = function(queryType, results) {
+    var resultTable = cl.getTemplate('search-results'),
+        searchResult = cl.getTemplate('search-result'),
+        linkIndex = 0,
+        targetIndex = 1
+
+    if (queryType === cl.TARGET_URL_QUERY) {
+      // Swap the "Link" and "Target" fields in the results table.
+      [ resultTable.getElementsByClassName('wrapper')[0],
+        searchResult.getElementsByClassName('wrapper')[0]
+      ].forEach(function(element) {
+        element.insertBefore(element.getElementsByClassName('target')[0],
+          element.getElementsByClassName('link')[0])
+      })
+      targetIndex = 0
+      linkIndex = 1
+
+      // Transform the results object into the same format as that for a
+      // custom link search. PhantomJS doesn't grok Object.values, hence
+      // Object.keys().map().
+      results = Object.keys(results)
+        .map(function(key) { return results[key] })
+        .reduce(function(flattened, links) {
+          links.forEach(function(link) { flattened.push(link) })
+          return flattened
+        }, [])
+    } else {
+      results = results.results
+    }
+
+    results.forEach(function(link) {
+      var current = searchResult.cloneNode(true),
+          cells = current.getElementsByClassName('cell')
+
+      cells[linkIndex].appendChild(cl.createAnchor(link.link))
+      cells[targetIndex].appendChild(cl.createAnchor(link.target))
+      cells[2].textContent = cl.dateStamp(link.created)
+      cells[3].textContent = cl.dateStamp(link.updated)
+      cells[4].textContent = link.owner
+      cells[5].textContent = link.clicks
+      resultTable.appendChild(current)
+    })
+    return resultTable
   }
 
   cl.errorView = function(message) {
