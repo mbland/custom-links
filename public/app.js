@@ -164,23 +164,26 @@
     })
   }
 
+  cl.getRoute = function(viewId){
+    return {
+      '#': cl.linksView,
+      '#create': cl.createLinkView,
+      '#edit': cl.editLinkView,
+      '#search': cl.searchLinksView
+    }[viewId]
+  }
+
   cl.showView = function(hashId) {
     var viewId = hashId === '' ? '#' : hashId.split('-', 1)[0],
         viewParam = hashId.slice(viewId.length + 1),
         container = document.getElementsByClassName('view-container')[0],
-        routes = {
-          '#': cl.linksView,
-          '#create': cl.createLinkView,
-          '#edit': cl.editLinkView,
-          '#search': cl.searchLinksView
-        },
-        renderView = routes[viewId]
+        renderView = cl.getRoute(viewId)
 
     if (!renderView) {
       if (container.children.length !== 0) {
         return
       }
-      renderView = routes['#']
+      renderView = cl.getRoute('#')
     }
     return renderView(viewParam)
       .then(function(view) {
@@ -326,31 +329,43 @@
         targetIndex = 1
 
     if (queryType === cl.TARGET_URL_QUERY) {
-      // Swap the "Link" and "Target" fields in the results table.
-      [ resultTable.getElementsByClassName('wrapper')[0],
-        searchResult.getElementsByClassName('wrapper')[0]
-      ].forEach(function(element) {
-        element.insertBefore(element.getElementsByClassName('target')[0],
-          element.getElementsByClassName('link')[0])
-      })
+      cl.swapSearchResultTableHeaders(resultTable, searchResult)
       targetIndex = 0
       linkIndex = 1
-
-      // Transform the results object into the same format as that for a
-      // custom link search. PhantomJS doesn't grok Object.values, hence
-      // Object.keys().map().
-      results = Object.keys(results)
-        .map(function(key) { return results[key] })
-        .reduce(function(flattened, links) {
-          links.forEach(function(link) { flattened.push(link) })
-          return flattened
-        }, [])
+      results = cl.transformTargetSearchResults(results)
     } else {
       results = results.results
     }
+    return cl.fillSearchResultsTable(results, resultTable, searchResult,
+      linkIndex, targetIndex)
+  }
 
+  cl.swapSearchResultTableHeaders = function(resultTable, entryTemplate) {
+    // Swap the "Link" and "Target" fields in the results table.
+    [ resultTable.getElementsByClassName('wrapper')[0],
+      entryTemplate.getElementsByClassName('wrapper')[0]
+    ].forEach(function(element) {
+      element.insertBefore(element.getElementsByClassName('target')[0],
+        element.getElementsByClassName('link')[0])
+    })
+  }
+
+  // Transform the results object into the same format as that for a
+  // custom link search.
+  cl.transformTargetSearchResults = function(results) {
+    // PhantomJS doesn't grok Object.values, hence Object.keys().map().
+    return Object.keys(results)
+      .map(function(key) { return results[key] })
+      .reduce(function(flattened, links) {
+        links.forEach(function(link) { flattened.push(link) })
+        return flattened
+      }, [])
+  }
+
+  cl.fillSearchResultsTable = function(results, resultTable, entryTemplate,
+    linkIndex, targetIndex) {
     results.forEach(function(link) {
-      var current = searchResult.cloneNode(true),
+      var current = entryTemplate.cloneNode(true),
           cells = current.getElementsByClassName('cell')
 
       cells[linkIndex].appendChild(cl.createAnchor(link.link))
