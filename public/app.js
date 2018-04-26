@@ -323,21 +323,22 @@
   }
 
   cl.createSearchResultsTable = function(queryType, results) {
-    var resultTable = cl.getTemplate('search-results'),
-        searchResult = cl.getTemplate('search-result'),
-        linkIndex = 0,
-        targetIndex = 1
+    var params = {
+      resultTable: cl.getTemplate('search-results'),
+      entryTemplate: cl.getTemplate('search-result'),
+      linkIndex: 0,
+      targetIndex: 1
+    }
 
     if (queryType === cl.TARGET_URL_QUERY) {
-      cl.swapSearchResultTableHeaders(resultTable, searchResult)
-      targetIndex = 0
-      linkIndex = 1
-      results = cl.transformTargetSearchResults(results)
+      cl.swapSearchResultTableHeaders(params.resultTable, params.entryTemplate)
+      params.targetIndex = 0
+      params.linkIndex = 1
+      params.results = cl.transformTargetSearchResults(results)
     } else {
-      results = results.results
+      params.results = results.results
     }
-    return cl.fillSearchResultsTable(results, resultTable, searchResult,
-      linkIndex, targetIndex)
+    return cl.fillSearchResultsTable(params)
   }
 
   cl.swapSearchResultTableHeaders = function(resultTable, entryTemplate) {
@@ -362,21 +363,20 @@
       }, [])
   }
 
-  cl.fillSearchResultsTable = function(results, resultTable, entryTemplate,
-    linkIndex, targetIndex) {
-    results.forEach(function(link) {
-      var current = entryTemplate.cloneNode(true),
+  cl.fillSearchResultsTable = function(params) {
+    params.results.forEach(function(link) {
+      var current = params.entryTemplate.cloneNode(true),
           cells = current.getElementsByClassName('cell')
 
-      cells[linkIndex].appendChild(cl.createAnchor(link.link))
-      cells[targetIndex].appendChild(cl.createAnchor(link.target))
+      cells[params.linkIndex].appendChild(cl.createAnchor(link.link))
+      cells[params.targetIndex].appendChild(cl.createAnchor(link.target))
       cells[2].textContent = cl.dateStamp(link.created)
       cells[3].textContent = cl.dateStamp(link.updated)
       cells[4].textContent = link.owner
       cells[5].textContent = link.clicks
-      resultTable.appendChild(current)
+      params.resultTable.appendChild(current)
     })
-    return resultTable
+    return params.resultTable
   }
 
   cl.errorView = function(message) {
