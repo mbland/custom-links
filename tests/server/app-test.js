@@ -552,70 +552,113 @@ describe('assembleApp', function() {
           })
       })
     })
-  })
 
-  describe('/search', function() {
-    var searchShortLinks
-    var searchTargetLinks
+    describe('/search', function() {
+      var searchShortLinks
+      var searchTargetLinks
 
-    beforeEach(function() {
-      searchShortLinks = sinon.stub(linkDb, 'searchShortLinks')
-      searchTargetLinks = sinon.stub(linkDb, 'searchTargetLinks')
+      beforeEach(function() {
+        searchShortLinks = sinon.stub(linkDb, 'searchShortLinks')
+        searchTargetLinks = sinon.stub(linkDb, 'searchTargetLinks')
+      })
+
+      afterEach(function() {
+        searchShortLinks.restore()
+        searchTargetLinks.restore()
+      })
+
+      it('returns all related links for the matched short link', function() {
+        // Not including the owner, though it would be normally.
+        var matchingLinks = [
+          '/bar', '/foobar'
+        ]
+
+        searchShortLinks.withArgs('bar')
+          .returns(Promise.resolve(matchingLinks))
+
+        return request(app)
+          .get('/api/search?link=bar')
+          .set('cookie', sessionCookie)
+          .expect(200)
+          .expect('Content-Type', 'application/json; charset=utf-8')
+          .then(function(res) {
+            expect(res.body).to.eql(matchingLinks)
+          })
+      })
+
+      it('returns all related links for the matched target link', function() {
+        // Not including the owner, though it would be normally.
+        var mblandLinks = [
+          { link: '/foo', target: LINK_TARGET, clicks: 27 },
+          { link: '/bar', target: LINK_TARGET, clicks: 28 },
+          { link: '/baz', target: LINK_TARGET, clicks: 29 }
+        ]
+
+        var mblandLinksObject = { 'https://mbland.com': mblandLinks}
+
+        searchTargetLinks.withArgs('mbland')
+          .returns(Promise.resolve(mblandLinksObject))
+
+        return request(app)
+          .get('/api/search?target=mbland')
+          .set('cookie', sessionCookie)
+          .expect(200)
+          .expect('Content-Type', 'application/json; charset=utf-8')
+          .then(function(res) {
+            expect(res.body).to.eql(mblandLinksObject)
+          })
+      })
+
+      it('returns error when missing link or target query param', function() {
+        return request(app)
+          .get('/api/search')
+          .set('cookie', sessionCookie)
+          .expect(400)
+      })
     })
 
-    afterEach(function() {
-      searchShortLinks.restore()
-      searchTargetLinks.restore()
-    })
+    describe('/autocomplete', function() {
+      var completeLink
 
-    it('returns all related links for the matched short link', function() {
-      // Not including the owner, though it would be normally.
-      var matchingLinks = [
-        '/bar', '/foobar'
-      ]
+      beforeEach(function() {
+        completeLink = sinon.stub(linkDb, 'completeLink')
+      })
 
-      searchShortLinks.withArgs('bar')
-        .returns(Promise.resolve(matchingLinks))
+      afterEach(function() {
+        completeLink.restore()
+      })
 
-      return request(app)
-        .get('/api/search?link=bar')
-        .set('cookie', sessionCookie)
-        .expect(200)
-        .expect('Content-Type', 'application/json; charset=utf-8')
-        .then(function(res) {
-          expect(res.body).to.eql(matchingLinks)
-        })
-    })
+      it('returns all matching short links', function() {
+        var matchingLinks = [ 'foo', 'foobar', 'foobaz' ]
 
-    it('returns all related links for the matched target link', function() {
-      // Not including the owner, though it would be normally.
-      var mblandLinks = [
-        { link: '/foo', target: LINK_TARGET, clicks: 27 },
-        { link: '/bar', target: LINK_TARGET, clicks: 28 },
-        { link: '/baz', target: LINK_TARGET, clicks: 29 }
-      ]
+        completeLink.withArgs('foo')
+          .returns(Promise.resolve(matchingLinks))
 
-      var mblandLinksObject = { 'https://mbland.com': mblandLinks}
+        return request(app)
+          .get('/api/autocomplete/foo')
+          .set('cookie', sessionCookie)
+          .expect(200)
+          .expect('Content-Type', 'application/json; charset=utf-8')
+          .then(function(res) {
+            expect(res.body).to.eql({ results: matchingLinks })
+          })
+      })
 
-      searchTargetLinks.withArgs('mbland')
-        .returns(Promise.resolve(mblandLinksObject))
+      it('returns an error when the operation fails', function() {
+        completeLink.withArgs('foo')
+          .callsFake(function() {
+            return Promise.reject(new Error('forced error'))
+          })
 
-      return request(app)
-        .get('/api/search?target=mbland')
-        .set('cookie', sessionCookie)
-        .expect(200)
-        .expect('Content-Type', 'application/json; charset=utf-8')
-        .then(function(res) {
-          expect(res.body).to.eql(mblandLinksObject)
-        })
-    })
-
-    it('returns error when link or target is not provided as query param',
-    function() {
-      return request(app)
-        .get('/api/search')
-        .set('cookie', sessionCookie)
-        .expect(400)
+        return request(app)
+          .get('/api/autocomplete/foo')
+          .set('cookie', sessionCookie)
+          .expect(500, 'Internal Server Error')
+          .then(function() {
+            logError.calledOnce.should.be.true
+            expect(logError.args[0][0].message).to.equal('forced error')
+          })
+      })
     })
   })
 })
