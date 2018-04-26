@@ -28,7 +28,7 @@
     "browserify-istanbul": "^2.0.0",
     "chai": "^3.5.0",
     "chai-as-promised": "^6.0.0",
-    "chromedriver": "^2.37.0",
+    "chromedriver": "^2.38.2",
     "codeclimate-test-reporter": "^0.4.1",
     "coveralls": "^2.13.3",
     "eslint": "^3.19.0",
