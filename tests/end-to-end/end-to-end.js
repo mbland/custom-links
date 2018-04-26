@@ -128,6 +128,7 @@ test.describe('End-to-end test', function() {
     // make sure we can navigate to "New link" in the nav bar as expected.
     activeElement().sendKeys(Key.chord(Key.SHIFT, Key.TAB))
     activeElement().sendKeys(Key.chord(Key.SHIFT, Key.TAB))
+    activeElement().sendKeys(Key.chord(Key.SHIFT, Key.TAB))
     activeElement().getText().should.become('New link')
     activeElement().sendKeys(Key.ENTER)
     driver.wait(until.urlIs(url + '#create'))
@@ -245,5 +246,48 @@ test.describe('End-to-end test', function() {
     driver.findElement(By.linkText('My links')).click()
     driver.wait(until.urlIs(url + '#'))
     waitForActiveLink('Create a new custom link')
+  })
+
+  test.it('searches for links and target URLs', function() {
+    createNewLink('foo', url + 'foo')
+    createNewLink('bar', url + 'bar')
+    createNewLink('baz', url + 'baz')
+
+    driver.findElement(By.linkText('Search')).click()
+    driver.wait(until.urlIs(url +'#search'))
+    waitForFormInput()
+
+    // Enter the search term, tab to the "Search links" button, and click
+    activeElement().sendKeys('[fb]', Key.TAB)
+    activeElement().click()
+
+    driver.wait(until.elementLocated(By.css('.search-results'), 3000,
+      'timeout waiting for search results to appear'))
+    driver.wait(until.elementLocated(By.linkText('/foo')), 3000,
+      'timeout waiting for first search result to appear')
+    driver.findElement(By.linkText('/bar'))
+    driver.findElement(By.linkText('/baz'))
+
+    // Tab over to the "Search targets" link and click it; should produce the
+    // same results.
+
+    activeElement().sendKeys(Key.TAB)
+    activeElement().click()
+
+    driver.wait(until.elementLocated(By.css('.search-results'), 3000,
+      'timeout waiting for search results to appear'))
+    driver.wait(until.elementLocated(By.linkText('/foo')), 3000,
+      'timeout waiting for first search result to appear')
+    driver.findElement(By.linkText('/bar'))
+    driver.findElement(By.linkText('/baz'))
+
+    // Now enter a query that matches nothing and ensure the results are empty.
+    activeElement().sendKeys(Key.chord(Key.SHIFT, Key.TAB))
+    activeElement().sendKeys(Key.chord(Key.SHIFT, Key.TAB))
+    activeElement().sendKeys('quux', Key.TAB)
+    activeElement().click()
+
+    driver.wait(until.elementLocated(By.css('.search-no-results'), 3000,
+      'timeout waiting for empty search results message to appear'))
   })
 })

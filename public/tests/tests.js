@@ -307,6 +307,16 @@ describe('Custom Links', function() {
           'Ownership wasn\'t transferred')
       })
     })
+
+    describe('searchLinks', function() {
+      it('calls /api/search', function() {
+        stubOut(backend, 'makeApiCall')
+        backend.searchLinks('link', 'foo')
+        backend.makeApiCall.calledOnce.should.be.true
+        checkMakeApiCallArgs('GET', 'search?link=foo', {}, undefined, undefined,
+          'Failed to execute search query: link=foo')
+      })
+    })
   })
 
   describe('loadApp', function() {
@@ -364,10 +374,11 @@ describe('Custom Links', function() {
         userId.textContent.should.equal(USER_ID)
 
         navLinks = navBar.getElementsByTagName('A')
-        navLinks.length.should.equal(3)
+        navLinks.length.should.equal(4)
         navLinks[0].href.should.equal(window.location.origin + '/#')
         navLinks[1].href.should.equal(window.location.origin + '/#create')
-        navLinks[2].href.should.equal(window.location.origin + '/logout')
+        navLinks[2].href.should.equal(window.location.origin + '/#search')
+        navLinks[3].href.should.equal(window.location.origin + '/logout')
       })
     })
   })
@@ -1653,6 +1664,199 @@ describe('Custom Links', function() {
         submitButton.onclick(event)
         event.preventDefault.calledOnce.should.be.true
         cl.changeOwner.calledWith(changeOwner, link, data.owner).should.be.true
+      })
+    })
+  })
+
+  describe('searchView', function() {
+    var searchView, searchForm, queryField, buttons, searchLinks, searchTargets,
+        resultsElement, event
+
+    var matchingLinks = [
+      {
+        link: '/foo',
+        target: 'https://foo.com/',
+        created: 1234567890,
+        updated: 1234567891,
+        clicks: 27
+      },
+      {
+        link: '/foobar',
+        target: 'https://foo.com/bar',
+        created: 1234567890,
+        updated: 1234567891,
+        clicks: 27
+      },
+      {
+        link: '/foobaz',
+        target: 'https://foo.com/baz',
+        created: 1234567890,
+        updated: 1234567891,
+        clicks: 27
+      }
+    ]
+
+    // For PhantomJS
+    if (Array.from === undefined) {
+      Array.from = function(obj) {
+        var result = [],
+            i
+
+        for (i = 0; i !== obj.length; ++i) {
+          result.push(obj[i])
+        }
+        return result
+      }
+    }
+
+    var parseSearchResultsTable = function(searchResults) {
+      var result = {}
+
+      result.headers = Array.from(searchResults
+        .getElementsByClassName('links-header')[0]
+        .getElementsByClassName('cell')).map(function(cell) {
+          return cell.textContent
+        })
+
+      result.results = Array.from(searchResults
+        .getElementsByClassName('search-result')).map(function(row) {
+          var item = {}
+          Array.from(row.getElementsByClassName('cell'))
+            .forEach(function(cell, i) {
+              item[result.headers[i]] = cell.textContent
+            })
+          return item
+        })
+
+      return result
+    }
+
+    beforeEach(function() {
+      stubOut(cl.backend, 'searchLinks')
+      return cl.searchLinksView().then(function(view) {
+        searchView = view
+        searchForm = searchView.element
+        queryField = searchForm.getElementsByTagName('input')[0]
+        queryField.value = 'foo'
+        buttons = searchForm.getElementsByTagName('button')
+        searchLinks = buttons[0]
+        searchTargets = buttons[1]
+        event = { preventDefault: sinon.spy() }
+        resultsElement = searchForm.getElementsByClassName('results')[0]
+        prepareFlashingElement(searchForm)
+      })
+    })
+
+    afterEach(function() {
+      searchForm.parentNode.removeChild(searchForm)
+    })
+
+    it('shows a form to search for custom links or target URLs', function() {
+      expect(viewElementReceivesFocus(searchView, queryField)).to.equal(true)
+      expect(searchLinks.textContent).to.contain('Search links')
+      expect(searchTargets.textContent).to.contain('Search targets')
+    })
+
+    it('raises an error if the query field is missing', function() {
+      searchForm.removeChild(queryField)
+      return expect(function() { searchLinks.onclick(event) })
+        .to.throw(Error, 'missing input field in search form:')
+    })
+
+    it('does nothing if the query string is empty', function() {
+      queryField.value = ''
+      return searchLinks.onclick(event).then(function(result) {
+        event.preventDefault.calledOnce.should.be.true
+        expect(result).to.eql(undefined)
+      })
+    })
+
+    it('shows an error message if the backend query fails', function() {
+      cl.backend.searchLinks.withArgs('link', 'foo')
+        .returns(Promise.reject(new Error('forced error')))
+
+      return searchLinks.onclick(event).then(function(result) {
+        expect(result).to.eql(resultsElement)
+        result.firstChild.className.should.equal('result failure')
+        result.textContent.should.match(/forced error/)
+      })
+    })
+
+    it('shows the no-results message when no custom links match', function() {
+      cl.backend.searchLinks.withArgs('link', 'foo')
+        .returns(Promise.resolve({ results: [] }))
+
+      return searchLinks.onclick(event).then(function(result) {
+        expect(result).to.eql(resultsElement)
+        result.firstChild.className
+          .should.equal('search-no-results result success')
+      })
+    })
+
+    it('shows the no-results message when no target links match', function() {
+      cl.backend.searchLinks.withArgs('target', 'foo')
+        .returns(Promise.resolve({}))
+
+      return searchTargets.onclick(event).then(function(result) {
+        expect(result).to.eql(resultsElement)
+        result.firstChild.className
+          .should.equal('search-no-results result success')
+      })
+    })
+
+    it('shows a table of matching custom links', function() {
+      cl.backend.searchLinks.withArgs('link', 'foo')
+        .returns(Promise.resolve({ results: matchingLinks }))
+
+      return searchLinks.onclick(event).then(function(result) {
+        var resultTable
+
+        expect(result).to.eql(resultsElement)
+        result.firstChild.className.should.equal('search-results links')
+        resultTable = parseSearchResultsTable(result)
+
+        resultTable.headers.length.should.eql(6)
+        resultTable.headers[0].should.eql('Link')
+        resultTable.headers[1].should.eql('Target')
+        resultTable.headers[2].should.eql('Created')
+        resultTable.headers[3].should.eql('Updated')
+        resultTable.headers[4].should.eql('Owner')
+        resultTable.headers[5].should.eql('Clicks')
+
+        resultTable.results.length.should.eql(3)
+        resultTable.results[0].Link.should.eql('/foo')
+        resultTable.results[1].Link.should.eql('/foobar')
+        resultTable.results[2].Link.should.eql('/foobaz')
+      })
+    })
+
+    it('shows a table of matching target URLs', function() {
+      var matchingTargets = {}
+
+      matchingLinks.forEach(function(link) {
+        if (matchingTargets[link.target] === undefined) {
+          matchingTargets[link.target] = []
+        }
+        matchingTargets[link.target].push(link)
+      })
+      cl.backend.searchLinks.withArgs('target', 'foo')
+        .returns(Promise.resolve(matchingTargets))
+
+      return searchTargets.onclick(event).then(function(result) {
+        var resultTable
+
+        expect(result).to.eql(resultsElement)
+        result.firstChild.className.should.equal('search-results links')
+        resultTable = parseSearchResultsTable(result)
+
+        resultTable.headers.length.should.eql(6)
+        resultTable.headers[0].should.eql('Target')
+        resultTable.headers[1].should.eql('Link')
+
+        resultTable.results.length.should.eql(3)
+        resultTable.results[0].Target.should.eql('https://foo.com/')
+        resultTable.results[1].Target.should.eql('https://foo.com/bar')
+        resultTable.results[2].Target.should.eql('https://foo.com/baz')
       })
     })
   })
