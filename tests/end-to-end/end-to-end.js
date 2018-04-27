@@ -86,7 +86,10 @@ test.describe('End-to-end test', function() {
     driver.wait(until.urlIs(url + '#create'))
     waitForFormInput().click()
     activeElement().sendKeys(
-      Key.HOME, Key.chord(Key.SHIFT, Key.END), link + Key.TAB)
+      Key.HOME, Key.chord(Key.SHIFT, Key.END), link)
+
+    // Prevent any autocompletion interference with Escape.
+    activeElement().sendKeys(Key.ESCAPE, Key.TAB)
     activeElement().sendKeys(
       Key.HOME, Key.chord(Key.SHIFT, Key.END), target + Key.TAB)
     activeElement().sendKeys(Key.SPACE)

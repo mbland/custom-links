@@ -9,6 +9,12 @@
   cl.KEY_ESC = 27
   cl.CUSTOM_LINK_QUERY = 'link'
   cl.TARGET_URL_QUERY = 'target'
+  cl.MIN_AUTOCOMPLETE_CHARACTERS = 3
+  cl.ESCAPE_KEYS = [ 'Backspace', 'Enter', 'Escape', 'Delete' ]
+  cl.NEXT_ELEMENT_KEYS = [ 'ArrowDown', 'ArrowRight' ]
+  cl.NEXT_ITEM_KEYS = [ 'KeyJ', 'KeyL', 'KeyS', 'KeyD' ]
+  cl.PREV_ELEMENT_KEYS = [ 'ArrowUp', 'ArrowLeft' ]
+  cl.PREV_ITEM_KEYS = [ 'ArrowUp', 'ArrowLeft', 'KeyK', 'KeyH', 'KeyW', 'KeyA' ]
 
   cl.xhr = function(method, url, body) {
     return new Promise(function(resolve, reject) {
@@ -143,6 +149,12 @@
       'Failed to execute search query: ' + query)
   }
 
+  cl.Backend.prototype.completeLink = function(prefix) {
+    var link = cl.createLinkInfo(prefix)
+    return this.makeApiCall('GET', 'autocomplete', link, {},
+      'failed to autocomplete prefix: ' + prefix)
+  }
+
   cl.backend = new cl.Backend(cl.xhr)
 
   cl.loadApp = function() {
@@ -233,14 +245,158 @@
 
   cl.createLinkView = function(link) {
     var linkForm = cl.getTemplate('create-view'),
+        linkInput = linkForm.querySelector('[data-name=link]'),
+        dropdown = linkForm.getElementsByClassName('dropdown')[0],
+        targetInput = linkForm.querySelector('[data-name=target]'),
         button = linkForm.getElementsByTagName('button')[0]
 
+    linkInput.addEventListener('keydown',
+      cl.createLinkInputKeyDownListener(linkInput, dropdown, targetInput))
+    linkInput.addEventListener('keyup',
+      cl.createLinkInputKeyUpListener(linkInput, dropdown))
     button.onclick = cl.createClickHandler(linkForm, 'createLink')
     link = cl.createLinkInfo(link)
     linkForm = cl.applyData({ link: link.trimmed }, linkForm)
     return Promise.resolve(new cl.View(linkForm, function() {
       linkForm.getElementsByTagName('input')[link.trimmed ? 1 : 0].focus()
     }))
+  }
+
+  cl.createLinkInputKeyDownListener = function(link, dropdown, target) {
+    return function(e) {
+      if (e.code === 'Enter') {
+        e.preventDefault()
+        if (dropdown.style.display !== 'block') {
+          target.focus()
+        }
+      }
+    }
+  }
+
+  cl.createLinkInputKeyUpListener = function(linkInput, dropdown) {
+    return function(e) {
+      if (e.code === 'Escape' || e.code === 'Enter') {
+        dropdown.style.display = 'none'
+        return
+      } else if (cl.isEnterNextElementKeyEvent(e) && dropdown.firstChild) {
+        dropdown.firstChild.focus()
+        return
+      }
+      cl.showLinkCompletions(linkInput, dropdown)
+        .then(function() {
+          if (dropdown.childNodes.length === 1 &&
+            dropdown.firstChild.textContent === linkInput.value) {
+            dropdown.style.display = 'none'
+            linkInput.focus()
+          }
+        })
+    }
+  }
+
+  cl.showLinkCompletions = function(input, dropdown) {
+    if (!input.value || input.value.length < cl.MIN_AUTOCOMPLETE_CHARACTERS) {
+      dropdown.style.display = 'none'
+      return Promise.resolve()
+    }
+    return cl.backend.completeLink(input.value)
+      .then(function(response) {
+        if (response.results.length === 0) {
+          dropdown.style.display = 'none'
+          return
+        }
+        while (dropdown.firstChild) {
+          dropdown.removeChild(dropdown.firstChild)
+        }
+        response.results.map(function(value) {
+          cl.createAutocompleteElement(value, input, dropdown)
+        })
+        cl.showAutocompleteDropdown(dropdown, input)
+      })
+      .catch(function(err) {
+        console.error('autocomplete on "' + input.value + '" failed:', err)
+      })
+  }
+
+  cl.showAutocompleteDropdown = function(dropdown, input) {
+    dropdown.style.display = 'block'
+    dropdown.style.marginTop = '-' + window.getComputedStyle(input).marginBottom
+    dropdown.style.width = window.getComputedStyle(input).width
+  }
+
+  cl.createAutocompleteElement = function(value, input, dropdown) {
+    var element = document.createElement('li')
+
+    element.textContent = value
+    element.tabIndex = 0
+    element.addEventListener('focus', function() {
+      input.value = this.textContent
+    })
+    element.addEventListener('click', function() {
+      input.value = this.textContent
+      input.focus()
+      dropdown.style.display = 'none'
+    })
+    element.addEventListener('keydown',
+      cl.dropdownListener(element, input, dropdown))
+    dropdown.appendChild(element)
+  }
+
+  cl.dropdownListener = function(element, input, dropdown) {
+    return function (e) {
+      if (cl.dropdownEscape(e, dropdown, input) ||
+        cl.dropdownNext(e, dropdown, element) ||
+        cl.dropdownPrevious(e, dropdown, element)) {
+        e.preventDefault()
+      }
+    }
+  }
+
+  cl.dropdownEscape = function(keyEvent, dropdown, input) {
+    if (cl.ESCAPE_KEYS.indexOf(keyEvent.code) !== -1) {
+      dropdown.style.display = 'none'
+      input.focus()
+      return true
+    }
+  }
+
+  cl.isEnterNextElementKeyEvent = function(keyEvent) {
+    return cl.NEXT_ELEMENT_KEYS.indexOf(keyEvent.code) !== -1 ||
+      (keyEvent.code === 'Tab' && !keyEvent.getModifierState('Shift')) ||
+      (keyEvent.code === 'KeyN' && keyEvent.getModifierState('Control'))
+  }
+
+  cl.isSelectNextItemKeyEvent = function(keyEvent) {
+    return cl.NEXT_ITEM_KEYS.indexOf(keyEvent.code) !== -1 ||
+      cl.isEnterNextElementKeyEvent(keyEvent)
+  }
+
+  cl.dropdownNext = function(keyEvent, dropdown, element) {
+    if (cl.isSelectNextItemKeyEvent(keyEvent)) {
+      if (element === dropdown.lastChild) {
+        dropdown.firstChild.focus()
+      } else {
+        element.nextSibling.focus()
+      }
+      return true
+    }
+  }
+
+  cl.isSelectPreviousItemKeyEvent = function(keyEvent) {
+    return cl.PREV_ELEMENT_KEYS.indexOf(keyEvent.code) !== -1 ||
+      cl.PREV_ITEM_KEYS.indexOf(keyEvent.code) !== -1 ||
+      (keyEvent.code === 'Tab' && keyEvent.getModifierState('Shift')) ||
+      (keyEvent.code === 'KeyP' && keyEvent.getModifierState('Control'))
+  }
+
+  cl.dropdownPrevious = function(keyEvent, dropdown, element) {
+    if (cl.isSelectPreviousItemKeyEvent(keyEvent)) {
+      if (element === dropdown.firstChild) {
+        dropdown.lastChild.focus()
+      } else {
+        element.previousSibling.focus()
+      }
+      return true
+    }
   }
 
   cl.editLinkView = function(link) {
@@ -281,7 +437,7 @@
 
   cl.searchLinksClick = function(searchForm, queryType) {
     return function(e) {
-      e.preventDefault(e)
+      e.preventDefault()
       return cl.searchLinks(searchForm, queryType,
         cl.getSearchQueryFromForm(searchForm, queryType))
     }

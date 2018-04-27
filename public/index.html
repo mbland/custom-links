@@ -10,6 +10,9 @@ body{margin-top:30px;}
 .markup{z-index:1;}
 .templates{display:none;}
 .nav{text-align:right;}
+.dropdown{display:none;list-style:none;border:1px solid black;position:absolute;background:white;}
+.dropdown li{padding:0px;margin:0px;}
+.dropdown li:focus,li:hover {background:black;color:white;}
 .result{padding:5px;border-radius:5px;}
 .result.success{background-color:whitesmoke;width:100%;text-align:center;}
 .result.failure{background-color:lavenderblush;width:100%;text-align:center;}
@@ -60,6 +63,7 @@ body{margin-top:30px;}
       <form class='create-view' action='/api/create'>
         <label>Custom link:</label>
         <input class='u-full-width' data-name='link'/>
+        <ul tabindex='-1' class='dropdown'></ul>
         <label>Target URL:</label>
         <input class='u-full-width' data-name='target'/>
         <button class='button-primary' type='submit'>Create link</button>
@@ -158,7 +162,7 @@ body{margin-top:30px;}
         <button class='focused cancel button-primary'>No</button>
       </div>
       <form class='search-view' action='/api/search'>
-        <input class='u-full-width' data-name='query'/>
+        <input class='u-full-width' type='search' data-name='query'/>
         <button class='button-primary' type='submit'>Search links</button>
         <button class='button-primary' type='submit'>Search targets</button>
         <div class='results'></div>
