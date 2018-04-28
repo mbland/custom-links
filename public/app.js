@@ -10,11 +10,6 @@
   cl.CUSTOM_LINK_QUERY = 'link'
   cl.TARGET_URL_QUERY = 'target'
   cl.MIN_AUTOCOMPLETE_CHARACTERS = 3
-  cl.ESCAPE_KEYS = [ 'Backspace', 'Enter', 'Escape', 'Delete' ]
-  cl.NEXT_ELEMENT_KEYS = [ 'ArrowDown', 'ArrowRight' ]
-  cl.NEXT_ITEM_KEYS = [ 'KeyJ', 'KeyL', 'KeyS', 'KeyD' ]
-  cl.PREV_ELEMENT_KEYS = [ 'ArrowUp', 'ArrowLeft' ]
-  cl.PREV_ITEM_KEYS = [ 'ArrowUp', 'ArrowLeft', 'KeyK', 'KeyH', 'KeyW', 'KeyA' ]
 
   cl.xhr = function(method, url, body) {
     return new Promise(function(resolve, reject) {
@@ -245,15 +240,12 @@
 
   cl.createLinkView = function(link) {
     var linkForm = cl.getTemplate('create-view'),
-        linkInput = linkForm.querySelector('[data-name=link]'),
-        dropdown = linkForm.getElementsByClassName('dropdown')[0],
-        targetInput = linkForm.querySelector('[data-name=target]'),
+        dropdown = new cl.Dropdown(linkForm.querySelector('[data-name=link]'),
+          linkForm.getElementsByClassName('dropdown')[0],
+          linkForm.querySelector('[data-name=target]')),
         button = linkForm.getElementsByTagName('button')[0]
 
-    linkInput.addEventListener('keydown',
-      cl.createLinkInputKeyDownListener(linkInput, dropdown, targetInput))
-    linkInput.addEventListener('keyup',
-      cl.createLinkInputKeyUpListener(linkInput, dropdown))
+    dropdown.addInputEventListeners()
     button.onclick = cl.createClickHandler(linkForm, 'createLink')
     link = cl.createLinkInfo(link)
     linkForm = cl.applyData({ link: link.trimmed }, linkForm)
@@ -262,69 +254,99 @@
     }))
   }
 
-  cl.createLinkInputKeyDownListener = function(link, dropdown, target) {
+  cl.Dropdown = function(inputElement, dropdownElement, nextInputElement) {
+    this.input = inputElement
+    this.items = dropdownElement
+    this.nextInput = nextInputElement
+  }
+
+  cl.Dropdown.prototype.addInputEventListeners = function() {
+    this.input.addEventListener('keydown', this.createInputKeyDownListener())
+    this.input.addEventListener('keyup', this.createInputKeyUpListener())
+  }
+
+  cl.Dropdown.prototype.show = function() {
+    var style = this.items.style,
+        inputStyle = window.getComputedStyle(this.input)
+
+    style.display = 'block'
+    style.marginTop = '-' + inputStyle.marginBottom
+    style.width = inputStyle.width
+  }
+
+  cl.Dropdown.prototype.hide = function() {
+    this.items.style = 'none'
+  }
+
+  cl.Dropdown.prototype.focus = function() {
+    if (this.items.firstChild) {
+      this.items.firstChild.focus()
+    }
+  }
+
+  cl.Dropdown.prototype.createInputKeyDownListener = function() {
+    var dropdown = this
     return function(e) {
       if (e.code === 'Enter') {
         e.preventDefault()
-        if (dropdown.style.display !== 'block') {
-          target.focus()
-        }
+        dropdown.hide()
+        dropdown.nextInput.focus()
       }
     }
   }
 
-  cl.createLinkInputKeyUpListener = function(linkInput, dropdown) {
+  cl.Dropdown.prototype.createInputKeyUpListener = function() {
+    var dropdown = this
+
     return function(e) {
       if (e.code === 'Escape' || e.code === 'Enter') {
-        dropdown.style.display = 'none'
-        return
-      } else if (cl.isEnterNextElementKeyEvent(e) && dropdown.firstChild) {
-        dropdown.firstChild.focus()
-        return
+        dropdown.hide()
+      } else if (cl.keyEvents.isEnterNextElement(e)) {
+        dropdown.focus()
+      } else {
+        return dropdown.showLinkCompletions()
       }
-      cl.showLinkCompletions(linkInput, dropdown)
-        .then(function() {
-          if (dropdown.childNodes.length === 1 &&
-            dropdown.firstChild.textContent === linkInput.value) {
-            dropdown.style.display = 'none'
-            linkInput.focus()
-          }
-        })
     }
   }
 
-  cl.showLinkCompletions = function(input, dropdown) {
-    if (!input.value || input.value.length < cl.MIN_AUTOCOMPLETE_CHARACTERS) {
-      dropdown.style.display = 'none'
+  cl.Dropdown.prototype.showLinkCompletions = function() {
+    var currentValue = this.input.value,
+        dropdown = this
+
+    if (!currentValue || currentValue.length < cl.MIN_AUTOCOMPLETE_CHARACTERS) {
+      this.hide()
       return Promise.resolve()
     }
-    return cl.backend.completeLink(input.value)
+    return cl.backend.completeLink(currentValue)
       .then(function(response) {
-        if (response.results.length === 0) {
-          dropdown.style.display = 'none'
-          return
-        }
-        while (dropdown.firstChild) {
-          dropdown.removeChild(dropdown.firstChild)
-        }
-        response.results.map(function(value) {
-          cl.createAutocompleteElement(value, input, dropdown)
-        })
-        cl.showAutocompleteDropdown(dropdown, input)
+        dropdown.update(response.results)
       })
       .catch(function(err) {
-        console.error('autocomplete on "' + input.value + '" failed:', err)
+        console.error('autocomplete on "' + currentValue + '" failed:', err)
       })
   }
 
-  cl.showAutocompleteDropdown = function(dropdown, input) {
-    dropdown.style.display = 'block'
-    dropdown.style.marginTop = '-' + window.getComputedStyle(input).marginBottom
-    dropdown.style.width = window.getComputedStyle(input).width
+  cl.Dropdown.prototype.update = function(values) {
+    var dropdown = this
+
+    while (this.items.firstChild) {
+      this.items.removeChild(this.items.firstChild)
+    }
+    if (values.length === 0 ||
+      (values.length === 1 && values[0] === this.input.value)) {
+      this.hide()
+      return
+    }
+    values.map(function(value) {
+      dropdown.add(value)
+    })
+    this.show()
   }
 
-  cl.createAutocompleteElement = function(value, input, dropdown) {
-    var element = document.createElement('li')
+  cl.Dropdown.prototype.add = function(value) {
+    var dropdown = this,
+        input = this.input,
+        element = document.createElement('li')
 
     element.textContent = value
     element.tabIndex = 0
@@ -333,69 +355,80 @@
     })
     element.addEventListener('click', function() {
       input.value = this.textContent
+      dropdown.hide()
       input.focus()
-      dropdown.style.display = 'none'
     })
-    element.addEventListener('keydown',
-      cl.dropdownListener(element, input, dropdown))
-    dropdown.appendChild(element)
+    element.addEventListener('keydown', this.createItemListener(element))
+    dropdown.items.appendChild(element)
   }
 
-  cl.dropdownListener = function(element, input, dropdown) {
+  cl.Dropdown.prototype.createItemListener = function(item) {
+    var dropdown = this
     return function (e) {
-      if (cl.dropdownEscape(e, dropdown, input) ||
-        cl.dropdownNext(e, dropdown, element) ||
-        cl.dropdownPrevious(e, dropdown, element)) {
+      if (dropdown.escape(e) ||
+        dropdown.next(e, item) || dropdown.previous(e, item)) {
         e.preventDefault()
       }
     }
   }
 
-  cl.dropdownEscape = function(keyEvent, dropdown, input) {
-    if (cl.ESCAPE_KEYS.indexOf(keyEvent.code) !== -1) {
-      dropdown.style.display = 'none'
-      input.focus()
+  cl.Dropdown.prototype.escape = function(keyEvent) {
+    if (cl.keyEvents.isEscapeCurrentElement(keyEvent)) {
+      this.hide()
+      this.input.focus()
       return true
     }
   }
 
-  cl.isEnterNextElementKeyEvent = function(keyEvent) {
-    return cl.NEXT_ELEMENT_KEYS.indexOf(keyEvent.code) !== -1 ||
-      (keyEvent.code === 'Tab' && !keyEvent.getModifierState('Shift')) ||
-      (keyEvent.code === 'KeyN' && keyEvent.getModifierState('Control'))
-  }
-
-  cl.isSelectNextItemKeyEvent = function(keyEvent) {
-    return cl.NEXT_ITEM_KEYS.indexOf(keyEvent.code) !== -1 ||
-      cl.isEnterNextElementKeyEvent(keyEvent)
-  }
-
-  cl.dropdownNext = function(keyEvent, dropdown, element) {
-    if (cl.isSelectNextItemKeyEvent(keyEvent)) {
-      if (element === dropdown.lastChild) {
-        dropdown.firstChild.focus()
+  cl.Dropdown.prototype.next = function(keyEvent, item) {
+    if (cl.keyEvents.isSelectNextItem(keyEvent)) {
+      if (item === this.items.lastChild) {
+        this.items.firstChild.focus()
       } else {
-        element.nextSibling.focus()
+        item.nextSibling.focus()
       }
       return true
     }
   }
 
-  cl.isSelectPreviousItemKeyEvent = function(keyEvent) {
-    return cl.PREV_ELEMENT_KEYS.indexOf(keyEvent.code) !== -1 ||
-      cl.PREV_ITEM_KEYS.indexOf(keyEvent.code) !== -1 ||
-      (keyEvent.code === 'Tab' && keyEvent.getModifierState('Shift')) ||
-      (keyEvent.code === 'KeyP' && keyEvent.getModifierState('Control'))
-  }
-
-  cl.dropdownPrevious = function(keyEvent, dropdown, element) {
-    if (cl.isSelectPreviousItemKeyEvent(keyEvent)) {
-      if (element === dropdown.firstChild) {
-        dropdown.lastChild.focus()
+  cl.Dropdown.prototype.previous = function(keyEvent, item) {
+    if (cl.keyEvents.isSelectPreviousItem(keyEvent)) {
+      if (item === this.items.firstChild) {
+        this.items.lastChild.focus()
       } else {
-        element.previousSibling.focus()
+        item.previousSibling.focus()
       }
       return true
+    }
+  }
+
+  cl.keyEvents = {
+    ESCAPE_KEYS: [ 'Backspace', 'Enter', 'Escape', 'Delete' ],
+    NEXT_ELEMENT_KEYS: [ 'ArrowDown', 'ArrowRight' ],
+    NEXT_ITEM_KEYS: [ 'KeyJ', 'KeyL', 'KeyS', 'KeyD' ],
+    PREV_ELEMENT_KEYS: [ 'ArrowUp', 'ArrowLeft' ],
+    PREV_ITEM_KEYS: [ 'ArrowUp', 'ArrowLeft', 'KeyK', 'KeyH', 'KeyW', 'KeyA' ],
+
+    isEscapeCurrentElement: function(keyEvent) {
+      return cl.keyEvents.ESCAPE_KEYS.indexOf(keyEvent.code) !== -1
+    },
+
+    isEnterNextElement: function(keyEvent) {
+      return cl.keyEvents.NEXT_ELEMENT_KEYS.indexOf(keyEvent.code) !== -1 ||
+        (keyEvent.code === 'Tab' && !keyEvent.getModifierState('Shift')) ||
+        (keyEvent.code === 'KeyN' && keyEvent.getModifierState('Control'))
+    },
+
+    isSelectNextItem: function(keyEvent) {
+      return cl.keyEvents.NEXT_ITEM_KEYS.indexOf(keyEvent.code) !== -1 ||
+        cl.keyEvents.isEnterNextElement(keyEvent)
+    },
+
+    isSelectPreviousItem: function(keyEvent) {
+      return cl.keyEvents.PREV_ELEMENT_KEYS.indexOf(keyEvent.code) !== -1 ||
+        cl.keyEvents.PREV_ITEM_KEYS.indexOf(keyEvent.code) !== -1 ||
+        (keyEvent.code === 'Tab' && keyEvent.getModifierState('Shift')) ||
+        (keyEvent.code === 'KeyP' && keyEvent.getModifierState('Control'))
     }
   }
 
