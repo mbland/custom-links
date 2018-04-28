@@ -1860,4 +1860,128 @@ describe('Custom Links', function() {
       })
     })
   })
+
+  describe('keyEvents', function() {
+    describe('isEscapeCurrentElement', function() {
+      it('returns true for a key in ESCAPE_KEYS', function() {
+        cl.keyEvents.isEscapeCurrentElement({ code: 'Escape' }).should.be.true
+      })
+
+      it('returns false for a key not in ESCAPE_KEYS', function() {
+        cl.keyEvents.isEscapeCurrentElement({ code: 'Tab' }).should.be.false
+      })
+    })
+
+    describe('isEnterNextElement', function() {
+      it('returns true for key in NEXT_ELEMENT_KEYS', function() {
+        cl.keyEvents.isEnterNextElement({ code: 'ArrowDown' }).should.be.true
+      })
+
+      it('returns true for a normal Tab key event', function() {
+        var event = {
+          code: 'Tab',
+          getModifierState: sinon.stub().withArgs('Shift').returns(false)
+        }
+        cl.keyEvents.isEnterNextElement(event).should.be.true
+      })
+
+      it('returns false for a Shift-Tab key event', function() {
+        var event = {
+          code: 'Tab',
+          getModifierState: sinon.stub().withArgs('Shift').returns(true)
+        }
+        cl.keyEvents.isEnterNextElement(event).should.be.false
+      })
+
+      it('returns true for a Control-N key event', function() {
+        var event = {
+          code: 'KeyN',
+          getModifierState: sinon.stub().withArgs('Control').returns(true)
+        }
+        cl.keyEvents.isEnterNextElement(event).should.be.true
+      })
+
+      it('returns false for a normal KeyN event', function() {
+        var event = {
+          code: 'KeyN',
+          getModifierState: sinon.stub().withArgs('Control').returns(false)
+        }
+        cl.keyEvents.isEnterNextElement(event).should.be.false
+      })
+
+      it('returns false for an element of NEXT_ITEM_KEYS', function() {
+        cl.keyEvents.isEnterNextElement({ code: 'KeyJ' }).should.be.false
+      })
+    })
+
+    describe('isSelectNextItem', function() {
+      it('returns true for a key in NEXT_ITEM_KEYS', function() {
+        cl.keyEvents.isSelectNextItem({ code: 'KeyJ' }).should.be.true
+      })
+
+      it('returns true if isEnterNextElement() returns true', function() {
+        cl.keyEvents.isSelectNextItem({ code: 'ArrowDown' }).should.be.true
+      })
+
+      it('returns false for a key that fails both previous cases', function() {
+        cl.keyEvents.isSelectNextItem({ code: 'Escape' }).should.be.false
+      })
+    })
+
+    describe('isEnterPreviousElement', function() {
+      it('returns true for key in PREV_ELEMENT_KEYS', function() {
+        cl.keyEvents.isEnterPreviousElement({ code: 'ArrowUp' }).should.be.true
+      })
+
+      it('returns true for a Shift-Tab key event', function() {
+        var event = {
+          code: 'Tab',
+          getModifierState: sinon.stub().withArgs('Shift').returns(true)
+        }
+        cl.keyEvents.isEnterPreviousElement(event).should.be.true
+      })
+
+      it('returns false for a normal Tab key event', function() {
+        var event = {
+          code: 'Tab',
+          getModifierState: sinon.stub().withArgs('Shift').returns(false)
+        }
+        cl.keyEvents.isEnterPreviousElement(event).should.be.false
+      })
+
+      it('returns true for a Control-P key event', function() {
+        var event = {
+          code: 'KeyP',
+          getModifierState: sinon.stub().withArgs('Control').returns(true)
+        }
+        cl.keyEvents.isEnterPreviousElement(event).should.be.true
+      })
+
+      it('returns false for a normal KeyP event', function() {
+        var event = {
+          code: 'KeyP',
+          getModifierState: sinon.stub().withArgs('Control').returns(false)
+        }
+        cl.keyEvents.isEnterPreviousElement(event).should.be.false
+      })
+
+      it('returns false for an element of PREV_ITEM_KEYS', function() {
+        cl.keyEvents.isEnterPreviousElement({ code: 'KeyK' }).should.be.false
+      })
+    })
+
+    describe('isSelectPreviousItem', function() {
+      it('returns true for a key in PREV_ITEM_KEYS', function() {
+        cl.keyEvents.isSelectPreviousItem({ code: 'KeyK' }).should.be.true
+      })
+
+      it('returns true if isEnterPreviousElement() returns true', function() {
+        cl.keyEvents.isSelectPreviousItem({ code: 'ArrowUp' }).should.be.true
+      })
+
+      it('returns false for a key that fails both previous cases', function() {
+        cl.keyEvents.isSelectPreviousItem({ code: 'Escape' }).should.be.false
+      })
+    })
+  })
 })

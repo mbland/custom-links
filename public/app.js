@@ -407,7 +407,7 @@
     NEXT_ELEMENT_KEYS: [ 'ArrowDown', 'ArrowRight' ],
     NEXT_ITEM_KEYS: [ 'KeyJ', 'KeyL', 'KeyS', 'KeyD' ],
     PREV_ELEMENT_KEYS: [ 'ArrowUp', 'ArrowLeft' ],
-    PREV_ITEM_KEYS: [ 'ArrowUp', 'ArrowLeft', 'KeyK', 'KeyH', 'KeyW', 'KeyA' ],
+    PREV_ITEM_KEYS: [ 'KeyK', 'KeyH', 'KeyW', 'KeyA' ],
 
     isEscapeCurrentElement: function(keyEvent) {
       return cl.keyEvents.ESCAPE_KEYS.indexOf(keyEvent.code) !== -1
@@ -424,11 +424,15 @@
         cl.keyEvents.isEnterNextElement(keyEvent)
     },
 
-    isSelectPreviousItem: function(keyEvent) {
+    isEnterPreviousElement: function(keyEvent) {
       return cl.keyEvents.PREV_ELEMENT_KEYS.indexOf(keyEvent.code) !== -1 ||
-        cl.keyEvents.PREV_ITEM_KEYS.indexOf(keyEvent.code) !== -1 ||
         (keyEvent.code === 'Tab' && keyEvent.getModifierState('Shift')) ||
         (keyEvent.code === 'KeyP' && keyEvent.getModifierState('Control'))
+    },
+
+    isSelectPreviousItem: function(keyEvent) {
+      return cl.keyEvents.PREV_ITEM_KEYS.indexOf(keyEvent.code) !== -1 ||
+        cl.keyEvents.isEnterPreviousElement(keyEvent)
     }
   }
 
