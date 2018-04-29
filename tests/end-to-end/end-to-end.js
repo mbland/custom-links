@@ -23,6 +23,7 @@ test.describe('End-to-end test', function() {
       url,
       targetLocation,
       activeElement,
+      enterText,
       createNewLink,
       waitForFormInput,
       waitForActiveLink
@@ -81,17 +82,19 @@ test.describe('End-to-end test', function() {
     })
   }
 
+  enterText = (text) => {
+    activeElement().sendKeys(Key.HOME, Key.chord(Key.SHIFT, Key.END), text)
+  }
+
   createNewLink = (link, target) => {
     driver.findElement(By.linkText('New link')).click()
     driver.wait(until.urlIs(url + '#create'))
     waitForFormInput().click()
-    activeElement().sendKeys(
-      Key.HOME, Key.chord(Key.SHIFT, Key.END), link)
+    enterText(link)
 
     // Prevent any autocompletion interference with Escape.
     activeElement().sendKeys(Key.ESCAPE, Key.TAB)
-    activeElement().sendKeys(
-      Key.HOME, Key.chord(Key.SHIFT, Key.END), target + Key.TAB)
+    enterText(target + Key.TAB)
     activeElement().sendKeys(Key.SPACE)
     waitForActiveLink(url + link)
   }
@@ -273,7 +276,6 @@ test.describe('End-to-end test', function() {
 
     // Tab over to the "Search targets" link and click it; should produce the
     // same results.
-
     activeElement().sendKeys(Key.TAB)
     activeElement().click()
 
@@ -292,5 +294,22 @@ test.describe('End-to-end test', function() {
 
     driver.wait(until.elementLocated(By.css('.search-no-results'), 3000,
       'timeout waiting for empty search results message to appear'))
+  })
+
+  test.it('autocompletes custom links', function() {
+    // Create a few links with the same prefix.
+    createNewLink('foo', url + 'foo')
+    createNewLink('foobar', url + 'foobar')
+    createNewLink('foobaz', url + 'foobaz')
+
+    // Type a new link with the common prefix.
+    driver.findElement(By.css('input')).click()
+    enterText('foo')
+
+    // Tab all the way through the three-element list, wrapping to the first and
+    // last element, before selecting the second.
+    activeElement().sendKeys(Key.DOWN, Key.DOWN, Key.DOWN,
+      Key.DOWN, Key.UP, Key.UP, Key.ENTER)
+    activeElement().getAttribute('value').should.become('foobar')
   })
 })
