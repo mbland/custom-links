@@ -305,6 +305,8 @@ test.describe('End-to-end test', function() {
     // Type a new link with the common prefix.
     driver.findElement(By.css('input')).click()
     enterText('foo')
+    driver.wait(until.elementLocated(By.css('.dropdown'), 3000,
+      'timeout waiting for autocomplete dropdown list to appear'))
 
     // Tab all the way through the three-element list, wrapping to the first and
     // last element, before selecting the second.
