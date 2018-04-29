@@ -399,6 +399,10 @@ describe('Custom Links', function() {
   })
 
   describe('createLinkView', function() {
+    beforeEach(function() {
+      stubOut(cl.backend, 'completeLink')
+    })
+
     it('shows a form to create a custom link', function() {
       stubCreateClickHandler()
       return cl.createLinkView().then(function(view) {
@@ -425,6 +429,29 @@ describe('Custom Links', function() {
         inputs[0].defaultValue.should.equal('foo')
         expect(viewElementReceivesFocus(view, inputs[1])).to.equal(true)
       })
+    })
+
+    it('shows an autocompletion list on the custom link input', function() {
+      cl.backend.completeLink.withArgs('foo')
+        .returns(Promise.resolve({ results: [ 'foo', 'foobar', 'foobaz' ] }))
+
+      return cl.createLinkView()
+        .then(function(view) {
+          var linkInput = view.element.querySelector('[data-name=link]'),
+              dropdown = view.element.getElementsByClassName('dropdown')[0]
+
+          dropdown.style.display.should.eql('')
+          dropdown.childNodes.length.should.eql(0)
+          linkInput.value = 'foo'
+          linkInput.dispatchEvent(new KeyboardEvent('keyup')).should.be.true
+          return dropdown
+        })
+        .then(function(dropdown) {
+          dropdown.style.display.should.eql('block')
+          dropdown.childNodes[0].textContent.should.eql('foo')
+          dropdown.childNodes[1].textContent.should.eql('foobar')
+          dropdown.childNodes[2].textContent.should.eql('foobaz')
+        })
     })
   })
 
@@ -1695,19 +1722,6 @@ describe('Custom Links', function() {
         clicks: 27
       }
     ]
-
-    // For PhantomJS
-    if (Array.from === undefined) {
-      Array.from = function(obj) {
-        var result = [],
-            i
-
-        for (i = 0; i !== obj.length; ++i) {
-          result.push(obj[i])
-        }
-        return result
-      }
-    }
 
     var parseSearchResultsTable = function(searchResults) {
       var result = {}

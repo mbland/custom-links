@@ -304,7 +304,7 @@
       } else if (cl.keyEvents.isEnterNextElement(e)) {
         dropdown.focus()
       } else {
-        return dropdown.showLinkCompletions()
+        dropdown.showLinkCompletions()
       }
     }
   }
