@@ -1,4 +1,4 @@
-FROM node:8.11.1-alpine
+FROM node:10.0.0-alpine
 MAINTAINER Mike Bland "mbland@acm.org"
 WORKDIR /opt/custom-links
 COPY package.json package-lock.json ./
