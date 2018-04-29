@@ -265,17 +265,22 @@
     this.input.addEventListener('keyup', this.createInputKeyUpListener())
   }
 
+  cl.Dropdown.prototype.hide = function() {
+    this.items.style.display = 'none'
+  }
+
   cl.Dropdown.prototype.show = function() {
     var style = this.items.style,
         inputStyle = window.getComputedStyle(this.input)
 
+    if (!this.items.firstChild ||
+        (this.items.childNodes.length === 1 &&
+         this.items.firstChild.textContent === this.input.value)) {
+      return this.hide()
+    }
     style.display = 'block'
     style.marginTop = '-' + inputStyle.marginBottom
     style.width = inputStyle.width
-  }
-
-  cl.Dropdown.prototype.hide = function() {
-    this.items.style = 'none'
   }
 
   cl.Dropdown.prototype.focus = function() {
@@ -300,6 +305,8 @@
 
     return function(e) {
       if (e.code === 'Escape' || e.code === 'Enter') {
+        // Prevent the dropdown from re-opening if the selected item is a prefix
+        // of later completion items.
         dropdown.hide()
       } else if (cl.keyEvents.isEnterNextElement(e)) {
         dropdown.focus()
@@ -332,12 +339,7 @@
     while (this.items.firstChild) {
       this.items.removeChild(this.items.firstChild)
     }
-    if (values.length === 0 ||
-      (values.length === 1 && values[0] === this.input.value)) {
-      this.hide()
-      return
-    }
-    values.map(function(value) {
+    values.forEach(function(value) {
       dropdown.add(value)
     })
     this.show()
@@ -359,7 +361,7 @@
       input.focus()
     })
     element.addEventListener('keydown', this.createItemListener(element))
-    dropdown.items.appendChild(element)
+    return dropdown.items.appendChild(element)
   }
 
   cl.Dropdown.prototype.createItemListener = function(item) {

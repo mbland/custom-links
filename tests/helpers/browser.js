@@ -23,9 +23,13 @@ if (Array.from === undefined) {
 // - http://sticksnglue.com/wordpress/phantomjs-1-9-and-keyboardevent/
 // - https://www.npmjs.com/package/basic-keyboard-event-polyfill
 if (typeof window.KeyboardEvent !== 'function') {
-  window.KeyboardEvent = function(eventString) {
-    var keyboardEvent = document.createEvent('KeyboardEvent')
-    keyboardEvent.initKeyboardEvent(eventString, true, true, window, 1, 0, 0)
-    return keyboardEvent
+  window.KeyboardEvent = function(eventString, init) {
+    var event = document.createEvent('KeyboardEvent')
+    event.initKeyboardEvent(eventString, true, true, window, 1, 0, 0)
+
+    if (init !== undefined && init.code !== undefined) {
+      event.code = init.code
+    }
+    return event
   }
 }
