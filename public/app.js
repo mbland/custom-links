@@ -556,6 +556,10 @@
         links.forEach(function(link) { flattened.push(link) })
         return flattened
       }, [])
+      .sort(function(lhs, rhs) {
+        return lhs.target.localeCompare(rhs.target) ||
+          lhs.link.localeCompare(rhs.link)
+      })
   }
 
   cl.fillSearchResultsTable = function(params) {

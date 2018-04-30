@@ -100,8 +100,8 @@ test.describe('End-to-end test', function() {
   }
 
   waitForFormInput = () => {
-    return driver.wait(until.elementLocated(By.css('input'), 3000,
-      'timeout waiting for form input element to appear'))
+    return driver.wait(until.elementLocated(By.css('.view-container input'),
+      3000, 'timeout waiting for form input element to appear'))
   }
 
   waitForActiveLink = (linkText) => {
@@ -161,8 +161,9 @@ test.describe('End-to-end test', function() {
     // Back up to the "Create link" button and submit a second time.
     activeElement().sendKeys(Key.chord(Key.SHIFT, Key.TAB), Key.SPACE)
 
-    driver.wait(until.elementLocated(By.css('.result .failure')), 3000,
-      'timeout waiting for failure message link to appear')
+    driver.wait(
+      until.elementLocated(By.css('.view-container .result .failure')),
+      3000, 'timeout waiting for failure message link to appear')
       .getText().should.eventually.contain(url + 'foo already exists')
   })
 
@@ -243,9 +244,9 @@ test.describe('End-to-end test', function() {
     // in the dialog box.
     activeElement().sendKeys('foo@example.com', Key.TAB, Key.SPACE)
     activeElement().sendKeys(Key.TAB, Key.SPACE)
-    driver.wait(until.elementLocated(By.css('.result .success'), 3000,
-      'timeout waiting for success element to appear'))
-    driver.findElement(By.css('.result .success')).getText()
+    driver.wait(until.elementLocated(By.css('.view-container .result .success'),
+      3000, 'timeout waiting for success element to appear'))
+    driver.findElement(By.css('.view-container .result .success')).getText()
       .should.eventually.contain('foo@example.com')
 
     // We should no longer see the link in "My links".
@@ -255,6 +256,9 @@ test.describe('End-to-end test', function() {
   })
 
   test.it('searches for links and target URLs', function() {
+    var searchResults,
+        headers
+
     createNewLink('foo', url + 'foo')
     createNewLink('bar', url + 'bar')
     createNewLink('baz', url + 'baz')
@@ -267,24 +271,40 @@ test.describe('End-to-end test', function() {
     activeElement().sendKeys('[fb]', Key.TAB)
     activeElement().click()
 
-    driver.wait(until.elementLocated(By.css('.search-results'), 3000,
-      'timeout waiting for search results to appear'))
-    driver.wait(until.elementLocated(By.linkText('/foo')), 3000,
-      'timeout waiting for first search result to appear')
-    driver.findElement(By.linkText('/bar'))
-    driver.findElement(By.linkText('/baz'))
+    driver.wait(until.elementLocated(
+      By.css('.view-container .search-view .results .cell')),
+      3000, 'timeout waiting for first set of search results to appear')
+
+    searchResults = driver.findElement(
+      By.css('.view-container .search-view .results'))
+    headers = searchResults.findElement(By.css('.links-header'))
+    searchResults
+      .findElements(By.css('.search-result .link-target .cell:first-child'))
+      .then(results => {
+        results[0].getText().should.become('/bar')
+        results[1].getText().should.become('/baz')
+        results[2].getText().should.become('/foo')
+      })
 
     // Tab over to the "Search targets" link and click it; should produce the
     // same results.
     activeElement().sendKeys(Key.TAB)
     activeElement().click()
 
-    driver.wait(until.elementLocated(By.css('.search-results'), 3000,
-      'timeout waiting for search results to appear'))
-    driver.wait(until.elementLocated(By.linkText('/foo')), 3000,
-      'timeout waiting for first search result to appear')
-    driver.findElement(By.linkText('/bar'))
-    driver.findElement(By.linkText('/baz'))
+    driver.wait(until.stalenessOf(headers), 3000,
+      'timeout waiting for first search results headers to go stale')
+    driver.wait(until.elementLocated(
+      By.css('.view-container .search-view .results .cell')),
+      3000, 'timeout waiting for second set of search results to appear')
+    headers = searchResults.findElement(By.css('.links-header'))
+
+    searchResults
+      .findElements(By.css('.search-result .link-target .cell:first-child'))
+      .then(results => {
+        results[0].getText().should.become(url + 'bar')
+        results[1].getText().should.become(url + 'baz')
+        results[2].getText().should.become(url + 'foo')
+      })
 
     // Now enter a query that matches nothing and ensure the results are empty.
     activeElement().sendKeys(Key.chord(Key.SHIFT, Key.TAB))
@@ -292,26 +312,40 @@ test.describe('End-to-end test', function() {
     activeElement().sendKeys('quux', Key.TAB)
     activeElement().click()
 
-    driver.wait(until.elementLocated(By.css('.search-no-results'), 3000,
-      'timeout waiting for empty search results message to appear'))
+    driver.wait(until.stalenessOf(headers), 3000,
+      'timeout waiting for second search results headers to go stale')
+    driver.wait(until.elementLocated(
+      By.css('.view-container .search-view .results p')),
+      3000, 'timeout waiting for empty set of search results to appear')
+    searchResults.getText().should.become('No matching links found.')
   })
 
   test.it('autocompletes custom links', function() {
+    var linkInput,
+        dropdown
+
     // Create a few links with the same prefix.
     createNewLink('foo', url + 'foo')
     createNewLink('foobar', url + 'foobar')
     createNewLink('foobaz', url + 'foobaz')
 
     // Type a new link with the common prefix.
-    driver.findElement(By.css('input')).click()
+    linkInput = driver.findElement(By.css('.view-container input'))
+    linkInput.click()
     enterText('foo')
-    driver.wait(until.elementLocated(By.css('.dropdown'), 3000,
-      'timeout waiting for autocomplete dropdown list to appear'))
+
+    dropdown = driver.findElement(By.css('.view-container .dropdown'))
+    driver.wait(until.elementIsVisible(dropdown), 3000,
+      'timeout waiting for dropdown to become visible')
+    driver.wait(until.elementTextContains(dropdown, 'foobaz'), 3000,
+      'timeout waiting for dropdown to appear with expected values')
 
     // Tab all the way through the three-element list, wrapping to the first and
     // last element, before selecting the second.
     activeElement().sendKeys(Key.DOWN, Key.DOWN, Key.DOWN,
       Key.DOWN, Key.UP, Key.UP, Key.ENTER)
-    activeElement().getAttribute('value').should.become('foobar')
+    driver.wait(until.elementIsNotVisible(dropdown), 3000,
+      'timeout waiting for dropdown to disappear')
+    linkInput.getAttribute('value').should.become('foobar')
   })
 })

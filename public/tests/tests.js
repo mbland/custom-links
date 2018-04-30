@@ -1845,9 +1845,11 @@ describe('Custom Links', function() {
     })
 
     it('shows a table of matching target URLs', function() {
-      var matchingTargets = {}
+      var matchingTargets = {},
+          // Jumble matchingLinks to ensure we're sorting the results.
+          jumbledLinks = [matchingLinks[1], matchingLinks[2], matchingLinks[0]]
 
-      matchingLinks.forEach(function(link) {
+      jumbledLinks.forEach(function(link) {
         if (matchingTargets[link.target] === undefined) {
           matchingTargets[link.target] = []
         }
