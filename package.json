@@ -1,6 +1,6 @@
 {
   "name": "custom-links",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "System for creating custom URLs",
   "main": "index.js",
   "scripts": {
