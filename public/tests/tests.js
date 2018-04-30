@@ -399,6 +399,10 @@ describe('Custom Links', function() {
   })
 
   describe('createLinkView', function() {
+    beforeEach(function() {
+      stubOut(cl.backend, 'completeLink')
+    })
+
     it('shows a form to create a custom link', function() {
       stubCreateClickHandler()
       return cl.createLinkView().then(function(view) {
@@ -425,6 +429,29 @@ describe('Custom Links', function() {
         inputs[0].defaultValue.should.equal('foo')
         expect(viewElementReceivesFocus(view, inputs[1])).to.equal(true)
       })
+    })
+
+    it('shows an autocompletion list on the custom link input', function() {
+      cl.backend.completeLink.withArgs('foo')
+        .returns(Promise.resolve({ results: ['foo', 'foobar', 'foobaz'] }))
+
+      return cl.createLinkView()
+        .then(function(view) {
+          var linkInput = view.element.querySelector('[data-name=link]'),
+              dropdown = view.element.getElementsByClassName('dropdown')[0]
+
+          dropdown.style.display.should.eql('')
+          dropdown.childNodes.length.should.eql(0)
+          linkInput.value = 'foo'
+          linkInput.dispatchEvent(new KeyboardEvent('keyup')).should.be.true
+          return dropdown
+        })
+        .then(function(dropdown) {
+          dropdown.style.display.should.eql('block')
+          dropdown.childNodes[0].textContent.should.eql('foo')
+          dropdown.childNodes[1].textContent.should.eql('foobar')
+          dropdown.childNodes[2].textContent.should.eql('foobaz')
+        })
     })
   })
 
@@ -1696,19 +1723,6 @@ describe('Custom Links', function() {
       }
     ]
 
-    // For PhantomJS
-    if (Array.from === undefined) {
-      Array.from = function(obj) {
-        var result = [],
-            i
-
-        for (i = 0; i !== obj.length; ++i) {
-          result.push(obj[i])
-        }
-        return result
-      }
-    }
-
     var parseSearchResultsTable = function(searchResults) {
       var result = {}
 
@@ -1831,9 +1845,11 @@ describe('Custom Links', function() {
     })
 
     it('shows a table of matching target URLs', function() {
-      var matchingTargets = {}
+      var matchingTargets = {},
+          // Jumble matchingLinks to ensure we're sorting the results.
+          jumbledLinks = [matchingLinks[1], matchingLinks[2], matchingLinks[0]]
 
-      matchingLinks.forEach(function(link) {
+      jumbledLinks.forEach(function(link) {
         if (matchingTargets[link.target] === undefined) {
           matchingTargets[link.target] = []
         }
@@ -1857,6 +1873,485 @@ describe('Custom Links', function() {
         resultTable.results[0].Target.should.eql('https://foo.com/')
         resultTable.results[1].Target.should.eql('https://foo.com/bar')
         resultTable.results[2].Target.should.eql('https://foo.com/baz')
+      })
+    })
+  })
+
+  describe('keyEvents', function() {
+    describe('isEscapeCurrentElement', function() {
+      it('returns true for a key in ESCAPE_KEYS', function() {
+        cl.keyEvents.isEscapeCurrentElement({ code: 'Escape' }).should.be.true
+      })
+
+      it('returns false for a key not in ESCAPE_KEYS', function() {
+        cl.keyEvents.isEscapeCurrentElement({ code: 'Tab' }).should.be.false
+      })
+    })
+
+    describe('isEnterNextElement', function() {
+      it('returns true for key in NEXT_ELEMENT_KEYS', function() {
+        cl.keyEvents.isEnterNextElement({ code: 'ArrowDown' }).should.be.true
+      })
+
+      it('returns true for a normal Tab key event', function() {
+        var event = {
+          code: 'Tab',
+          getModifierState: sinon.stub().withArgs('Shift').returns(false)
+        }
+        cl.keyEvents.isEnterNextElement(event).should.be.true
+      })
+
+      it('returns false for a Shift-Tab key event', function() {
+        var event = {
+          code: 'Tab',
+          getModifierState: sinon.stub().withArgs('Shift').returns(true)
+        }
+        cl.keyEvents.isEnterNextElement(event).should.be.false
+      })
+
+      it('returns true for a Control-N key event', function() {
+        var event = {
+          code: 'KeyN',
+          getModifierState: sinon.stub().withArgs('Control').returns(true)
+        }
+        cl.keyEvents.isEnterNextElement(event).should.be.true
+      })
+
+      it('returns false for a normal KeyN event', function() {
+        var event = {
+          code: 'KeyN',
+          getModifierState: sinon.stub().withArgs('Control').returns(false)
+        }
+        cl.keyEvents.isEnterNextElement(event).should.be.false
+      })
+
+      it('returns false for an element of NEXT_ITEM_KEYS', function() {
+        cl.keyEvents.isEnterNextElement({ code: 'KeyJ' }).should.be.false
+      })
+    })
+
+    describe('isSelectNextItem', function() {
+      it('returns true for a key in NEXT_ITEM_KEYS', function() {
+        cl.keyEvents.isSelectNextItem({ code: 'KeyJ' }).should.be.true
+      })
+
+      it('returns true if isEnterNextElement() returns true', function() {
+        cl.keyEvents.isSelectNextItem({ code: 'ArrowDown' }).should.be.true
+      })
+
+      it('returns false for a key that fails both previous cases', function() {
+        cl.keyEvents.isSelectNextItem({ code: 'Escape' }).should.be.false
+      })
+    })
+
+    describe('isEnterPreviousElement', function() {
+      it('returns true for key in PREV_ELEMENT_KEYS', function() {
+        cl.keyEvents.isEnterPreviousElement({ code: 'ArrowUp' }).should.be.true
+      })
+
+      it('returns true for a Shift-Tab key event', function() {
+        var event = {
+          code: 'Tab',
+          getModifierState: sinon.stub().withArgs('Shift').returns(true)
+        }
+        cl.keyEvents.isEnterPreviousElement(event).should.be.true
+      })
+
+      it('returns false for a normal Tab key event', function() {
+        var event = {
+          code: 'Tab',
+          getModifierState: sinon.stub().withArgs('Shift').returns(false)
+        }
+        cl.keyEvents.isEnterPreviousElement(event).should.be.false
+      })
+
+      it('returns true for a Control-P key event', function() {
+        var event = {
+          code: 'KeyP',
+          getModifierState: sinon.stub().withArgs('Control').returns(true)
+        }
+        cl.keyEvents.isEnterPreviousElement(event).should.be.true
+      })
+
+      it('returns false for a normal KeyP event', function() {
+        var event = {
+          code: 'KeyP',
+          getModifierState: sinon.stub().withArgs('Control').returns(false)
+        }
+        cl.keyEvents.isEnterPreviousElement(event).should.be.false
+      })
+
+      it('returns false for an element of PREV_ITEM_KEYS', function() {
+        cl.keyEvents.isEnterPreviousElement({ code: 'KeyK' }).should.be.false
+      })
+    })
+
+    describe('isSelectPreviousItem', function() {
+      it('returns true for a key in PREV_ITEM_KEYS', function() {
+        cl.keyEvents.isSelectPreviousItem({ code: 'KeyK' }).should.be.true
+      })
+
+      it('returns true if isEnterPreviousElement() returns true', function() {
+        cl.keyEvents.isSelectPreviousItem({ code: 'ArrowUp' }).should.be.true
+      })
+
+      it('returns false for a key that fails both previous cases', function() {
+        cl.keyEvents.isSelectPreviousItem({ code: 'Escape' }).should.be.false
+      })
+    })
+  })
+
+  describe('Dropdown', function() {
+    var input,
+        dropdownElement,
+        nextInput,
+        dropdown
+
+    beforeEach(function() {
+      input = clTest.createVisibleElement('input')
+      dropdownElement = clTest.createVisibleElement('ul')
+      nextInput = clTest.createVisibleElement('input')
+
+      stubOut(input, 'focus')
+      stubOut(nextInput, 'focus')
+      stubOut(cl.backend, 'completeLink')
+
+      dropdown = new cl.Dropdown(input, dropdownElement, nextInput)
+      dropdown.addInputEventListeners()
+    })
+
+    afterEach(function() {
+      [input, dropdownElement, nextInput].forEach(function(element) {
+        clTest.removeElement(element)
+      })
+    })
+
+    describe('hide', function() {
+      it('hides', function() {
+        dropdownElement.style.display.should.eql('')
+        dropdown.hide()
+        dropdownElement.style.display.should.eql('none')
+      })
+    })
+
+    describe('show', function() {
+      it('hides when no items are present', function() {
+        dropdown.show()
+        dropdownElement.style.display.should.eql('none')
+      })
+
+      it('hides when its only item matches the input value', function() {
+        var item = dropdownElement.appendChild(document.createElement('li'))
+
+        input.value = item.textContent = 'foo'
+        dropdown.show()
+        dropdownElement.style.display.should.eql('none')
+      })
+
+      it('shows directly beneath and as wide as the input element', function() {
+        var item = dropdownElement.appendChild(document.createElement('li'))
+
+        // Note that the dropdown will compensate with a negative margin-top.
+        input.style['margin-bottom'] = '15px'
+        input.style.width = '256px'
+        input.value = 'foo'
+        item.textContent = 'foobar'
+        stubOut(item, 'focus')
+
+        dropdown.show()
+        dropdownElement.style.display.should.eql('block')
+        dropdownElement.style.marginTop.should.eql('-15px')
+        dropdownElement.style.width.should.eql('256px')
+        item.focus.called.should.be.false
+      })
+
+      it('shows when only the first item matches the input value', function() {
+        var items = [
+          dropdownElement.appendChild(document.createElement('li')),
+          dropdownElement.appendChild(document.createElement('li')),
+          dropdownElement.appendChild(document.createElement('li'))
+        ]
+
+        input.value = 'foo'
+        items[0].textContent = 'foo'
+        items[1].textContent = 'foobar'
+        items[2].textContent = 'foobaz'
+
+        dropdown.show()
+        dropdownElement.style.display.should.eql('block')
+      })
+    })
+
+    describe('focus', function() {
+      it('does nothing if there are no items present', function() {
+        stubOut(dropdownElement, 'focus')
+        dropdown.focus()
+        dropdownElement.focus.called.should.be.false
+      })
+
+      it('focuses the first element', function() {
+        var items = [
+          dropdownElement.appendChild(document.createElement('li')),
+          dropdownElement.appendChild(document.createElement('li')),
+          dropdownElement.appendChild(document.createElement('li'))
+        ]
+
+        stubOut(dropdownElement, 'focus')
+        items.forEach(function(item) {
+          stubOut(item, 'focus')
+        })
+        dropdown.focus()
+        dropdownElement.focus.called.should.be.false
+        items[0].focus.calledOnce.should.be.true
+        items[1].focus.called.should.be.false
+        items[2].focus.called.should.be.false
+      })
+    })
+
+    describe('keydown listener', function() {
+      it('hides the dropdown, focuses the next element on Enter', function() {
+        var event = new KeyboardEvent('keydown', {code: 'Enter'})
+
+        stubOut(event, 'preventDefault')
+        input.dispatchEvent(event).should.be.true
+        event.preventDefault.calledOnce.should.be.true
+        dropdownElement.style.display.should.eql('none')
+        nextInput.focus.calledOnce.should.be.true
+      })
+
+      it('does nothing for other keys', function() {
+        var event = new KeyboardEvent('keydown', {code: 'Tab'})
+
+        stubOut(event, 'preventDefault')
+        input.dispatchEvent(event).should.be.true
+        event.preventDefault.calledOnce.should.be.false
+        dropdownElement.style.display.should.eql('')
+        nextInput.focus.calledOnce.should.be.false
+      })
+    })
+
+    describe('keyup listener', function() {
+      var item
+
+      beforeEach(function() {
+        item = dropdownElement.appendChild(document.createElement('li'))
+        stubOut(item, 'focus')
+
+        input.value = 'foo'
+        item.textContent = 'foobar'
+        dropdown.show()
+      })
+
+      it('hides the dropdown on Escape', function() {
+        input.dispatchEvent(new KeyboardEvent('keyup', {code: 'Escape'}))
+          .should.be.true
+        dropdownElement.style.display.should.eql('none')
+        item.focus.called.should.be.false
+      })
+
+      it('hides the dropdown on Enter', function() {
+        input.dispatchEvent(new KeyboardEvent('keyup', {code: 'Enter'}))
+          .should.be.true
+        dropdownElement.style.display.should.eql('none')
+        item.focus.called.should.be.false
+      })
+
+      it('focuses the first element on next element key', function() {
+        input.dispatchEvent(new KeyboardEvent('keyup', {code: 'ArrowDown'}))
+          .should.be.true
+        dropdownElement.style.display.should.eql('block')
+        item.focus.called.should.be.true
+      })
+
+      it('shows link completions on other keyup events', function() {
+        cl.backend.completeLink.withArgs('foo')
+          .returns(Promise.resolve({ results: ['foo', 'foobar', 'foobaz'] }))
+        input.value = 'foo'
+        input.dispatchEvent(new KeyboardEvent('keyup')).should.be.true
+
+        return Promise.resolve().then(function() {
+          dropdownElement.style.display.should.eql('block')
+          item.focus.called.should.be.false
+          dropdownElement.childNodes[0].textContent.should.eql('foo')
+          dropdownElement.childNodes[1].textContent.should.eql('foobar')
+          dropdownElement.childNodes[2].textContent.should.eql('foobaz')
+        })
+      })
+    })
+
+    describe('showLinkCompletions', function() {
+      beforeEach(function() {
+        cl.backend.completeLink.withArgs('foo')
+          .returns(Promise.resolve({ results: ['foo', 'foobar', 'foobaz'] }))
+      })
+
+      it('does nothing if the input value empty', function() {
+        return dropdown.showLinkCompletions().then(function() {
+          dropdownElement.style.display.should.eql('none')
+          cl.backend.completeLink.called.should.be.false
+        })
+      })
+
+      it('does nothing if the input value is too short', function() {
+        input.value = 'foo'.slice(0, cl.MIN_AUTOCOMPLETE_CHARACTERS - 1)
+        return dropdown.showLinkCompletions().then(function() {
+          dropdownElement.style.display.should.eql('none')
+          cl.backend.completeLink.called.should.be.false
+        })
+      })
+
+      it('fills in the list if items are returned', function() {
+        input.value = 'foo'
+        return dropdown.showLinkCompletions().then(function() {
+          dropdownElement.style.display.should.eql('block')
+          dropdownElement.childNodes[0].textContent.should.eql('foo')
+          dropdownElement.childNodes[1].textContent.should.eql('foobar')
+          dropdownElement.childNodes[2].textContent.should.eql('foobaz')
+        })
+      })
+
+      it('reports errors to the console', function() {
+        input.value = 'foo'
+        stubOut(console, 'error')
+
+        cl.backend.completeLink.resetBehavior()
+        cl.backend.completeLink.withArgs('foo')
+          .returns(Promise.reject(new Error('forced error')))
+
+        return dropdown.showLinkCompletions().then(function() {
+          dropdownElement.style.display.should.eql('')
+          console.error.args[0][0].should.eql('autocomplete on "foo" failed:')
+          console.error.args[0][1].should.match(/forced error/)
+        })
+      })
+    })
+
+    describe('update', function() {
+      it('does nothing but hide when old and new items are empty', function() {
+        dropdown.update([])
+        dropdownElement.style.display.should.eql('none')
+        dropdownElement.childNodes.length.should.eql(0)
+      })
+
+      it('clears all existing items', function() {
+        var items = [
+          dropdownElement.appendChild(document.createElement('li')),
+          dropdownElement.appendChild(document.createElement('li')),
+          dropdownElement.appendChild(document.createElement('li'))
+        ]
+        dropdownElement.childNodes.length.should.eql(items.length)
+        dropdown.update([])
+        dropdownElement.style.display.should.eql('none')
+        dropdownElement.childNodes.length.should.eql(0)
+      })
+
+      it('adds new items and shows the list', function() {
+        dropdownElement.childNodes.length.should.eql(0)
+        dropdown.update(['foo', 'foobar', 'foobaz'])
+        dropdownElement.style.display.should.eql('block')
+        dropdownElement.childNodes.length.should.eql(3)
+        dropdownElement.childNodes[0].textContent.should.eql('foo')
+        dropdownElement.childNodes[1].textContent.should.eql('foobar')
+        dropdownElement.childNodes[2].textContent.should.eql('foobaz')
+      })
+    })
+
+    describe('add', function() {
+      var item
+
+      beforeEach(function() {
+        item = dropdown.add('foobar')
+        dropdown.show()
+      })
+
+      it('sets the textContent and tabIndex attributes', function() {
+        dropdownElement.firstChild.should.equal(item)
+        item.textContent.should.eql('foobar')
+        item.tabIndex.should.eql(0)
+      })
+
+      it('sets the input value when the item is focused', function() {
+        item.dispatchEvent(new Event('focus')).should.be.true
+        input.value.should.eql('foobar')
+      })
+
+      it('sets the input value and hides when the item is clicked', function() {
+        item.click()
+        input.value.should.eql('foobar')
+        dropdownElement.style.display.should.eql('none')
+        input.focus.calledOnce.should.be.true
+      })
+
+      it('sets the keydown listener', function() {
+        var event = new KeyboardEvent('keydown', {code: 'Enter'})
+        stubOut(event, 'preventDefault')
+        item.dispatchEvent(event).should.be.true
+        event.preventDefault.calledOnce.should.be.true
+      })
+    })
+
+    describe('list navigation with escape, next, and previous', function() {
+      var createEvent = function(keyCode) {
+        var event = new KeyboardEvent('keydown', {code: keyCode})
+        stubOut(event, 'preventDefault')
+        return event
+      }
+
+      beforeEach(function() {
+        dropdown.update(['foo', 'foobar', 'foobaz'])
+        Array.from(dropdownElement.childNodes).forEach(function(item) {
+          stubOut(item, 'focus')
+        })
+        // This will focus the first element
+        input.dispatchEvent(new KeyboardEvent('keyup', {code: 'ArrowDown'}))
+          .should.be.true
+        dropdownElement.firstChild.focus.resetHistory()
+      })
+
+      it('ignores events that aren\'t escape, next, or previous', function() {
+        var event = createEvent('KeyQ')
+        dropdownElement.firstChild.dispatchEvent(event).should.be.true
+        dropdownElement.style.display.should.eql('block')
+        event.preventDefault.called.should.be.false
+        input.focus.called.should.be.false
+      })
+
+      it('closes the list and focuses the input on escape', function() {
+        var event = createEvent('Enter')
+        dropdownElement.firstChild.dispatchEvent(event).should.be.true
+        dropdownElement.style.display.should.eql('none')
+        event.preventDefault.calledOnce.should.be.true
+        input.focus.calledOnce.should.be.true
+      })
+
+      it('selects the next item on a next key event', function() {
+        var event = createEvent('ArrowDown')
+        dropdownElement.firstChild.dispatchEvent(event).should.be.true
+        dropdownElement.style.display.should.eql('block')
+        event.preventDefault.called.should.be.true
+        dropdownElement.childNodes[1].focus.calledOnce.should.be.true
+      })
+
+      it('selects the first when the last gets a next event', function() {
+        var event = createEvent('ArrowDown')
+        dropdownElement.lastChild.dispatchEvent(event).should.be.true
+        event.preventDefault.called.should.be.true
+        dropdownElement.firstChild.focus.calledOnce.should.be.true
+      })
+
+      it('selects the previous item on a previous key event', function() {
+        var event = createEvent('ArrowUp')
+        dropdownElement.childNodes[1].dispatchEvent(event).should.be.true
+        dropdownElement.style.display.should.eql('block')
+        event.preventDefault.called.should.be.true
+        dropdownElement.firstChild.focus.calledOnce.should.be.true
+      })
+
+      it('selects the last when the first gets a previous event', function() {
+        var event = createEvent('ArrowUp')
+        dropdownElement.firstChild.dispatchEvent(event).should.be.true
+        event.preventDefault.called.should.be.true
+        dropdownElement.lastChild.focus.calledOnce.should.be.true
       })
     })
   })
