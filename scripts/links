@@ -1,0 +1,13 @@
+#! /usr/local/env bash
+#
+# Fetch all the links belonging to the specified owner
+#
+# Usage:
+#   {{go}} {{cmd}} <owner-id>
+#
+# Where:
+#   <owner-id>  the owner's username (usually an email address)
+
+while IFS= read -r link; do
+  printf '%s\n' "$link"
+done < <(redis-cli --eval scripts/lib/lua/list-links.lua "$1" ,)

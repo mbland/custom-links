@@ -1,0 +1,15 @@
+#! /usr/local/env bash
+#
+# Transfer the specified links to the specified user
+#
+# Usage:
+#   {{go}} {{cmd}} <owner-id> <link> [<link>...]
+#
+# Where:
+#   <owner-id>  the new owner's username (usually an email address)
+#   <link>      a link to transfer from the previous owner to the new owner
+
+while IFS= read -r line; do
+  printf '%s\n' "$line"
+done < <(redis-cli --eval scripts/lib/lua/transfer-ownership.lua "$1" , \
+  "${@:2}")
